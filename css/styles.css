@@ -17,7 +17,8 @@ body {
   color: #111;
 }
 main {
-  max-width: 980px;
+  /* Wider page so conversation tree and details have more room */
+  max-width: 1400px;
   margin: 28px auto;
   padding: 20px;
   background: var(--panel);
@@ -33,6 +34,28 @@ h1 {
   gap: 8px;
   align-items: center;
   margin-bottom: 12px;
+}
+
+/* Conversations tree styles */
+#conversations { max-height: 520px; overflow: auto; border:1px solid #f0f0f0; padding:8px; border-radius:6px; background:#fff }
+.tree { list-style: none; margin: 0; padding: 0; font-size:14px }
+.tree .node { margin: 2px 0; }
+.tree .label { display:flex; align-items:center; gap:8px; cursor: pointer; color:#111 }
+.tree .toggle { width:16px; display:inline-block; text-align:center; color:var(--accent); font-weight:700 }
+.tree .children { margin-left: 12px; display: none }
+.tree .expanded > .children { display: block }
+.tree .leaf .label { padding-left: 6px; color:#222 }
+.tree .leaf .label:hover { text-decoration: underline }
+
+/* Highlighted conversation selection */
+.tree .label.selected {
+  font-weight: bold !important;
+  color: var(--accent) !important;
+  background-color: #f0f8ff !important;
+  padding: 4px !important;
+  border-radius: 4px !important;
+  display: inline-block !important;
+  min-width: fit-content;
 }
 #query textarea {
   width: 100%;
@@ -86,6 +109,39 @@ footer {
   color: var(--muted);
   font-size: 13px;
 }
+
+/* Chat-style navigation log in the Entries column */
+#chatLog {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #eef2f6;
+  background: #ffffff;
+  padding: 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+/* Individual chat entry */
+.chat-item {
+  margin: 6px 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f4f8fb;
+  box-shadow: 0 1px 0 rgba(16,24,40,0.02);
+}
+.chat-item .chat-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--accent);
+}
+.chat-item .chat-text {
+  color: #222;
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow: auto;
+}
+
 @media (max-width: 600px) {
   main {
     margin: 8px;
