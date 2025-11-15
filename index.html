@@ -15,29 +15,52 @@
       <h1>Disco Browser</h1>
 
       <section id="controls">
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display: flex; gap: 8px; align-items: center">
           <label for="search">Search lines:</label>
-          <input id="search" placeholder="search text..." style="width:320px;padding:6px;border-radius:6px;border:1px solid #ddd">
+          <input
+            id="search"
+            placeholder="search text..."
+            style="
+              width: 320px;
+              padding: 6px;
+              border-radius: 6px;
+              border: 1px solid #ddd;
+            "
+          />
           <button id="searchBtn">Search</button>
-          <div style="margin-left:12px;color:#444;font-size:13px">Inspired by <a href="https://fayde.co.uk/">FAYDE Playback Experiment: On-Air</a></div>
+          <div style="margin-left: 12px; color: #444; font-size: 13px">
+            Inspired by
+            <a href="https://fayde.co.uk/">FAYDE Playback Experiment: On-Air</a>
+          </div>
         </div>
       </section>
 
-      <section id="browser" style="display:flex;gap:12px;margin-top:18px">
-        <div id="conversations" style="flex:1.4;min-width:320px">
+      <section id="browser" style="display: flex; gap: 12px; margin-top: 18px">
+        <div id="conversations" style="flex: 1.4; min-width: 320px">
           <h3>Conversations</h3>
           <div id="convoList">(loading...)</div>
         </div>
-        <div id="entries" style="flex:1.8;min-width:420px">
+        <div id="entries" style="flex: 1.8; min-width: 420px">
           <h3>Entries</h3>
-          <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-            <button id="backBtn" style="padding:6px 12px;font-size:13px">← Back</button>
-            <span id="backStatus" style="font-size:13px;color:#666"></span>
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              margin-bottom: 8px;
+              align-items: center;
+            "
+          >
+            <button id="backBtn" style="padding: 6px 12px; font-size: 13px">
+              ← Back
+            </button>
+            <span id="backStatus" style="font-size: 13px; color: #666"></span>
           </div>
-          <div id="chatLog" style="margin-bottom:8px">(navigation log)</div>
+          <div id="chatLog" style="margin-bottom: 8px">(navigation log)</div>
+
+          <h4 id="entryListHeader">Next Dialogue Options:</h4>
           <div id="entryList">(select a conversation)</div>
         </div>
-        <div id="details" style="flex:2;min-width:420px">
+        <div id="details" style="flex: 2; min-width: 420px">
           <h3>Details</h3>
           <div id="entryDetails">(select an entry)</div>
         </div>
