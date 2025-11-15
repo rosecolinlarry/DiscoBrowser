@@ -226,6 +226,28 @@
   }
 
   // --- Dialogue browser features ---
+  async function isDeadEndConversation(convoID) {
+    if (!db) return false;
+    // Check if conversation only contains START and input entries
+    const q = `SELECT id, title FROM dentries WHERE conversationid='${convoID}' ORDER BY id;`;
+    try {
+      const res = db.exec(q);
+      if (!res || res.length === 0) return false;
+      const rows = res[0].values;
+      
+      // If only 2 entries, check if they are START and input
+      if (rows.length === 2) {
+        const titles = rows.map(r => (r[1] || '').toLowerCase()).sort();
+        if (titles[0] === 'input' && titles[1] === 'start') {
+          return true; // It's a dead end
+        }
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   async function loadConversations() {
     if (!db) return;
     const res = db.exec("SELECT id, title FROM dialogues ORDER BY title LIMIT 500;");
@@ -234,7 +256,23 @@
       convoListEl.textContent = '(no conversations found)';
       return;
     }
-    const rows = res[0].values;
+    let rows = res[0].values;
+
+    // Filter out dead-end conversations (only START and input)
+    const filtered = [];
+    for (const r of rows) {
+      const convoID = r[0];
+      const isDeadEnd = await isDeadEndConversation(convoID);
+      if (!isDeadEnd) {
+        filtered.push(r);
+      }
+    }
+    rows = filtered;
+
+    if (rows.length === 0) {
+      convoListEl.textContent = '(all conversations are dead-ends or empty)';
+      return;
+    }
 
     // Build a hierarchical tree from titles split by '/'
     const root = { children: Object.create(null) };
@@ -398,7 +436,19 @@
       return;
     }
     const rows = res[0].values;
-    rows.forEach(r => {
+    
+    // Filter out START entries (they just lead to input anyway)
+    const filteredRows = rows.filter(r => {
+      const title = (r[1] || '').toLowerCase();
+      return title !== 'start';
+    });
+    
+    if (filteredRows.length === 0) {
+      entryListEl.textContent = '(no meaningful entries - only START)';
+      return;
+    }
+    
+    filteredRows.forEach(r => {
       const id = r[0];
       const title = r[1] || '';
       const text = r[2] || '';
@@ -464,6 +514,19 @@
     }
   }
 
+  function jumpToHistoryPoint(historyIndex) {
+    if (historyIndex < 0 || historyIndex >= navigationHistory.length) return;
+    
+    // Truncate history to this point (remove everything after)
+    navigationHistory = navigationHistory.slice(0, historyIndex + 1);
+    
+    // Navigate to this point
+    const target = navigationHistory[historyIndex];
+    if (target && target.entryID) {
+      navigateToEntry(target.convoID, target.entryID, false);
+    }
+  }
+
   async function navigateToEntry(convoID, entryID, addToHistory = true) {
     if (!db) return;
     // Fetch the entry details
@@ -489,6 +552,11 @@
       }
       const item = document.createElement('div');
       item.className = 'chat-item';
+      item.style.cursor = 'pointer';
+      
+      // Store the history index so we can jump back to this point
+      const historyIndex = navigationHistory.length - 1;
+      
       const titleDiv = document.createElement('div');
       titleDiv.className = 'chat-title';
       titleDiv.textContent = `${title || '(no title)'} — #${id}`;
@@ -497,9 +565,34 @@
       textDiv.textContent = dialoguetext || '';
       item.appendChild(titleDiv);
       item.appendChild(textDiv);
+      
+      // Add click handler to jump back to this point in history
+      // But mark this as the current item (will be updated as we navigate)
+      item.dataset.historyIndex = historyIndex;
+      item.addEventListener('click', function() {
+        // Don't allow clicking the current (last) item
+        if (this.dataset.isCurrent === 'true') {
+          return;
+        }
+        jumpToHistoryPoint(historyIndex);
+      });
+      // item.addEventListener('click', () => {
+      //   jumpToHistoryPoint(historyIndex);
+      // });
+      
       chatLogEl.appendChild(item);
       // Scroll to bottom
       chatLogEl.scrollTop = chatLogEl.scrollHeight;
+      // Mark all previous items as not current, mark this as current
+      const allItems = chatLogEl.querySelectorAll('.chat-item');
+      allItems.forEach(el => {
+        el.dataset.isCurrent = 'false';
+        el.style.opacity = '1';
+        el.style.cursor = 'pointer';
+      });
+      item.dataset.isCurrent = 'true';
+      item.style.opacity = '0.7';
+      item.style.cursor = 'default';
     }
 
     // Show details in details pane (reuse existing function if present)
@@ -534,6 +627,12 @@
           title = d[1] || title;
           snippet = d[2] || '';
         }
+        
+        // Skip START entries - they just lead to the next thing anyway
+        if (title.toLowerCase() === 'start') {
+          continue;
+        }
+        
         const opt = document.createElement('div');
         opt.className = 'entry-item';
         opt.style.cursor = 'pointer';
@@ -541,6 +640,11 @@
         // Clicking navigates to that entry (appends to chat and loads its children)
         opt.addEventListener('click', () => navigateToEntry(destConvo, destId));
         entryListEl.appendChild(opt);
+      }
+      
+      // If all options were filtered out, show no options
+      if (entryListEl.children.length === 0) {
+        entryListEl.textContent = '(no further options)';
       }
     } catch (e) {
       console.error('Error loading child links', e);

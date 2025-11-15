@@ -129,6 +129,12 @@ footer {
   border-radius: 8px;
   background: #f4f8fb;
   box-shadow: 0 1px 0 rgba(16,24,40,0.02);
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.chat-item:hover {
+  background-color: #e8f0f8;
+  box-shadow: 0 2px 6px rgba(34,106,168,0.15);
 }
 .chat-item .chat-title {
   font-weight: 600;
@@ -147,4 +153,12 @@ footer {
     margin: 8px;
     padding: 12px;
   }
+}
+.chat-item.current {
+  opacity: 0.7;
+  cursor: default !important;
+}
+.chat-item.current:hover {
+  background-color: #f4f8fb;
+  box-shadow: 0 1px 0 rgba(16,24,40,0.02);
 }
