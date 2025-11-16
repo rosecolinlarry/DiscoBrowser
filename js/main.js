@@ -1,10 +1,4 @@
-// Ensure sql-wasm.js is available; if it's not already loaded via a <script> tag,
-// dynamically load it from the CDN so this will still work on a plain GitHub Pages site.
 (async () => {
-  // If initSqlJs isn't present (script tag missing or blocked), try to load a
-  // vendored copy first (./vendor/sql-wasm), then node_modules, and finally CDN.
-  // This lets us vendor the required files for GitHub Pages while still using
-  // node_modules during local development.
   let useVendor = false;
   let useLocalSqlJs = false;
   if (typeof initSqlJs === "undefined") {
@@ -18,19 +12,16 @@
         document.head.appendChild(s);
       });
 
-    // Try vendored copy first (this is what we'll commit into the repo)
     try {
       await loadScript("./vendor/sql-wasm/sql-wasm.js");
       useVendor = true;
       console.info("Loaded vendored sql-wasm.js from ./vendor/sql-wasm/");
     } catch (_) {
-      // Vendored not present; try node_modules (local dev)
       try {
         await loadScript("./node_modules/sql.js/dist/sql-wasm.js");
         useLocalSqlJs = true;
         console.info("Loaded local sql-wasm.js from node_modules");
       } catch (err) {
-        // Fall back to CDN for hosted sites
         console.warn("Local sql-wasm.js not found; falling back to CDN");
         await loadScript(
           "https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"
@@ -50,22 +41,6 @@
         : `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`,
   });
 
-  const searchInput = document.getElementById("search");
-  const searchBtn = document.getElementById("searchBtn");
-  const convoListEl = document.getElementById("convoList");
-  const entryListEl = document.getElementById("entryList");
-  const entryListHeaderEl = document.getElementById("entryListHeader");
-  const entryDetailsEl = document.getElementById("entryDetails");
-  const chatLogEl = document.getElementById("chatLog");
-  const backBtn = document.getElementById("backBtn");
-  const backStatus = document.getElementById("backStatus");
-  // Note: UI for running arbitrary SQL and downloading the DB has been removed.
-
-  let db = null;
-  let currentConversationId = null;
-  let selectedConversationNode = null;
-  let navigationHistory = []; // Track navigation path for back button
-
   async function loadDatabase(path = "db/discobase.sqlite3") {
     try {
       const res = await fetch(path);
@@ -77,16 +52,26 @@
     }
   }
 
-  // The clickable UI for executing arbitrary SQL or exporting the DB has been removed
-  // to prevent exposing the full in-memory DB or permitting arbitrary statements.
+  const searchInput = document.getElementById("search");
+  const searchBtn = document.getElementById("searchBtn");
+  const convoListEl = document.getElementById("convoList");
+  const entryListEl = document.getElementById("entryList");
+  const entryListHeaderEl = document.getElementById("entryListHeader");
+  const entryDetailsEl = document.getElementById("entryDetails");
+  const entryOverviewEl = document.getElementById("entryOverview");
+  const chatLogEl = document.getElementById("chatLog");
+  const backBtn = document.getElementById("backBtn");
+  const backStatus = document.getElementById("backStatus");
+  const moreDetailsEl = document.getElementById("moreDetails");
 
-  // Load the database (path points to the repo's db folder so it works on GitHub Pages)
+  let db = null;
+  let navigationHistory = [];
+  let currentConvoId = null;
+  let currentEntryId = null;
+
   await loadDatabase("db/discobase.sqlite3");
 
-  // After loading, show a list of tables/views as a helpful default view.
-  // This is non-destructive and should work on any SQLite file.
   if (db) {
-    // initialize dialogue browser lists
     try {
       await loadConversations();
     } catch (e) {
@@ -98,7 +83,10 @@
   async function isDeadEndConversation(convoID) {
     if (!db) return false;
     // Check if conversation only contains START and input entries
-    const q = `SELECT id, title FROM dentries WHERE conversationid='${convoID}' ORDER BY id;`;
+    const q = `SELECT id, title 
+                FROM dentries 
+                WHERE conversationid='${convoID}' 
+                ORDER BY id;`;
     try {
       const res = db.exec(q);
       if (!res || res.length === 0) return false;
@@ -119,9 +107,10 @@
 
   async function loadConversations() {
     if (!db) return;
-    const res = db.exec(
-      "SELECT id, title FROM dialogues ORDER BY title LIMIT 500;"
-    );
+    const q = `SELECT id, title 
+                FROM dialogues 
+                ORDER BY title LIMIT 500;`;
+    const res = db.exec(q);
     convoListEl.innerHTML = "";
     if (!res || res.length === 0) {
       convoListEl.textContent = "(no conversations found)";
@@ -317,7 +306,7 @@
                   ORDER BY id 
                   LIMIT 1000;`;
     const res = db.exec(q);
-    entryListHeaderEl.textContent = "Next Dialogue Options"
+    entryListHeaderEl.textContent = "Next Dialogue Options";
     entryListEl.innerHTML = "";
     if (!res || res.length === 0) {
       entryListEl.textContent = "(no entries)";
@@ -340,14 +329,11 @@
       const id = r[0];
       const title = r[1] || "";
       const text = r[2] || "";
-      const actor = r[3];
+      const actor = r[3]; // Actor Id
       const el = document.createElement("div");
       el.className = "entry-item";
       el.style.cursor = "pointer";
-      el.innerHTML = `<strong>${id}</strong> ${title} <div style="color:#666">${text.substring(
-        0,
-        200
-      )}</div>`;
+      el.innerHTML = `<strong>${id}</strong> ${title} <div style="color:#666">${text}</div>`;
       // Navigation click: navigate into this entry (append to chat, show details, load next options)
       el.addEventListener("click", () => navigateToEntry(convoID, id));
       entryListEl.appendChild(el);
@@ -355,7 +341,6 @@
   }
 
   function resetNavigation(convoID) {
-    currentConversationId = convoID;
     navigationHistory = [{ convoID, entryID: null }]; // Start fresh for this conversation
     if (chatLogEl) {
       chatLogEl.innerHTML = ""; // clear log
@@ -425,10 +410,11 @@
   async function navigateToEntry(convoID, entryID, addToHistory = true) {
     if (!db) return;
     // Fetch the entry details
-    const q = `SELECT id, title, dialoguetext, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass 
-                FROM dentries 
-                WHERE conversationid='${convoID}' 
-                AND id='${entryID}';`;
+    const q = `
+      SELECT id, title, dialoguetext, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass 
+        FROM dentries 
+        WHERE conversationid='${convoID}' 
+        AND id='${entryID}';`;
     const res = db.exec(q);
     if (!res || res.length === 0) {
       console.warn("Entry not found", convoID, entryID);
@@ -478,9 +464,6 @@
         }
         jumpToHistoryPoint(historyIndex);
       });
-      // item.addEventListener('click', () => {
-      //   jumpToHistoryPoint(historyIndex);
-      // });
 
       chatLogEl.appendChild(item);
       // Scroll to bottom
@@ -495,20 +478,42 @@
       item.dataset.isCurrent = "true";
       item.style.opacity = "0.7";
       item.style.cursor = "default";
-    }
 
-    // Show details in details pane (reuse existing function if present)
+      // Create the text showing the current dialogue
+      entryOverviewEl.innerHTML = "";
+      entryOverviewEl.className = "entry-item current-item";
+      entryOverviewEl.style.cursor = "pointer";
+      entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${parseSpeakerFromTitle(title)}</strong></div><div class="dialogue-text">${
+        dialoguetext || "<i>No dialogue.</i>"
+      }</div>`;
+    }
+    currentConvoId = convoID;
+    currentEntryId = entryID;
     try {
       await showEntryDetails(convoID, entryID);
     } catch (e) {
       console.warn("Could not show details", e);
     }
 
+    function parseSpeakerFromTitle(title) {
+      if(!title) return;
+      let splitTitle = title.split(":")
+      if(splitTitle.length > 1) {
+        return splitTitle[0].trim();
+      }
+      return title;
+    }
+
     // Load children (outgoing links) — using schema columns origin/destination
     // Find rows in dlinks where originconversationid/conversationid and origindialogueid == entryID
     try {
-      const linkQ = `SELECT destinationconversationid as destConvo, destinationdialogueid as destId FROM dlinks WHERE originconversationid='${convoID}' AND origindialogueid='${entryID}';`;
+      const linkQ = `
+        SELECT destinationconversationid as destConvo, destinationdialogueid as destId 
+          FROM dlinks 
+          WHERE originconversationid='${convoID}' 
+          AND origindialogueid='${entryID}';`;
       const linkRes = db.exec(linkQ);
+      entryListHeaderEl.textContent = "Next Dialogue Options";
       entryListEl.innerHTML = "";
       if (!linkRes || linkRes.length === 0 || linkRes[0].values.length === 0) {
         entryListEl.textContent = "(no further options)";
@@ -520,7 +525,11 @@
         const destConvo = lr[0];
         const destId = lr[1];
         // Query the dentries for the destination line (fetch text/title)
-        const destQ = `SELECT id, title, dialoguetext FROM dentries WHERE conversationid='${destConvo}' AND id='${destId}' LIMIT 1;`;
+        const destQ = `SELECT id, title, dialoguetext 
+                          FROM dentries 
+                          WHERE conversationid='${destConvo}' 
+                          AND id='${destId}' 
+                          LIMIT 1;`;
         const destRes = db.exec(destQ);
         let title = `(line ${destConvo}:${destId})`;
         let snippet = "";
@@ -540,7 +549,7 @@
         opt.style.cursor = "pointer";
         opt.innerHTML = `<strong>${destConvo}:${destId}</strong> ${title} <div style="color:#666">${snippet.substring(
           0,
-          200
+          500
         )}</div>`;
         // Clicking navigates to that entry (appends to chat and loads its children)
         opt.addEventListener("click", () => navigateToEntry(destConvo, destId));
@@ -559,8 +568,18 @@
     updateBackButtonState();
   }
 
+  function getDetailHtml(label, text, alternateText = null, id = null) {
+    let content = text || "";
+    if (id) {
+      content += ` -- #${id}`;
+    }
+    return `<strong>${
+      label || alternateText || ""
+    }</strong><span style="color:#333; margin-left: 4px;">${content}</span>`;
+  }
+
   async function showEntryDetails(convoID, entryID) {
-    if (!db) return;
+    if (!db || !moreDetailsEl.open) return;
     const q = `SELECT dentries.id, dentries.title, dentries.dialoguetext, dentries.actor, 
                       actors.name as actor_name, dentries.conversationid, dentries.hascheck, 
                       dentries.hasalts, dentries.sequence, dentries.conditionstring, 
@@ -571,6 +590,7 @@
                   AND dentries.id='${entryID}';`;
     const res = db.exec(q);
     if (!res || res.length === 0) {
+      entryOverviewEl.textContent = "(not found)";
       entryDetailsEl.textContent = "(not found)";
       return;
     }
@@ -590,11 +610,23 @@
       difficultypass,
     ] = r;
     const container = document.createElement("div");
-    container.innerHTML = `<h4>${
-      title || "(no title)"
-    } — #${id}</h4><p><strong>Actor:</strong> ${
-      actor_name || actorid
-    }</p><p>${dialoguetext}</p>`;
+
+    try {
+      const convoTitleDiv = document.createElement("div");
+      convoTitleDiv.innerHTML = getDetailHtml("Title", title, "(no title)", id);
+      container.appendChild(convoTitleDiv);
+
+      const actorDiv = document.createElement("div");
+      actorDiv.innerHTML = getDetailHtml(
+        "Actor",
+        actor_name,
+        "(no actor)",
+        actorid
+      );
+      container.appendChild(actorDiv);
+    } catch (e) {
+      /* ignore */
+    }
 
     // alternates
     if (hasalts > 0) {
@@ -607,7 +639,7 @@
         if (altRes && altRes.length) {
           const alts = altRes[0].values;
           const altsDiv = document.createElement("div");
-          altsDiv.innerHTML = "<h5>Alternates</h5>";
+          altsDiv.innerHTML = "<strong>Alternates</strong>";
           alts.forEach((a) => {
             altsDiv.innerHTML += `<div style="color:#333">${a[0]} <small style="color:#666">(replaces: ${a[1]})</small></div>`;
           });
@@ -629,7 +661,7 @@
         if (chkRes && chkRes.length) {
           const chks = chkRes[0];
           const chkDiv = document.createElement("div");
-          chkDiv.innerHTML = "<h5>Checks</h5>";
+          chkDiv.innerHTML = "<strong>Checks</strong>";
           chkDiv.innerHTML += `<pre style="white-space:pre-wrap;color:#333">${JSON.stringify(
             chks,
             null,
@@ -644,8 +676,7 @@
 
     try {
       const convoIdDiv = document.createElement("div");
-      convoIdDiv.innerHTML = `<h5>Conversation Id</h5>
-      <div style="color:#333">${conversationid}</div>`;
+      convoIdDiv.innerHTML = getDetailHtml("Converasation Id", conversationid);
       container.appendChild(convoIdDiv);
     } catch (e) {
       /* ignore */
@@ -657,12 +688,13 @@
       const parentsQ = `SELECT originconversationid as oc, origindialogueid as oi, priority, isConnector 
                           FROM dlinks 
                           WHERE destinationconversationid='${convoID}' 
-                          AND destinationdialogueid='${entryID}';`;
+                          AND destinationdialogueid='${entryID}'
+                          ORDER BY priority DESC;`;
       const parentsRes = db.exec(parentsQ);
       if (parentsRes && parentsRes.length && parentsRes[0].values.length) {
         const parents = parentsRes[0].values;
         const parentsDiv = document.createElement("div");
-        parentsDiv.innerHTML = "<h5>Parents</h5>";
+        parentsDiv.innerHTML = "<strong>Parents</strong>";
         parents.forEach((p) => {
           parentsDiv.innerHTML += `<div style="color:#333">${p[0]}:${p[1]} (priority:${p[2]} connector:${p[3]})</div>`;
         });
@@ -673,12 +705,13 @@
       const childrenQ = `SELECT destinationconversationid as dc, destinationdialogueid as di, priority, isConnector 
                             FROM dlinks 
                             WHERE originconversationid='${convoID}' 
-                            AND origindialogueid='${entryID}';`;
+                            AND origindialogueid='${entryID}
+                            ORDER BY priority DESC';`;
       const childrenRes = db.exec(childrenQ);
       if (childrenRes && childrenRes.length && childrenRes[0].values.length) {
         const children = childrenRes[0].values;
         const childrenDiv = document.createElement("div");
-        childrenDiv.innerHTML = "<h5>Children</h5>";
+        childrenDiv.innerHTML = "<strong>Children</strong>";
         children.forEach((c) => {
           childrenDiv.innerHTML += `<div style="color:#333">${c[0]}:${c[1]} (priority:${c[2]} connector:${c[3]})</div>`;
         });
@@ -690,7 +723,12 @@
 
     // extra info
     const exDiv = document.createElement("div");
-    exDiv.innerHTML = `<h5>Meta</h5><div>Sequence: ${sequence}</div><div>Condition: ${conditionstring}</div><div>Userscript: ${userscript}</div><div>Difficulty: ${difficultypass}</div>`;
+    exDiv.innerHTML = `
+      <strong>Meta</strong>
+        <div>Sequence: ${sequence}</div>
+        <div>Condition: ${conditionstring}</div>
+        <div>Userscript: ${userscript}</div>
+        <div>Difficulty: ${difficultypass}</div>`;
     container.appendChild(exDiv);
 
     entryDetailsEl.innerHTML = "";
@@ -706,7 +744,7 @@
                     OR title LIKE '%${safe}%' LIMIT 500;`;
     try {
       const res = db.exec(sql);
-      entryListHeaderEl.textContent = "Search Results"
+      entryListHeaderEl.textContent = "Search Results";
       entryListEl.innerHTML = "";
       if (!res || res.length === 0) {
         entryListEl.textContent = "(no matches)";
@@ -718,7 +756,7 @@
         div.style.cursor = "pointer";
         div.innerHTML = `<strong>${convoid}:${id}</strong> ${
           title || ""
-        } <div style="color:#666">${text.substring(0, 200)}</div>`;
+        } <div style="color:#666">${text}</div>`;
         div.addEventListener("click", () => {
           // When a search result is clicked, treat it like navigating to that entry
           resetNavigation(convoid);
@@ -742,14 +780,6 @@
       if (ev.key === "Enter") searchDialogues(searchInput.value);
     });
 
-  if (backBtn) {
-    backBtn.addEventListener("click", () => {
-      goBack();
-      updateBackButtonState();
-    });
-    updateBackButtonState(); // Initialize state
-  }
-
   function updateBackButtonState() {
     if (backBtn) {
       backBtn.disabled = navigationHistory.length <= 1;
@@ -760,5 +790,23 @@
             : "";
       }
     }
+  }
+
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      goBack();
+      updateBackButtonState();
+    });
+    updateBackButtonState(); // Initialize state
+  }
+
+  if (moreDetailsEl) {
+    moreDetailsEl.addEventListener("toggle", async function () {
+      if (moreDetailsEl.open && currentConvoId && currentEntryId) {
+        await showEntryDetails(currentConvoId, currentEntryId);
+      } else {
+        return;
+      }
+    });
   }
 })();

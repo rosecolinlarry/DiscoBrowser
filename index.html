@@ -36,33 +36,48 @@
       </section>
 
       <section id="browser" style="display: flex; gap: 12px; margin-top: 18px">
-        <div id="conversations" style="flex: 1.4; min-width: 320px">
+        <div id="conversations">
           <h3>Conversations</h3>
           <div id="convoList">(loading...)</div>
         </div>
-        <div id="entries" style="flex: 1.8; min-width: 420px">
+        <div id="entries">
           <h3>Entries</h3>
-          <div
-            style="
-              display: flex;
-              gap: 8px;
-              margin-bottom: 8px;
-              align-items: center;
-            "
-          >
-            <button id="backBtn" style="padding: 6px 12px; font-size: 13px">
-              ← Back
-            </button>
-            <span id="backStatus" style="font-size: 13px; color: #666"></span>
+          <div>
+            <h4 id="entryOverviewHeader">Current</h4>
+            <div id="currentEntryContainer">
+              <div id="entryOverview">(select an entry)</div>
+              <details id="moreDetails">
+                <summary class="small-text">More Details</summary>
+                <div class="small-text" id="entryDetails">
+                  (select an entry)
+                </div>
+              </details>
+            </div>
           </div>
-          <div id="chatLog" style="margin-bottom: 8px">(navigation log)</div>
-
-          <h4 id="entryListHeader">Next Dialogue Options:</h4>
-          <div id="entryList">(select a conversation)</div>
+          <div>
+            <h4 id="entryListHeader">Next Dialogue Options:</h4>
+            <div id="entryList">(select a conversation)</div>
+          </div>
         </div>
-        <div id="details" style="flex: 2; min-width: 420px">
-          <h3>Details</h3>
-          <div id="entryDetails">(select an entry)</div>
+        <div id="history">
+          <div>
+            <h4>History</h4>
+            <div id="chatLog" style="margin-bottom: 8px">(navigation log)</div>
+            <div
+              style="
+                display: flex;
+                gap: 8px;
+                margin-bottom: 8px;
+                align-items: center;
+                justify-content: space-between;
+              "
+            >
+              <span id="backStatus" style="font-size: 13px; color: #666"></span>
+              <button id="backBtn" style="padding: 6px 12px; font-size: 13px">
+                Back
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
