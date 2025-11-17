@@ -198,29 +198,132 @@ footer {
 }
 
 #entryOverviewHeader {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  font-size: 16px;
 }
 
 #entryOverview {
-  font-size: large;
+  font-size: inherit;
+}
+
+/* Details section */
+#moreDetails {
+  margin-top: 8px;
+}
+
+#moreDetails summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  user-select: none;
+  outline: none;
+  padding: 4px 0;
+}
+
+#moreDetails summary:hover {
+  text-decoration: underline;
+}
+
+#moreDetails[open] summary {
+  margin-bottom: 8px;
+}
+
+#entryDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Meta info table */
+.details-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.details-table tr {
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.details-table tr:last-child {
+  border-bottom: none;
+}
+
+.details-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 6px 8px;
+  background-color: #f8f9fa;
+  width: 120px;
+}
+
+.details-table td {
+  padding: 6px 8px;
+  color: #333;
+  word-break: break-word;
+  max-width: 300px;
+}
+
+.details-table td code {
+  background: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+/* Section headers within details */
+.details-section-header {
+  font-weight: 600;
+  color: var(--accent);
+  margin-top: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 8px;
+  border-left: 2px solid #ddd;
+}
+
+.details-item {
+  color: #333;
+  font-size: 12px;
 }
 
 #currentEntryContainer {
-  border: 1px solid #e6e6e6;
-  padding: 6px 8px;
+  border: 2px solid var(--accent);
+  padding: 12px;
   text-align: left;
   font-size: 13px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+  box-shadow: 0 2px 8px rgba(34, 106, 168, 0.12);
+  margin-bottom: 12px;
 }
+
 .current-item {
-  .speaker {
-    color: var(--disco-orange);
-    font-weight: bolder;
-    margin-bottom: 4px;
-    text-transform: uppercase;
-  }
-  .dialogue-text {
-    margin-bottom: 4px;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.current-item .speaker {
+  color: var(--disco-orange);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.current-item .dialogue-text {
+  color: #222;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 @media (max-width: 600px) {

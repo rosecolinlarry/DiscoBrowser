@@ -639,10 +639,20 @@
         if (altRes && altRes.length) {
           const alts = altRes[0].values;
           const altsDiv = document.createElement("div");
-          altsDiv.innerHTML = "<strong>Alternates</strong>";
+          const altsHeader = document.createElement("div");
+          altsHeader.className = "details-section-header";
+          altsHeader.textContent = "Alternates";
+          altsDiv.appendChild(altsHeader);
+          
+          const altsList = document.createElement("div");
+          altsList.className = "details-list";
           alts.forEach((a) => {
-            altsDiv.innerHTML += `<div style="color:#333">${a[0]} <small style="color:#666">(replaces: ${a[1]})</small></div>`;
+            const item = document.createElement("div");
+            item.className = "details-item";
+            item.innerHTML = `${a[0]} <span style="color:#999; font-size:11px;">(replaces: ${a[1]})</span>`;
+            altsList.appendChild(item);
           });
+          altsDiv.appendChild(altsList);
           container.appendChild(altsDiv);
         }
       } catch (e) {
@@ -661,12 +671,22 @@
         if (chkRes && chkRes.length) {
           const chks = chkRes[0];
           const chkDiv = document.createElement("div");
-          chkDiv.innerHTML = "<strong>Checks</strong>";
-          chkDiv.innerHTML += `<pre style="white-space:pre-wrap;color:#333">${JSON.stringify(
-            chks,
-            null,
-            2
-          )}</pre>`;
+          const chkHeader = document.createElement("div");
+          chkHeader.className = "details-section-header";
+          chkHeader.textContent = "Checks";
+          chkDiv.appendChild(chkHeader);
+          
+          const chkPre = document.createElement("pre");
+          chkPre.className = "details-item";
+          chkPre.style.whiteSpace = "pre-wrap";
+          chkPre.style.backgroundColor = "#f5f5f5";
+          chkPre.style.padding = "8px";
+          chkPre.style.borderRadius = "4px";
+          chkPre.style.borderLeft = "2px solid #ddd";
+          chkPre.style.overflowX = "auto";
+          chkPre.style.fontSize = "11px";
+          chkPre.textContent = JSON.stringify(chks, null, 2);
+          chkDiv.appendChild(chkPre);
           container.appendChild(chkDiv);
         }
       } catch (e) {
@@ -694,10 +714,20 @@
       if (parentsRes && parentsRes.length && parentsRes[0].values.length) {
         const parents = parentsRes[0].values;
         const parentsDiv = document.createElement("div");
-        parentsDiv.innerHTML = "<strong>Parents</strong>";
+        const parentsHeader = document.createElement("div");
+        parentsHeader.className = "details-section-header";
+        parentsHeader.textContent = "Parents";
+        parentsDiv.appendChild(parentsHeader);
+        
+        const parentsList = document.createElement("div");
+        parentsList.className = "details-list";
         parents.forEach((p) => {
-          parentsDiv.innerHTML += `<div style="color:#333">${p[0]}:${p[1]} (priority:${p[2]} connector:${p[3]})</div>`;
+          const item = document.createElement("div");
+          item.className = "details-item";
+          item.textContent = `${p[0]}:${p[1]} (priority: ${p[2]}, connector: ${p[3]})`;
+          parentsList.appendChild(item);
         });
+        parentsDiv.appendChild(parentsList);
         container.appendChild(parentsDiv);
       }
 
@@ -711,24 +741,55 @@
       if (childrenRes && childrenRes.length && childrenRes[0].values.length) {
         const children = childrenRes[0].values;
         const childrenDiv = document.createElement("div");
-        childrenDiv.innerHTML = "<strong>Children</strong>";
+        const childrenHeader = document.createElement("div");
+        childrenHeader.className = "details-section-header";
+        childrenHeader.textContent = "Children";
+        childrenDiv.appendChild(childrenHeader);
+        
+        const childrenList = document.createElement("div");
+        childrenList.className = "details-list";
         children.forEach((c) => {
-          childrenDiv.innerHTML += `<div style="color:#333">${c[0]}:${c[1]} (priority:${c[2]} connector:${c[3]})</div>`;
+          const item = document.createElement("div");
+          item.className = "details-item";
+          item.textContent = `${c[0]}:${c[1]} (priority: ${c[2]}, connector: ${c[3]})`;
+          childrenList.appendChild(item);
         });
+        childrenDiv.appendChild(childrenList);
         container.appendChild(childrenDiv);
       }
     } catch (e) {
       /* ignore */
     }
 
-    // extra info
+    // extra info in a table
     const exDiv = document.createElement("div");
-    exDiv.innerHTML = `
-      <strong>Meta</strong>
-        <div>Sequence: ${sequence}</div>
-        <div>Condition: ${conditionstring}</div>
-        <div>Userscript: ${userscript}</div>
-        <div>Difficulty: ${difficultypass}</div>`;
+    const metaHeader = document.createElement("div");
+    metaHeader.className = "details-section-header";
+    metaHeader.textContent = "Meta";
+    exDiv.appendChild(metaHeader);
+
+    const table = document.createElement("table");
+    table.className = "details-table";
+    
+    const rows = [
+      ["Sequence", sequence || "(none)"],
+      ["Condition", conditionstring || "(none)"],
+      ["Userscript", userscript || "(none)"],
+      ["Difficulty", difficultypass || "(none)"]
+    ];
+    
+    rows.forEach(([label, value]) => {
+      const tr = document.createElement("tr");
+      const th = document.createElement("th");
+      th.textContent = label;
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(th);
+      tr.appendChild(td);
+      table.appendChild(tr);
+    });
+    
+    exDiv.appendChild(table);
     container.appendChild(exDiv);
 
     entryDetailsEl.innerHTML = "";
