@@ -508,3 +508,45 @@ a:hover {
   color: #5fa3d8;
   text-decoration: underline;
 }
+
+/* Actor filter dropdown */
+#actorFilter {
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#actorFilter:hover {
+  border-color: var(--accent);
+}
+
+#actorFilter:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(34, 106, 168, 0.3);
+}
+
+/* Loading spinner */
+.search-loader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(34, 106, 168, 0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

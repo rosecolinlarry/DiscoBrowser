@@ -54,6 +54,8 @@
 
   const searchInput = document.getElementById("search");
   const searchBtn = document.getElementById("searchBtn");
+  const actorFilter = document.getElementById("actorFilter");
+  const searchLoader = document.getElementById("searchLoader");
   const convoListEl = document.getElementById("convoList");
   const entryListEl = document.getElementById("entryList");
   const entryListHeaderEl = document.getElementById("entryListHeader");
@@ -77,8 +79,30 @@
   if (db) {
     try {
       await loadConversations();
+      await populateActorDropdown();
     } catch (e) {
       console.warn("Could not load conversations", e);
+    }
+  }
+
+  // Load all actors and populate the dropdown
+  async function populateActorDropdown() {
+    if (!db) return;
+    try {
+      const q = `SELECT DISTINCT id, name FROM actors WHERE name IS NOT NULL AND name != '' ORDER BY name;`;
+      const res = db.exec(q);
+      if (res && res.length && res[0].values.length) {
+        const actors = res[0].values;
+        actors.forEach((actor) => {
+          const [id, name] = actor;
+          const option = document.createElement("option");
+          option.value = id;
+          option.textContent = name;
+          actorFilter.appendChild(option);
+        });
+      }
+    } catch (e) {
+      console.warn("Could not load actors", e);
     }
   }
 
@@ -850,12 +874,27 @@
 
   async function searchDialogues(q) {
     if (!db) return;
-    const safe = q.replace(/'/g, "''");
-    const sql = `SELECT conversationid, id, dialoguetext, title 
-                    FROM dentries 
-                    WHERE dialoguetext LIKE '%${safe}%' 
-                    OR title LIKE '%${safe}%';`;
+    
+    // Show loading indicator
+    if (searchLoader) {
+      searchLoader.style.display = "flex";
+    }
+    
     try {
+      const safe = q.replace(/'/g, "''");
+      let sql = `SELECT conversationid, id, dialoguetext, title, actor
+                      FROM dentries 
+                      WHERE (dialoguetext LIKE '%${safe}%' 
+                      OR title LIKE '%${safe}%')`;
+      
+      // Filter by actor if selected
+      const selectedActorId = actorFilter?.value;
+      if (selectedActorId) {
+        sql += ` AND actor='${selectedActorId}'`;
+      }
+      
+      sql += `;`;
+      
       const res = db.exec(sql);
       entryListHeaderEl.textContent = "Search Results";
       entryListEl.innerHTML = "";
@@ -870,7 +909,7 @@
         return;
       }
       res[0].values.forEach((r) => {
-        const [convoid, id, text, title] = r;
+        const [convoid, id, text, title, actor] = r;
         const div = document.createElement("div");
         div.className = "card-item";
         div.style.cursor = "pointer";
@@ -897,6 +936,11 @@
     } catch (e) {
       entryListEl.textContent = "Search error";
       console.error(e);
+    } finally {
+      // Hide loading indicator
+      if (searchLoader) {
+        searchLoader.style.display = "none";
+      }
     }
   }
 
@@ -908,6 +952,15 @@
     searchInput.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter") searchDialogues(searchInput.value);
     });
+  
+  // Also trigger search when actor filter changes
+  if (actorFilter) {
+    actorFilter.addEventListener("change", () => {
+      if (searchInput.value) {
+        searchDialogues(searchInput.value);
+      }
+    });
+  }
 
   function updateBackButtonState() {
     if (backBtn) {
