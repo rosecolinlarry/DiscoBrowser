@@ -15,78 +15,49 @@
       <h1>Disco Browser</h1>
 
       <section id="controls">
-        <div style="display: flex; gap: 8px; align-items: center">
+        <div id="search-bar">
           <label for="search">Search lines:</label>
-          <input
-            id="search"
-            placeholder="search text..."
-            style="
-              width: 320px;
-              padding: 6px;
-              border-radius: 6px;
-              border: 1px solid #ddd;
-            "
-          />
+          <input id="search" placeholder="search text..." />
           <button id="searchBtn">Search</button>
-          <div style="margin-left: 12px; color: #444; font-size: 13px">
-            Inspired by
-            <a href="https://fayde.co.uk/">FAYDE Playback Experiment: On-Air</a>
-          </div>
+        </div>
+        <div class="muted-text">
+          Inspired by
+          <a href="https://fayde.co.uk/">FAYDE Playback Experiment: On-Air</a>
         </div>
       </section>
 
-      <section id="browser" style="display: flex; gap: 12px; margin-top: 18px">
-        <div id="conversations">
+      <div id="browser">
+        <section id="conversations-section" class="section">
           <h3>Conversations</h3>
-          <div id="convoList">(loading...)</div>
-        </div>
-        <div id="entries">
-          <h3>Entries</h3>
-          <div>
-            <h4 id="entryOverviewHeader">Current</h4>
-            <div id="currentEntryContainer">
-              <div id="entryOverview">(select an entry)</div>
-              <details id="moreDetails">
-                <summary class="small-text">More Details</summary>
-                <div class="small-text" id="entryDetails">
-                  (select an entry)
-                </div>
-              </details>
-            </div>
+          <div id="convoList" class="scrolling-card">(loading...)</div>
+        </section>
+        <section id="entries-section" class="section">
+          <h3>Dialogue</h3>
+          <div id="currentEntryContainer" class="card">
+            <div id="entryOverview">(select an entry)</div>
+            <details id="moreDetails">
+              <summary>More Details</summary>
+              <div id="entryDetails">
+                (select an entry)
+              </div>
+            </details>
           </div>
-          <div>
+          <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;">
             <h4 id="entryListHeader">Next Dialogue Options:</h4>
-            <div id="entryList">(select a conversation)</div>
-          </div>
-        </div>
-        <div id="history">
-          <div>
-            <h4>History</h4>
-            <div id="chatLog" style="margin-bottom: 8px">(navigation log)</div>
-            <div
-              style="
-                display: flex;
-                gap: 8px;
-                margin-bottom: 8px;
-                align-items: center;
-                justify-content: space-between;
-              "
-            >
-              <span id="backStatus" style="font-size: 13px; color: #666"></span>
-              <button id="backBtn" style="padding: 6px 12px; font-size: 13px">
-                Back
-              </button>
+            <div id="entryList" class="scrolling-card">
+              (select a conversation)
             </div>
           </div>
-        </div>
-      </section>
-
-      <footer>
-        <small
-          >Uses sql.js (SQLite compiled to WASM). DB file:
-          <code>db/discobase.sqlite3</code></small
-        >
-      </footer>
+        </section>
+        <section id="history-section" class="section">
+          <h4>History</h4>
+          <div id="chatLog" class="scrolling-card">(navigation log)</div>
+          <div id="backButtonContainer">
+            <span id="backStatus" class="muted-text"></span>
+            <button id="backBtn">Back</button>
+          </div>
+        </section>
+      </div>
     </main>
 
     <script src="js/main.js"></script>

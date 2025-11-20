@@ -59,6 +59,9 @@
   const entryListHeaderEl = document.getElementById("entryListHeader");
   const entryDetailsEl = document.getElementById("entryDetails");
   const entryOverviewEl = document.getElementById("entryOverview");
+  const currentEntryContainerEl = document.getElementById(
+    "currentEntryContainer"
+  );
   const chatLogEl = document.getElementById("chatLog");
   const backBtn = document.getElementById("backBtn");
   const backStatus = document.getElementById("backStatus");
@@ -284,7 +287,7 @@
 
     // create top-level list
     const treeRoot = document.createElement("div");
-    treeRoot.className = "tree";
+    treeRoot.className = "tree scrolling-card";
     const topKeys = Object.keys(root.children).sort((a, b) =>
       a.localeCompare(b)
     );
@@ -298,6 +301,11 @@
     if (!db) return;
     // Reset navigation for this conversation (clear chat log)
     resetNavigation(convoID);
+
+    // Show the current entry container when loading dialogue options
+    if (currentEntryContainerEl) {
+      currentEntryContainerEl.style.display = "flex";
+    }
 
     // Load all entries for listing (user may pick a starting line)
     const q = `SELECT id, title, dialoguetext, actor 
@@ -331,9 +339,9 @@
       const text = r[2] || "";
       const actor = r[3]; // Actor Id
       const el = document.createElement("div");
-      el.className = "entry-item";
+      el.className = "card-item";
       el.style.cursor = "pointer";
-      el.innerHTML = `<strong>${id}</strong> ${title} <div style="color:#666">${text}</div>`;
+      el.innerHTML = getEntriesHtml(id, title, text);
       // Navigation click: navigate into this entry (append to chat, show details, load next options)
       el.addEventListener("click", () => navigateToEntry(convoID, id));
       entryListEl.appendChild(el);
@@ -345,8 +353,7 @@
     if (chatLogEl) {
       chatLogEl.innerHTML = ""; // clear log
       const hint = document.createElement("div");
-      hint.style.color = "#666";
-      hint.style.fontSize = "13px";
+      hint.className = "hint-text";
       hint.textContent = "(navigation log - click a line to begin)";
       chatLogEl.appendChild(hint);
     }
@@ -410,6 +417,12 @@
   async function navigateToEntry(convoID, entryID, addToHistory = true) {
     if (!db) return;
     // Fetch the entry details
+
+    // Open the current entry container
+    if (currentEntryContainerEl) {
+      currentEntryContainerEl.style.visibility = "visible";
+    }
+
     const q = `
       SELECT id, title, dialoguetext, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass 
         FROM dentries 
@@ -439,17 +452,17 @@
         chatLogEl.innerHTML = "";
       }
       const item = document.createElement("div");
-      item.className = "chat-item";
+      item.className = "card-item";
       item.style.cursor = "pointer";
 
       // Store the history index so we can jump back to this point
       const historyIndex = navigationHistory.length - 1;
 
       const titleDiv = document.createElement("div");
-      titleDiv.className = "chat-title";
+      titleDiv.className = "card-title";
       titleDiv.textContent = `${title || "(no title)"} — #${id}`;
       const textDiv = document.createElement("div");
-      textDiv.className = "chat-text";
+      textDiv.className = "card-text";
       textDiv.textContent = dialoguetext || "";
       item.appendChild(titleDiv);
       item.appendChild(textDiv);
@@ -469,7 +482,7 @@
       // Scroll to bottom
       chatLogEl.scrollTop = chatLogEl.scrollHeight;
       // Mark all previous items as not current, mark this as current
-      const allItems = chatLogEl.querySelectorAll(".chat-item");
+      const allItems = chatLogEl.querySelectorAll(".card-item");
       allItems.forEach((el) => {
         el.dataset.isCurrent = "false";
         el.style.opacity = "1";
@@ -483,12 +496,20 @@
       entryOverviewEl.innerHTML = "";
       entryOverviewEl.className = "entry-item current-item";
       entryOverviewEl.style.cursor = "pointer";
-      entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${parseSpeakerFromTitle(title)}</strong></div><div class="dialogue-text">${
+      entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${parseSpeakerFromTitle(
+        title
+      )}</strong></div><div class="dialogue-text">${
         dialoguetext || "<i>No dialogue.</i>"
       }</div>`;
     }
     currentConvoId = convoID;
     currentEntryId = entryID;
+
+    // // Open the more details section so showEntryDetails can populate it
+    // if (moreDetailsEl) {
+    //   moreDetailsEl.open = true;
+    // }
+
     try {
       await showEntryDetails(convoID, entryID);
     } catch (e) {
@@ -496,9 +517,9 @@
     }
 
     function parseSpeakerFromTitle(title) {
-      if(!title) return;
-      let splitTitle = title.split(":")
-      if(splitTitle.length > 1) {
+      if (!title) return;
+      let splitTitle = title.split(":");
+      if (splitTitle.length > 1) {
         return splitTitle[0].trim();
       }
       return title;
@@ -545,12 +566,10 @@
         }
 
         const opt = document.createElement("div");
-        opt.className = "entry-item";
+        opt.className = "card-item";
         opt.style.cursor = "pointer";
-        opt.innerHTML = `<strong>${destConvo}:${destId}</strong> ${title} <div style="color:#666">${snippet.substring(
-          0,
-          500
-        )}</div>`;
+        const id = `${destConvo}:${destId}`;
+        opt.innerHTML = getEntriesHtml(id, title, snippet.substring(0, 200));
         // Clicking navigates to that entry (appends to chat and loads its children)
         opt.addEventListener("click", () => navigateToEntry(destConvo, destId));
         entryListEl.appendChild(opt);
@@ -573,9 +592,16 @@
     if (id) {
       content += ` -- #${id}`;
     }
-    return `<strong>${
+    return `<strong class="details-section-header">${
       label || alternateText || ""
-    }</strong><span style="color:#333; margin-left: 4px;">${content}</span>`;
+    }</strong> <span class="details-item">${content}</span>`;
+  }
+
+  function getEntriesHtml(id, label, text) {
+    let content = text || "";
+    return `<strong class="card-title">${id}. ${
+      label || ""
+    }</strong> <span>${content}</span>`;
   }
 
   async function showEntryDetails(convoID, entryID) {
@@ -643,7 +669,7 @@
           altsHeader.className = "details-section-header";
           altsHeader.textContent = "Alternates";
           altsDiv.appendChild(altsHeader);
-          
+
           const altsList = document.createElement("div");
           altsList.className = "details-list";
           alts.forEach((a) => {
@@ -675,7 +701,7 @@
           chkHeader.className = "details-section-header";
           chkHeader.textContent = "Checks";
           chkDiv.appendChild(chkHeader);
-          
+
           const chkPre = document.createElement("pre");
           chkPre.className = "details-item";
           chkPre.style.whiteSpace = "pre-wrap";
@@ -718,7 +744,7 @@
         parentsHeader.className = "details-section-header";
         parentsHeader.textContent = "Parents";
         parentsDiv.appendChild(parentsHeader);
-        
+
         const parentsList = document.createElement("div");
         parentsList.className = "details-list";
         parents.forEach((p) => {
@@ -745,7 +771,7 @@
         childrenHeader.className = "details-section-header";
         childrenHeader.textContent = "Children";
         childrenDiv.appendChild(childrenHeader);
-        
+
         const childrenList = document.createElement("div");
         childrenList.className = "details-list";
         children.forEach((c) => {
@@ -770,14 +796,14 @@
 
     const table = document.createElement("table");
     table.className = "details-table";
-    
+
     const rows = [
       ["Sequence", sequence || "(none)"],
       ["Condition", conditionstring || "(none)"],
       ["Userscript", userscript || "(none)"],
-      ["Difficulty", difficultypass || "(none)"]
+      ["Difficulty", difficultypass || "(none)"],
     ];
-    
+
     rows.forEach(([label, value]) => {
       const tr = document.createElement("tr");
       const th = document.createElement("th");
@@ -788,7 +814,7 @@
       tr.appendChild(td);
       table.appendChild(tr);
     });
-    
+
     exDiv.appendChild(table);
     container.appendChild(exDiv);
 
@@ -807,6 +833,12 @@
       const res = db.exec(sql);
       entryListHeaderEl.textContent = "Search Results";
       entryListEl.innerHTML = "";
+
+      // Collapse the current entry container when searching
+      if (currentEntryContainerEl) {
+        currentEntryContainerEl.style.visibility = "collapse";
+      }
+
       if (!res || res.length === 0) {
         entryListEl.textContent = "(no matches)";
         return;
@@ -814,10 +846,20 @@
       res[0].values.forEach((r) => {
         const [convoid, id, text, title] = r;
         const div = document.createElement("div");
+        div.className = "card-item";
         div.style.cursor = "pointer";
-        div.innerHTML = `<strong>${convoid}:${id}</strong> ${
-          title || ""
-        } <div style="color:#666">${text}</div>`;
+
+        const titleEl = document.createElement("div");
+        titleEl.className = "card-title";
+        titleEl.textContent = `${convoid}:${id}. ${title || "(no title)"}`;
+
+        const textEl = document.createElement("div");
+        textEl.className = "card-text";
+        textEl.textContent = text || "";
+
+        div.appendChild(titleEl);
+        div.appendChild(textEl);
+
         div.addEventListener("click", () => {
           // When a search result is clicked, treat it like navigating to that entry
           resetNavigation(convoid);
