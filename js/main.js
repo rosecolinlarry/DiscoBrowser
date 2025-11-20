@@ -112,7 +112,7 @@
     if (!db) return;
     const q = `SELECT id, title 
                 FROM dialogues 
-                ORDER BY title LIMIT 500;`;
+                ORDER BY title;`;
     const res = db.exec(q);
     convoListEl.innerHTML = "";
     if (!res || res.length === 0) {
@@ -311,8 +311,7 @@
     const q = `SELECT id, title, dialoguetext, actor 
                   FROM dentries 
                   WHERE conversationid='${convoID}' 
-                  ORDER BY id 
-                  LIMIT 1000;`;
+                  ORDER BY id;`;
     const res = db.exec(q);
     entryListHeaderEl.textContent = "Next Dialogue Options";
     entryListEl.innerHTML = "";
@@ -379,10 +378,37 @@
       // Walk up the tree to find the parent .node, then highlight its .label
       let node = leafLabel.closest(".node");
       if (node) {
+        // Add "expanded" class to the parent node directly under .tree.scrolling-card
+        let currentNode = node;
+        let treeContainer = convoListEl.querySelector(".tree.scrolling-card");
+        
+        // Walk up to find the direct child of tree.scrolling-card
+        while (currentNode && currentNode.parentElement !== treeContainer) {
+          currentNode = currentNode.parentElement?.closest(".node");
+          if (!currentNode) break;
+        }
+        
+        // If we found the top-level node, expand it
+        if (currentNode && currentNode.parentElement === treeContainer) {
+          currentNode.classList.add("expanded");
+          const toggle = currentNode.querySelector(":scope > .label > .toggle");
+          if (toggle) {
+            toggle.textContent = "▾";
+          }
+        }
+        
         const parentLabel = node.querySelector(":scope > .label");
         if (parentLabel) {
           parentLabel.classList.add("selected");
           console.log("Highlighted conversation", convoID, parentLabel);
+          
+          // Scroll the selected leaf into view
+          try {
+            leafLabel.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+          } catch (e) {
+            // Fallback for older browsers
+            leafLabel.scrollIntoView();
+          }
         }
       }
     } else {
@@ -828,7 +854,7 @@
     const sql = `SELECT conversationid, id, dialoguetext, title 
                     FROM dentries 
                     WHERE dialoguetext LIKE '%${safe}%' 
-                    OR title LIKE '%${safe}%' LIMIT 500;`;
+                    OR title LIKE '%${safe}%';`;
     try {
       const res = db.exec(sql);
       entryListHeaderEl.textContent = "Search Results";
