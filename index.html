@@ -19,10 +19,10 @@
           <label for="search">Search lines:</label>
           <input id="search" placeholder="search text..." />
           <button id="searchBtn">Search</button>
-          <select id="actorFilter" style="margin-left: 12px; padding: 8px 12px; border: 1px solid #444; background: #1a1818; color: #fff; border-radius: 4px; cursor: pointer;">
+          <select id="actorFilter">
             <option value="">All Actors</option>
           </select>
-          <div id="searchLoader" class="search-loader" style="display: none;">
+          <div id="searchLoader" class="search-loader" style="display: none">
             <span class="spinner"></span>
             <span>Searching...</span>
           </div>
@@ -44,12 +44,10 @@
             <div id="entryOverview">(select an entry)</div>
             <details id="moreDetails">
               <summary>More Details</summary>
-              <div id="entryDetails">
-                (select an entry)
-              </div>
+              <div id="entryDetails">(select an entry)</div>
             </details>
           </div>
-          <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;">
+          <div class="entry-list">
             <h4 id="entryListHeader">Next Dialogue Options:</h4>
             <div id="entryList" class="scrolling-card">
               (select a conversation)

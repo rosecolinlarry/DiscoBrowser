@@ -69,6 +69,9 @@
   const backStatus = document.getElementById("backStatus");
   const moreDetailsEl = document.getElementById("moreDetails");
 
+  const minSearchLength = 3;
+  const searchResultLimit = 1000;
+
   let db = null;
   let navigationHistory = [];
   let currentConvoId = null;
@@ -717,7 +720,7 @@
           alts.forEach((a) => {
             const item = document.createElement("div");
             item.className = "details-item";
-            item.innerHTML = `${a[0]} <span style="color:#999; font-size:11px;">(replaces: ${a[1]})</span>`;
+            item.innerHTML = `${a[0]} <span>(replaces: ${a[1]})</span>`;
             altsList.appendChild(item);
           });
           altsDiv.appendChild(altsList);
@@ -745,14 +748,7 @@
           chkDiv.appendChild(chkHeader);
 
           const chkPre = document.createElement("pre");
-          chkPre.className = "details-item";
-          chkPre.style.whiteSpace = "pre-wrap";
-          chkPre.style.backgroundColor = "#f5f5f5";
-          chkPre.style.padding = "8px";
-          chkPre.style.borderRadius = "4px";
-          chkPre.style.borderLeft = "2px solid #ddd";
-          chkPre.style.overflowX = "auto";
-          chkPre.style.fontSize = "11px";
+          chkPre.className = "details-item preformatted-check-text";
           chkPre.textContent = JSON.stringify(chks, null, 2);
           chkDiv.appendChild(chkPre);
           container.appendChild(chkDiv);
@@ -871,24 +867,40 @@
     if (searchLoader) {
       searchLoader.style.display = "flex";
     }
-
     try {
+      let hasWhereClause = false;
+
+      q = q ? q.trim() : "";
       const safe = q.replace(/'/g, "''");
       let sql = `SELECT conversationid, id, dialoguetext, title, actor
-                      FROM dentries 
-                      WHERE (dialoguetext LIKE '%${safe}%' 
-                      OR title LIKE '%${safe}%')`;
-
+                      FROM dentries`;
+      if (q.length > 0) {
+        sql += hasWhereClause ? ' AND ' : ' WHERE '
+        sql += `  (dialoguetext LIKE '%${safe}%' 
+        OR title LIKE '%${safe}%') `;
+        hasWhereClause = true;
+      }
       // Filter by actor if selected
       const selectedActorId = actorFilter?.value;
       if (selectedActorId) {
-        sql += ` AND actor='${selectedActorId}'`;
+        sql += hasWhereClause ? ' AND ' : ' WHERE '
+        sql += `actor='${selectedActorId}'`;
+        hasWhereClause = true;
+      }
+
+      if (q.length <= minSearchLength) {
+        sql += ` LIMIT ${searchResultLimit}`;
       }
 
       sql += `;`;
-
       const res = db.exec(sql);
       entryListHeaderEl.textContent = "Search Results";
+      if(q < 4) {
+        entryListHeaderEl.textContent += ` limited to ${searchResultLimit} when under ${minSearchLength} characters.`
+      }
+      else {
+        entryListHeaderEl.textContent += ` (${res.length})`
+      }
       entryListEl.innerHTML = "";
 
       // Collapse the current entry container when searching

@@ -162,6 +162,7 @@ section {
   gap: 8px;
   border-radius: 4px;
   margin-bottom: 8px;
+  margin-top: 6px;
   align-items: center;
   justify-content: space-between;
 }
@@ -419,6 +420,20 @@ button:disabled {
   font-size: 12px;
   color: #ddd;
   line-height: 1.4;
+  span {
+    color: #999;
+    font-size: 11px;
+  }
+}
+
+.preformatted-check-text {
+  white-space: pre-wrap;
+  background-color: #f5f5f5;
+  padding: 8px;
+  border-radius: 4px;
+  border-left: 2px solid #ddd;
+  overflow-x: auto;
+  font-size: 11px !important;
 }
 
 #currentEntryContainer {
@@ -462,20 +477,20 @@ button:disabled {
     margin: 4px;
     padding: 8px;
   }
-  
+
   #browser {
     flex-direction: column;
   }
-  
+
   #conversations-section,
   #history-section {
     flex: 0 0 200px;
   }
-  
+
   #search-bar {
     flex-direction: column;
   }
-  
+
   #search {
     max-width: 100%;
   }
@@ -514,6 +529,12 @@ a:hover {
   appearance: none;
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
+  margin-left: 12px;
+  padding: 8px 12px;
+  border: 1px solid #444;
+  background: #1a1818;
+  color: #fff;
+  border-radius: 4px;
 }
 
 #actorFilter:hover {
@@ -549,4 +570,12 @@ a:hover {
   to {
     transform: rotate(360deg);
   }
+}
+
+.entry-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
