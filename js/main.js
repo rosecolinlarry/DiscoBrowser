@@ -875,7 +875,7 @@
       let sql = `SELECT conversationid, id, dialoguetext, title, actor
                       FROM dentries`;
       if (q.length > 0) {
-        sql += hasWhereClause ? ' AND ' : ' WHERE '
+        sql += hasWhereClause ? " AND " : " WHERE ";
         sql += `  (dialoguetext LIKE '%${safe}%' 
         OR title LIKE '%${safe}%') `;
         hasWhereClause = true;
@@ -883,24 +883,21 @@
       // Filter by actor if selected
       const selectedActorId = actorFilter?.value;
       if (selectedActorId) {
-        sql += hasWhereClause ? ' AND ' : ' WHERE '
+        sql += hasWhereClause ? " AND " : " WHERE ";
         sql += `actor='${selectedActorId}'`;
         hasWhereClause = true;
       }
 
+      entryListHeaderEl.textContent = "Search Results";
+      
       if (q.length <= minSearchLength) {
         sql += ` LIMIT ${searchResultLimit}`;
+        entryListHeaderEl.textContent += ` limited to ${searchResultLimit} when under ${minSearchLength} characters.`;
       }
 
       sql += `;`;
       const res = db.exec(sql);
-      entryListHeaderEl.textContent = "Search Results";
-      if(q < 4) {
-        entryListHeaderEl.textContent += ` limited to ${searchResultLimit} when under ${minSearchLength} characters.`
-      }
-      else {
-        entryListHeaderEl.textContent += ` (${res.length})`
-      }
+
       entryListEl.innerHTML = "";
 
       // Collapse the current entry container when searching
@@ -910,8 +907,14 @@
 
       if (!res || res.length === 0) {
         entryListEl.textContent = "(no matches)";
+        entryListHeaderEl.textContent += ` (0)`;
         return;
       }
+
+      if (q.length > minSearchLength) {
+        entryListHeaderEl.textContent += ` (${res[0].values.length})`;
+      }
+
       res[0].values.forEach((r) => {
         const [convoid, id, text, title, actor] = r;
         const div = document.createElement("div");
