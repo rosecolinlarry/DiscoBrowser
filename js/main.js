@@ -405,13 +405,13 @@
         // Add "expanded" class to the parent node directly under .tree.scrolling-card
         let currentNode = node;
         let treeContainer = convoListEl.querySelector(".tree.scrolling-card");
-        
+
         // Walk up to find the direct child of tree.scrolling-card
         while (currentNode && currentNode.parentElement !== treeContainer) {
           currentNode = currentNode.parentElement?.closest(".node");
           if (!currentNode) break;
         }
-        
+
         // If we found the top-level node, expand it
         if (currentNode && currentNode.parentElement === treeContainer) {
           currentNode.classList.add("expanded");
@@ -420,19 +420,11 @@
             toggle.textContent = "▾";
           }
         }
-        
+
         const parentLabel = node.querySelector(":scope > .label");
         if (parentLabel) {
           parentLabel.classList.add("selected");
-          console.log("Highlighted conversation", convoID, parentLabel);
-          
-          // Scroll the selected leaf into view
-          try {
-            leafLabel.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-          } catch (e) {
-            // Fallback for older browsers
-            leafLabel.scrollIntoView();
-          }
+          parentLabel.scrollIntoView();
         }
       }
     } else {
@@ -874,27 +866,27 @@
 
   async function searchDialogues(q) {
     if (!db) return;
-    
+
     // Show loading indicator
     if (searchLoader) {
       searchLoader.style.display = "flex";
     }
-    
+
     try {
       const safe = q.replace(/'/g, "''");
       let sql = `SELECT conversationid, id, dialoguetext, title, actor
                       FROM dentries 
                       WHERE (dialoguetext LIKE '%${safe}%' 
                       OR title LIKE '%${safe}%')`;
-      
+
       // Filter by actor if selected
       const selectedActorId = actorFilter?.value;
       if (selectedActorId) {
         sql += ` AND actor='${selectedActorId}'`;
       }
-      
+
       sql += `;`;
-      
+
       const res = db.exec(sql);
       entryListHeaderEl.textContent = "Search Results";
       entryListEl.innerHTML = "";
@@ -952,7 +944,7 @@
     searchInput.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter") searchDialogues(searchInput.value);
     });
-  
+
   // Also trigger search when actor filter changes
   if (actorFilter) {
     actorFilter.addEventListener("change", () => {
