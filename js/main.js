@@ -844,7 +844,27 @@
       }
       const item = document.createElement("div");
       item.className = "details-item";
-      item.textContent = `${p_originconversationidp_oc}:${p_origindialogueidp_oi} (priority: ${p_priorityp_priority}, connector: ${p_isConnectorp_isConnector})`;
+      
+      // Create clickable link for the parent entry
+      const link = document.createElement("a");
+      link.textContent = `${p_originconversationidp_oc}:${p_origindialogueidp_oi}`;
+      link.style.cursor = "pointer";
+      link.style.textDecoration = "underline";
+      link.style.color = "var(--accent)";
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        navigateToEntry(p_originconversationidp_oc, p_origindialogueidp_oi);
+        highlightConversationInTree(p_originconversationidp_oc);
+      });
+      
+      item.appendChild(link);
+      
+      const metaSpan = document.createElement("span");
+      metaSpan.textContent = ` (priority: ${p_priorityp_priority}, connector: ${p_isConnectorp_isConnector})`;
+      metaSpan.style.color = "#999";
+      metaSpan.style.fontSize = "11px";
+      item.appendChild(metaSpan);
+      
       parentsList.appendChild(item);
     }
 
@@ -853,7 +873,7 @@
     parentsHeader.className = "details-section-header";
     parentsHeader.textContent = "Parents";
     parentsDiv.appendChild(parentsHeader);
-    if (parentsList.length > 0) {
+    if (parentsList.children.length > 0) {
       parentsDiv.appendChild(parentsList);
     } else {
       const item = document.createElement("div");
@@ -881,7 +901,27 @@
       }
       const item = document.createElement("div");
       item.className = "details-item";
-      item.textContent = `${c_destinationconversationidc_dc}:${c_destinationdialogueidc_di} (priority: ${c_priorityc_priority}, connector: ${c_isConnectorc_isConnector})`;
+      
+      // Create clickable link for the child entry
+      const link = document.createElement("a");
+      link.textContent = `${c_destinationconversationidc_dc}:${c_destinationdialogueidc_di}`;
+      link.style.cursor = "pointer";
+      link.style.textDecoration = "underline";
+      link.style.color = "var(--accent)";
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        navigateToEntry(c_destinationconversationidc_dc, c_destinationdialogueidc_di);
+        highlightConversationInTree(c_destinationconversationidc_dc);
+      });
+      
+      item.appendChild(link);
+      
+      const metaSpan = document.createElement("span");
+      metaSpan.textContent = ` (priority: ${c_priorityc_priority}, connector: ${c_isConnectorc_isConnector})`;
+      metaSpan.style.color = "#999";
+      metaSpan.style.fontSize = "11px";
+      item.appendChild(metaSpan);
+      
       childrenList.appendChild(item);
     }
 
@@ -890,7 +930,7 @@
     childrenHeader.className = "details-section-header";
     childrenHeader.textContent = "Children";
     childrenDiv.appendChild(childrenHeader);
-    if (childrenList.length > 0) {
+    if (childrenList.children.length > 0) {
       childrenDiv.appendChild(childrenList);
     } else {
       const item = document.createElement("div");

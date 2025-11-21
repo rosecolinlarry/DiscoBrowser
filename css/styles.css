@@ -160,12 +160,23 @@ section {
 
 #backButtonContainer {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   border-radius: 4px;
-  margin-bottom: 8px;
   margin-top: 6px;
   align-items: center;
   justify-content: space-between;
+  padding: 4px 0;
+}
+
+#backBtn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+#backStatus {
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 .dflex {
@@ -473,27 +484,365 @@ button:disabled {
   color: #e0e0e0;
 }
 
-@media (max-width: 600px) {
-  main {
-    margin: 4px;
-    padding: 8px;
+@media (max-width: 1200px) {
+  #conversations-section,
+  #history-section {
+    flex: 0 0 240px;
   }
+}
 
-  #browser {
-    flex-direction: column;
-  }
-
+@media (max-width: 1024px) {
   #conversations-section,
   #history-section {
     flex: 0 0 200px;
   }
+}
+
+@media (max-width: 768px) {
+  main {
+    margin: 8px;
+    padding: 12px;
+    gap: 8px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  #controls {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: auto;
+    padding: 6px;
+  }
 
   #search-bar {
-    flex-direction: column;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   #search {
+    flex: 1;
     max-width: 100%;
+    min-width: 150px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  #actorFilter {
+    margin-left: 0;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  #browser {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #conversations-section {
+    flex: 0 0 auto;
+    max-height: 180px;
+    padding: 0;
+  }
+
+  #convoList {
+    padding: 8px;
+  }
+
+  #entries-section {
+    flex: 1;
+    min-height: 0;
+  }
+
+  #history-section {
+    flex: 0 0 auto;
+    max-height: 130px;
+  }
+
+  #history-section h4 {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+  }
+
+  #chatLog {
+    max-height: 65px;
+    padding: 6px;
+    gap: 4px;
+  }
+
+  #backButtonContainer {
+    margin-top: 4px;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  #backStatus {
+    font-size: 11px;
+  }
+
+  #backBtn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .card-item {
+    padding: 8px 10px;
+  }
+
+  .card-item .card-title {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .card-item .card-text {
+    font-size: 11px;
+    max-height: 60px;
+    line-height: 1.3;
+  }
+
+  #currentEntryContainer {
+    max-height: 160px;
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+
+  #entryListHeader {
+    margin: 4px 0;
+    font-size: 13px;
+  }
+
+  .scrolling-card {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .details-section-header {
+    font-size: 12px;
+    margin: 6px 0 4px 0;
+  }
+
+  .details-item {
+    font-size: 11px;
+  }
+
+  .details-list {
+    gap: 4px;
+  }
+
+  .entry-list {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 600px) {
+  main {
+    margin: 4px;
+    padding: 8px;
+    gap: 6px;
+  }
+
+  h1 {
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+
+  #controls {
+    gap: 6px;
+    padding: 6px;
+    min-height: auto;
+  }
+
+  #search-bar {
+    gap: 4px;
+  }
+
+  #search {
+    min-width: 100px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  #actorFilter {
+    padding: 5px 8px;
+    font-size: 12px;
+    margin-left: 0;
+  }
+
+  .search-loader {
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border-width: 1.5px;
+  }
+
+  button {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  #browser {
+    gap: 6px;
+  }
+
+  #conversations-section {
+    max-height: 120px;
+  }
+
+  #history-section {
+    max-height: 100px;
+  }
+
+  #chatLog {
+    max-height: 50px;
+    font-size: 11px;
+    padding: 4px;
+  }
+
+  .card-item {
+    padding: 6px 8px;
+  }
+
+  .card-item .card-title {
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+
+  .card-item .card-text {
+    font-size: 10px;
+    max-height: 50px;
+    line-height: 1.2;
+  }
+
+  #currentEntryContainer {
+    max-height: 120px;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+
+  .current-item .speaker {
+    font-size: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  .current-item .dialogue-text {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  #moreDetails summary {
+    font-size: 12px;
+    padding: 6px 0;
+  }
+
+  #entryDetails {
+    gap: 8px;
+  }
+
+  .scrolling-card {
+    padding: 6px;
+    gap: 4px;
+  }
+
+  .tree .label {
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .tree .toggle {
+    width: 14px;
+  }
+
+  .details-table {
+    font-size: 10px;
+  }
+
+  .details-table th {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .details-table td {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .details-section-header {
+    font-size: 11px;
+    margin: 4px 0 3px 0;
+  }
+
+  .details-list {
+    gap: 2px;
+    padding-left: 8px;
+  }
+
+  .details-item {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  .muted-text {
+    font-size: 11px;
+  }
+
+  .entry-list {
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  main {
+    padding: 6px;
+  }
+
+  #controls {
+    padding: 4px;
+  }
+
+  #search-bar {
+    gap: 3px;
+  }
+
+  #search {
+    max-width: 60%;
+  }
+
+  #actorFilter {
+    max-width: 40%;
+  }
+
+  #searchBtn {
+    padding: 4px 8px;
+  }
+
+  #conversations-section {
+    max-height: 100px;
+  }
+
+  #history-section {
+    max-height: 80px;
+  }
+
+  #chatLog {
+    max-height: 40px;
+  }
+
+  .card-item .card-text {
+    max-height: 40px;
   }
 }
 
@@ -518,9 +867,20 @@ a {
   color: var(--accent);
   text-decoration: none;
   transition: color 0.2s;
+  cursor: pointer;
 }
 
 a:hover {
+  color: #5fa3d8;
+  text-decoration: underline;
+}
+
+.details-item a {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.details-item a:hover {
   color: #5fa3d8;
   text-decoration: underline;
 }
