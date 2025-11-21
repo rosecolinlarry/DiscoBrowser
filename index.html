@@ -16,7 +16,7 @@
 
       <section id="controls">
         <div id="search-bar">
-          <label for="search">Search lines:</label>
+          <label class="mobile-hide" for="search">Search lines:</label>
           <input id="search" placeholder="search text..." />
           <button id="searchBtn">Search</button>
           <select id="actorFilter">
@@ -27,7 +27,7 @@
             <span>Searching...</span>
           </div>
         </div>
-        <div class="muted-text">
+        <div class="muted-text mobile-hide">
           Inspired by
           <a href="https://fayde.co.uk/">FAYDE Playback Experiment: On-Air</a>
         </div>
@@ -35,8 +35,8 @@
 
       <div id="browser">
         <section id="conversations-section" class="section">
-          <h3>Conversations</h3>
-          <div id="convoList" class="scrolling-card">(loading...)</div>
+          <h3 class="mobile-hide">Conversations</h3>
+          <div id="convoList" class="scrolling-card tree">(loading...)</div>
         </section>
         <section id="entries-section" class="section">
           <h3>Dialogue</h3>
@@ -56,15 +56,22 @@
         </section>
         <section id="history-section" class="section">
           <h4>History</h4>
-          <div id="chatLog" class="scrolling-card" title="Click an entry to jump to that point in history">(navigation log)</div>
+          <div
+            id="chatLog"
+            class="scrolling-card"
+            title="Click an entry to jump to that point in history"
+          >
+            (navigation log)
+          </div>
           <div id="backButtonContainer">
-            <button id="backBtn" title="Go back to previous entry">← Back</button>
+            <button id="backBtn" title="Go back to previous entry">
+              ← Back
+            </button>
             <span id="backStatus" class="muted-text"></span>
           </div>
         </section>
       </div>
     </main>
-
-    <script src="js/main.js"></script>
+    <script type="module" src="js/main.js"></script>
   </body>
 </html>
