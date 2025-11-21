@@ -651,14 +651,10 @@
 
   async function showEntryDetails(convoID, entryID) {
     if (!db || !moreDetailsEl.open) return;
-    const q = `SELECT dentries.id, dentries.title, dentries.dialoguetext, dentries.actor, 
-                      actors.name as actor_name, dentries.conversationid, dentries.hascheck, 
-                      dentries.hasalts, dentries.sequence, dentries.conditionstring, 
-                      dentries.userscript, dentries.difficultypass 
+    const q = `SELECT title, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass
                   FROM dentries 
-                  LEFT JOIN actors ON dentries.actor=actors.id 
-                  WHERE dentries.conversationid='${convoID}' 
-                  AND dentries.id='${entryID}';`;
+                  WHERE conversationid='${convoID}' 
+                  AND id='${entryID}';`;
     const res = db.exec(q);
     if (!res || res.length === 0) {
       entryOverviewEl.textContent = "(not found)";
@@ -667,12 +663,8 @@
     }
     const r = res[0].values[0];
     const [
-      id,
       title,
-      dialoguetext,
       actorid,
-      actor_name,
-      conversationid,
       hascheck,
       hasalts,
       sequence,
@@ -680,150 +672,269 @@
       userscript,
       difficultypass,
     ] = r;
+
+    let selects = `
+      SELECT
+        d.title as c_title, d.description as c_desc
+        , d.actor as c_actorid, a2.name as c_actorname, d.conversant as c_conversant_actorid , a3.name as conversant_actorname, a1.name as entry_actor_name
+        , p.originconversationid as p_oc, p.origindialogueid as p_oi, p.priority as p_priority, p.isConnector as p_isConnector
+        , c.destinationconversationid as c_dc, c.destinationdialogueid as c_di, c.priority as c_priority, c.isConnector as c_isConnector`;
+    let joins = `
+      		  FROM dentries de
+              LEFT JOIN actors a1 ON de.actor=a1.id  AND de.actor <> 0
+              LEFT JOIN dialogues d ON d.id = de.conversationid
+              LEFT JOIN actors a2 ON d.actor = a2.id AND d.actor <> 0
+              LEFT JOIN actors a3 ON d.conversant = a3.id AND d.conversant <> 0
+              LEFT JOIN dlinks p ON p.destinationconversationid = d.id AND p.destinationdialogueid = de.id
+              LEFT JOIN dlinks c ON c.originconversationid = d.id AND c.origindialogueid = de.id`;
+
+    if (hascheck > 0) {
+      selects += `, chk.isred, chk.difficulty, chk.flagname, chk.forced, chk.skilltype`;
+      joins += `  LEFT JOIN checks chk ON chk.conversationid = d.id AND chk.dialogueid = de.id`;
+    }
+
+    if (hasalts > 0) {
+      selects += `, alt.alternateline, alt.condition`;
+      joins += ` LEFT JOIN alternates alt ON alt.conversationid = d.id AND alt.dialogueid = de.id`;
+    }
+
+    let wheres = ` WHERE de.id = ${entryID} AND d.id = ${convoID} `;
+
+    let orderbys = ` ORDER BY p.priority DESC, c.priority DESC;`;
+
+    let giantSqlQuery = selects + joins + wheres + orderbys;
+    let d_titlec_title;
+    let d_descriptionc_desc;
+    let d_actorc_actorid;
+    let a2_namec_actorname;
+    let d_conversantc_conversant_actorid;
+    let a3_nameconversant_actorname;
+    let a1_nameentry_actor_name;
+    let isred;
+    let difficulty;
+    let flagname;
+    let forced;
+    let skilltype;
+    let hasaltsstartindex = 15;
+    let resultCount = 0;
+    let details;
+    try {
+      const giantRes = db.exec(giantSqlQuery);
+      if (giantRes && giantRes.length) {
+        details = giantRes[0].values;
+
+        resultCount = giantRes[0].values.length;
+
+        d_titlec_title = details[0][0];
+        d_descriptionc_desc = details[0][1];
+        d_actorc_actorid = details[0][2];
+        a2_namec_actorname = details[0][3];
+        d_conversantc_conversant_actorid = details[0][4];
+        a3_nameconversant_actorname = details[0][5];
+        a1_nameentry_actor_name = details[0][6];
+
+        if (hascheck) {
+          hasaltsstartindex += 5;
+          isred = details[0][15];
+          difficulty = details[0][16];
+          flagname = details[0][17];
+          forced = details[0][18];
+          skilltype = details[0][19];
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
     const container = document.createElement("div");
 
-    try {
-      const convoTitleDiv = document.createElement("div");
-      convoTitleDiv.innerHTML = getDetailHtml("Title", title, "(no title)", id);
-      container.appendChild(convoTitleDiv);
-
+    const convoTitleDiv = document.createElement("div");
+    convoTitleDiv.innerHTML = getDetailHtml(
+      "Title",
+      title,
+      "(no title)",
+      entryID
+    );
+    container.appendChild(convoTitleDiv);
+    if (a1_nameentry_actor_name) {
       const actorDiv = document.createElement("div");
       actorDiv.innerHTML = getDetailHtml(
         "Actor",
-        actor_name,
+        a1_nameentry_actor_name,
         "(no actor)",
         actorid
       );
       container.appendChild(actorDiv);
-    } catch (e) {
-      /* ignore */
     }
-
     // alternates
     if (hasalts > 0) {
-      const altQ = `SELECT alternates.alternateline, alternates.replaces 
-                      FROM alternates 
-                      WHERE alternates.conversationid='${convoID}' 
-                      AND alternates.dialogueid='${entryID}';`;
-      try {
-        const altRes = db.exec(altQ);
-        if (altRes && altRes.length) {
-          const alts = altRes[0].values;
-          const altsDiv = document.createElement("div");
-          const altsHeader = document.createElement("div");
-          altsHeader.className = "details-section-header";
-          altsHeader.textContent = "Alternates";
-          altsDiv.appendChild(altsHeader);
+      const altsDiv = document.createElement("div");
+      const altsHeader = document.createElement("div");
+      altsHeader.className = "details-section-header";
+      altsHeader.textContent = "Alternates";
+      altsDiv.appendChild(altsHeader);
 
-          const altsList = document.createElement("div");
-          altsList.className = "details-list";
-          alts.forEach((a) => {
-            const item = document.createElement("div");
-            item.className = "details-item";
-            item.innerHTML = `${a[0]} <span>(replaces: ${a[1]})</span>`;
-            altsList.appendChild(item);
-          });
-          altsDiv.appendChild(altsList);
-          container.appendChild(altsDiv);
-        }
-      } catch (e) {
-        /* ignore */
+      const altsList = document.createElement("div");
+      altsList.className = "details-list";
+
+      for (let i = 0; i < resultCount; i++) {
+        const alternateline = details[i][hasaltsstartindex];
+        const alternatecondition = details[i][hasaltsstartindex + 1];
+
+        const item = document.createElement("div");
+        item.className = "details-item";
+        item.innerHTML = `${alternateline} <span>(condition: ${alternatecondition})</span>`;
+        altsList.appendChild(item);
       }
+      altsDiv.appendChild(altsList);
+      container.appendChild(altsDiv);
     }
 
     // checks
     if (hascheck > 0) {
-      try {
-        const chkRes = db.exec(
-          `SELECT * 
-              FROM checks 
-              WHERE conversationid='${convoID}' AND dialogueid='${entryID}';`
-        );
-        if (chkRes && chkRes.length) {
-          const chks = chkRes[0];
-          const chkDiv = document.createElement("div");
-          const chkHeader = document.createElement("div");
-          chkHeader.className = "details-section-header";
-          chkHeader.textContent = "Checks";
-          chkDiv.appendChild(chkHeader);
+      isred = details[0][15];
+      difficulty = details[0][16];
+      flagname = details[0][17];
+      forced = details[0][18];
+      skilltype = details[0][19];
 
-          const chkPre = document.createElement("pre");
-          chkPre.className = "details-item preformatted-check-text";
-          chkPre.textContent = JSON.stringify(chks, null, 2);
-          chkDiv.appendChild(chkPre);
-          container.appendChild(chkDiv);
-        }
-      } catch (e) {
-        /* ignore */
-      }
-    }
+      // check details in a table
+      const checkDiv = document.createElement("div");
+      const checkHeader = document.createElement("div");
+      checkHeader.className = "details-section-header";
+      checkHeader.textContent = "Checks";
+      checkDiv.appendChild(checkHeader);
 
-    try {
-      const convoIdDiv = document.createElement("div");
-      convoIdDiv.innerHTML = getDetailHtml("Converasation Id", conversationid);
-      container.appendChild(convoIdDiv);
-    } catch (e) {
-      /* ignore */
+      const convoTable = document.createElement("table");
+      convoTable.className = "details-table";
+
+      const checkRows = [
+        ["Is Red Check", isred || "(none)"],
+        ["Difficulty", difficulty || "(none)"],
+        ["Flag Name", flagname || "(none)"],
+        ["Is Forced", forced || "(none)"],
+        ["Skilltype", skilltype || "(none)"],
+      ];
+
+      checkRows.forEach(([label, value]) => {
+        const tr = document.createElement("tr");
+        const th = document.createElement("th");
+        th.textContent = label;
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.appendChild(th);
+        tr.appendChild(td);
+        convoTable.appendChild(tr);
+      });
+      checkDiv.appendChild(convoTable);
+      container.appendChild(checkDiv);
     }
 
     // links (parents/children) — use schema columns
-    try {
-      // parents: dlinks where destination == this entry
-      const parentsQ = `SELECT originconversationid as oc, origindialogueid as oi, priority, isConnector 
-                          FROM dlinks 
-                          WHERE destinationconversationid='${convoID}' 
-                          AND destinationdialogueid='${entryID}'
-                          ORDER BY priority DESC;`;
-      const parentsRes = db.exec(parentsQ);
-      if (parentsRes && parentsRes.length && parentsRes[0].values.length) {
-        const parents = parentsRes[0].values;
-        const parentsDiv = document.createElement("div");
-        const parentsHeader = document.createElement("div");
-        parentsHeader.className = "details-section-header";
-        parentsHeader.textContent = "Parents";
-        parentsDiv.appendChild(parentsHeader);
+    // parents: dlinks where destination == this entry
+    const parentsList = document.createElement("div");
+    parentsList.className = "details-list";
 
-        const parentsList = document.createElement("div");
-        parentsList.className = "details-list";
-        parents.forEach((p) => {
-          const item = document.createElement("div");
-          item.className = "details-item";
-          item.textContent = `${p[0]}:${p[1]} (priority: ${p[2]}, connector: ${p[3]})`;
-          parentsList.appendChild(item);
-        });
-        parentsDiv.appendChild(parentsList);
-        container.appendChild(parentsDiv);
+    for (let i = 0; i < resultCount; i++) {
+      const p_originconversationidp_oc = details[i][7];
+      const p_origindialogueidp_oi = details[i][8];
+      const p_priorityp_priority = details[i][9];
+      const p_isConnectorp_isConnector = details[i][10];
+      if (p_originconversationidp_oc == null) {
+        continue;
       }
-
-      // children: dlinks where origin == this entry
-      const childrenQ = `SELECT destinationconversationid as dc, destinationdialogueid as di, priority, isConnector 
-                            FROM dlinks 
-                            WHERE originconversationid='${convoID}' 
-                            AND origindialogueid='${entryID}
-                            ORDER BY priority DESC';`;
-      const childrenRes = db.exec(childrenQ);
-      if (childrenRes && childrenRes.length && childrenRes[0].values.length) {
-        const children = childrenRes[0].values;
-        const childrenDiv = document.createElement("div");
-        const childrenHeader = document.createElement("div");
-        childrenHeader.className = "details-section-header";
-        childrenHeader.textContent = "Children";
-        childrenDiv.appendChild(childrenHeader);
-
-        const childrenList = document.createElement("div");
-        childrenList.className = "details-list";
-        children.forEach((c) => {
-          const item = document.createElement("div");
-          item.className = "details-item";
-          item.textContent = `${c[0]}:${c[1]} (priority: ${c[2]}, connector: ${c[3]})`;
-          childrenList.appendChild(item);
-        });
-        childrenDiv.appendChild(childrenList);
-        container.appendChild(childrenDiv);
-      }
-    } catch (e) {
-      /* ignore */
+      const item = document.createElement("div");
+      item.className = "details-item";
+      item.textContent = `${p_originconversationidp_oc}:${p_origindialogueidp_oi} (priority: ${p_priorityp_priority}, connector: ${p_isConnectorp_isConnector})`;
+      parentsList.appendChild(item);
     }
+
+    const parentsDiv = document.createElement("div");
+    const parentsHeader = document.createElement("div");
+    parentsHeader.className = "details-section-header";
+    parentsHeader.textContent = "Parents";
+    parentsDiv.appendChild(parentsHeader);
+    if (parentsList.length > 0) {
+      parentsDiv.appendChild(parentsList);
+    } else {
+      const item = document.createElement("div");
+      item.textContent = "(none)";
+      item.className = "details-item";
+      item.style.marginLeft = "4px"
+      parentsDiv.style.display = "flex"
+      parentsDiv.style.alignItems = "center"
+      parentsDiv.appendChild(item);
+    }
+    container.appendChild(parentsDiv);
+
+    // children: dlinks where origin == this entry
+
+    const childrenList = document.createElement("div");
+    childrenList.className = "details-list";
+
+    for (let i = 0; i < resultCount; i++) {
+      const c_destinationconversationidc_dc = details[i][11];
+      const c_destinationdialogueidc_di = details[i][12];
+      const c_priorityc_priority = details[i][13];
+      const c_isConnectorc_isConnector = details[i][14];
+      if (c_destinationconversationidc_dc == null) {
+        continue;
+      }
+      const item = document.createElement("div");
+      item.className = "details-item";
+      item.textContent = `${c_destinationconversationidc_dc}:${c_destinationdialogueidc_di} (priority: ${c_priorityc_priority}, connector: ${c_isConnectorc_isConnector})`;
+      childrenList.appendChild(item);
+    }
+
+    const childrenDiv = document.createElement("div");
+    const childrenHeader = document.createElement("div");
+    childrenHeader.className = "details-section-header";
+    childrenHeader.textContent = "Children";
+    childrenDiv.appendChild(childrenHeader);
+    if (childrenList.length > 0) {
+      childrenDiv.appendChild(childrenList);
+    } else {
+      const item = document.createElement("div");
+      item.className = "details-item";
+      item.textContent = "(none)";
+      item.style.marginLeft = "4px"
+      childrenDiv.style.display = "flex"
+      childrenDiv.style.alignItems = "center"
+      childrenDiv.appendChild(item);
+    }
+    container.appendChild(childrenDiv);
+
+    // Conversation details in a table
+    const convoDiv = document.createElement("div");
+    const convoHeader = document.createElement("div");
+    convoHeader.className = "details-section-header";
+    convoHeader.textContent = "Conversation";
+    convoDiv.appendChild(convoHeader);
+
+    const convoTable = document.createElement("table");
+    convoTable.className = "details-table";
+
+    const convoRows = [
+      ["ID", convoID || "(none)"],
+      ["Title", d_titlec_title || "(none)"],
+      ["Description", d_descriptionc_desc || "(none)"],
+      ["Actor ID", d_actorc_actorid || "(none)"],
+      ["Actor Name", a2_namec_actorname || "(none)"],
+      ["Conversant Actor Id", d_conversantc_conversant_actorid || "(none)"],
+      ["Conversant Actor Name", a3_nameconversant_actorname || "(none)"],
+    ];
+
+    convoRows.forEach(([label, value]) => {
+      const tr = document.createElement("tr");
+      const th = document.createElement("th");
+      th.textContent = label;
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(th);
+      tr.appendChild(td);
+      convoTable.appendChild(tr);
+    });
+    convoDiv.appendChild(convoTable);
+    container.appendChild(convoDiv);
 
     // extra info in a table
     const exDiv = document.createElement("div");
@@ -835,14 +946,14 @@
     const table = document.createElement("table");
     table.className = "details-table";
 
-    const rows = [
+    const metaRows = [
       ["Sequence", sequence || "(none)"],
       ["Condition", conditionstring || "(none)"],
       ["Userscript", userscript || "(none)"],
       ["Difficulty", difficultypass || "(none)"],
     ];
 
-    rows.forEach(([label, value]) => {
+    metaRows.forEach(([label, value]) => {
       const tr = document.createElement("tr");
       const th = document.createElement("th");
       th.textContent = label;
@@ -889,7 +1000,7 @@
       }
 
       entryListHeaderEl.textContent = "Search Results";
-      
+
       if (q.length <= minSearchLength) {
         sql += ` LIMIT ${searchResultLimit}`;
         entryListHeaderEl.textContent += ` limited to ${searchResultLimit} when under ${minSearchLength} characters.`;
