@@ -63,6 +63,37 @@ export function appendHistoryItem(
   return item;
 }
 
+/* Add visual divider for new conversations in history */
+export function appendHistoryDivider(chatLogEl, convoID = null) {
+  const divider = document.createElement("div");
+  divider.className = "history-divider";
+  
+  if (convoID) {
+    divider.innerHTML = `<span style="cursor: pointer; opacity: 0.7;" title="Click to jump to this conversation">─── Conversation #${convoID} ───</span>`;
+    const span = divider.querySelector("span");
+    if (span) {
+      span.addEventListener("click", () => {
+        // Dispatch event to navigate to this conversation
+        const event = new CustomEvent("navigateToConversation", {
+          detail: { convoID },
+          bubbles: true
+        });
+        chatLogEl.dispatchEvent(event);
+      });
+    }
+  } else {
+    divider.textContent = "─── New Conversation ───";
+  }
+  
+  divider.style.textAlign = "center";
+  divider.style.margin = "8px 0";
+  divider.style.opacity = "0.6";
+  divider.style.fontSize = "0.9em";
+  divider.style.fontStyle = "italic";
+  divider.style.color = "#999";
+  chatLogEl.appendChild(divider);
+}
+
 /* Utility to render current entry summary */
 export function renderCurrentEntry(entryOverviewEl, title, dialoguetext) {
   entryOverviewEl.innerHTML = "";

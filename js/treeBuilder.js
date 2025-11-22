@@ -47,12 +47,24 @@ function collapseNode(node, key) {
   let current = node;
   let currentKey = key;
 
-  // collapse chain
-  while (current.children.size === 1 && current.convoIds.length === 0) {
-    // get only child & its key
-    const [childKey, childNode] = current.children.entries().next().value;
-    current = childNode;
-    currentKey = currentKey + " / " + childKey;
+  // collapse chain: keep collapsing while this node has:
+  // - either: 1 child + no convoIds (intermediate node)
+  // - or: 1 convoId + no children (leaf node that's an only child)
+  while (
+    (current.children.size === 1 && current.convoIds.length === 0) ||
+    (current.convoIds.length === 1 && current.children.size === 0)
+  ) {
+    // case 1: has one child node, no leaves
+    if (current.children.size === 1 && current.convoIds.length === 0) {
+      const [childKey, childNode] = current.children.entries().next().value;
+      current = childNode;
+      currentKey = currentKey + " / " + childKey;
+    }
+    // case 2: has one leaf (convoId), no children - just append to key and stop
+    else if (current.convoIds.length === 1 && current.children.size === 0) {
+      currentKey = currentKey + " / " + current.convoIds[0];
+      break;
+    }
   }
 
   // recursively collapse deeper children
@@ -94,6 +106,11 @@ export function renderTree(container, rootObj, opts = {}) {
   container.classList.add("tree");
   const { root, convoTitleById } = rootObj;
 
+  // Store the tree structure globally so other parts of the app can use it
+  window._treeRoot = root;
+  window._convoTitleById = convoTitleById;
+  window._treeContainer = container;
+
   // Batch size for virtualization of long lists
   const BATCH = opts.batchSize || 150;
 
@@ -104,9 +121,13 @@ export function renderTree(container, rootObj, opts = {}) {
     const label = document.createElement("div");
     label.className = "label";
 
+    // Check if this node contains a collapsed conversation leaf
+    // (has exactly one convoId appended to the key)
+    const hasCollapsedLeaf = nodeObj.children.size === 0 && nodeObj.convoIds.length === 1;
+    
     const toggle = document.createElement("span");
     toggle.className = "toggle";
-    toggle.textContent = nodeObj._subtreeSize > 1 ? "▸" : "";
+    toggle.textContent = nodeObj._subtreeSize > 1 && !hasCollapsedLeaf ? "▸" : "";
     label.appendChild(toggle);
 
     const titleSpan = document.createElement("span");
@@ -123,16 +144,41 @@ export function renderTree(container, rootObj, opts = {}) {
     // store a reference for lazy rendering
     wrapper._nodeObj = nodeObj;
 
-    // click handler: expand/collapse or treat single-convo as shortcut
+    // click handler: expand/collapse or treat as leaf if it's a collapsed single conversation
     label.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      // if this node's subtree is a single conversation, mark dataset and let main handle opening
+      handleLabelClick();
+    });
+
+    // Also handle forceExpand event for programmatic expansion
+    label.addEventListener("forceExpand", (ev) => {
+      ev.stopPropagation();
+      handleLabelClick();
+    });
+
+    function handleLabelClick() {
+      // if this is a collapsed leaf (has single convoId, no children)
+      if (hasCollapsedLeaf) {
+        // Dispatch custom event so main.js can handle the navigation
+        label.dispatchEvent(new CustomEvent('convoLeafClick', {
+          detail: { convoId: nodeObj.convoIds[0] },
+          bubbles: true
+        }));
+        return;
+      }
+      
+      // if this node's subtree is a single conversation, dispatch event
       const total = nodeObj._subtreeSize || 0;
       if (total === 1 && nodeObj.convoIds.length === 1) {
-        // Always attach dataset to the wrapper "label" (HTML-safe)
-        label.dataset.singleConvo = nodeObj.convoIds[0];
+        // Dispatch custom event for navigation
+        label.dispatchEvent(new CustomEvent('convoLeafClick', {
+          detail: { convoId: nodeObj.convoIds[0] },
+          bubbles: true
+        }));
+        return;
       }
 
+      // For non-leaf nodes, toggle expand/collapse
       const isExpanded = wrapper.classList.toggle("expanded");
       toggle.textContent = isExpanded ? "▾" : "▸";
 
@@ -143,7 +189,7 @@ export function renderTree(container, rootObj, opts = {}) {
           wrapper._childrenRendered = true;
         }
       }
-    });
+    }
 
     return wrapper;
   }
@@ -242,4 +288,104 @@ export function renderTree(container, rootObj, opts = {}) {
   container.appendChild(topFrag);
 
   return container;
+}
+
+/* Global helper to find and expand a conversation in the tree */
+export function findAndExpandConversation(convoID) {
+  console.log(`[TREE] findAndExpandConversation called for ${convoID}`);
+  
+  if (!window._treeRoot || !window._treeContainer) {
+    console.warn("[TREE] Tree not initialized");
+    return null;
+  }
+
+  // Step 1: Find which node in the tree structure contains this convoID
+  function findConvoInNode(node, path = []) {
+    if (node.convoIds && node.convoIds.includes(convoID)) {
+      console.log(`[TREE] Found convoID ${convoID} in node structure at path:`, path);
+      return { found: true, node, path };
+    }
+
+    if (node.children && node.children.size > 0) {
+      for (const [key, childNode] of node.children.entries()) {
+        const result = findConvoInNode(childNode, [...path, key]);
+        if (result.found) return result;
+      }
+    }
+
+    return { found: false, node: null, path: [] };
+  }
+
+  const structureResult = findConvoInNode(window._treeRoot);
+  if (!structureResult.found) {
+    console.warn(`[TREE] ConvoID ${convoID} not found in tree structure at all`);
+    return null;
+  }
+
+  console.log(`[TREE] ConvoID found in structure, path:`, structureResult.path);
+
+  // Step 2: Now we need to expand the tree from root down the path to make the label appear
+  // First, expand all top-level nodes to see if ours is there
+  const topNodes = window._treeContainer.querySelectorAll(":scope > .node");
+  console.log(`[TREE] Found ${topNodes.length} top-level nodes in DOM`);
+
+  // Expand each top-level node to see if we can find our conversation
+  for (const topNode of topNodes) {
+    const topLabel = topNode.querySelector(":scope > .label");
+    if (!topLabel) continue;
+
+    console.log(`[TREE] Checking top node with text: "${topLabel.textContent}"`);
+    
+    // Expand this node if it's not already
+    if (!topNode.classList.contains("expanded")) {
+      console.log(`[TREE] Expanding top node: "${topLabel.textContent}"`);
+      topNode.classList.add("expanded");
+      
+      // Trigger rendering of children
+      const childrenContainer = topNode.querySelector(":scope > .children");
+      if (childrenContainer && childrenContainer.children.length === 0 && !topNode._childrenRendered) {
+        console.log(`[TREE] Children not rendered yet, triggering click`);
+        topLabel.click();
+      }
+    }
+  }
+
+  // Step 3: Search DOM again after expansion
+  setTimeout(() => {
+    console.log(`[TREE] Searching DOM again after expansion`);
+    const allLabels = window._treeContainer.querySelectorAll(".label");
+    console.log(`[TREE] Found ${allLabels.length} total labels in DOM`);
+    
+    for (const lbl of allLabels) {
+      const convoId = parseInt(lbl.dataset.convoId, 10);
+      const singleConvo = parseInt(lbl.dataset.singleConvo, 10);
+      
+      if (convoId === convoID || singleConvo === convoID) {
+        console.log(`[TREE] FOUND label in DOM for ${convoID}:`, lbl);
+        
+        // Expand all ancestors
+        let current = lbl;
+        while (current) {
+          const ancestorNode = current.closest(".node");
+          if (!ancestorNode) break;
+
+          ancestorNode.classList.add("expanded");
+          const toggle = ancestorNode.querySelector(":scope > .label > .toggle");
+          if (toggle) toggle.textContent = "▾";
+
+          current = ancestorNode;
+        }
+        
+        // Call the highlight callback with the label
+        if (typeof window._onConvoFound === 'function') {
+          window._onConvoFound(lbl, convoID);
+        }
+        return;
+      }
+    }
+    
+    console.warn(`[TREE] Still not found in DOM after expansion for ${convoID}`);
+  }, 100);
+
+  return null;
 }

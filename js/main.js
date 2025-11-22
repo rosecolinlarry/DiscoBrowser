@@ -1,7 +1,7 @@
 // main.js - entry point (use <script type="module"> in index.html)
 import { loadSqlJs } from "./sqlLoader.js";
 import * as DB from "./db.js";
-import { buildTitleTree, renderTree } from "./treeBuilder.js";
+import { buildTitleTree, renderTree, findAndExpandConversation } from "./treeBuilder.js";
 import * as UI from "./ui.js";
 
 const searchInput = UI.$("search");
@@ -54,6 +54,22 @@ async function boot() {
     }
   });
 
+  // Handle custom convoLeafClick events from tree builder
+  convoListEl.addEventListener("convoLeafClick", (e) => {
+    const convoId = e.detail.convoId;
+    loadEntriesForConversation(convoId);
+    highlightConversationInTree(convoId);
+  });
+
+  // Handle navigateToConversation events from history dividers
+  if (chatLogEl) {
+    chatLogEl.addEventListener("navigateToConversation", (e) => {
+      const convoID = e.detail.convoID;
+      loadEntriesForConversation(convoID);
+      highlightConversationInTree(convoID);
+    });
+  }
+
   // actor dropdown
   populateActorDropdown();
 
@@ -99,45 +115,66 @@ async function populateActorDropdown() {
   });
 }
 function highlightConversationInTree(convoID) {
+  console.log(`[HIGHLIGHT] Looking for conversation ${convoID}`);
+  
   // Remove old highlights
   convoListEl.querySelectorAll(".label.selected")
     .forEach(el => el.classList.remove("selected"));
 
-  // find the target label by numeric ID comparison
-  let label = null;
-  convoListEl.querySelectorAll("[data-convo-id]").forEach(el => {
-    if (parseInt(el.dataset.convoId, 10) === convoID) {
-      label = el;
-    }
-  });
-  if (!label) {
-    convoListEl.querySelectorAll("[data-single-convo]").forEach(el => {
-      if (parseInt(el.dataset.singleConvo, 10) === convoID) {
-        label = el;
-      }
-    });
+  // Set up callback for when tree builder finds the label
+  window._onConvoFound = (label, foundConvoID) => {
+    console.log(`[HIGHLIGHT] Callback: Label found for ${foundConvoID}`, label);
+    applyHighlight(label);
+    delete window._onConvoFound;
+  };
+
+  // Use the imported tree builder helper function
+  const label = findAndExpandConversation(convoID);
+  
+  if (label) {
+    console.log(`[HIGHLIGHT] Got label immediately`);
+    applyHighlight(label);
   }
-  if (!label) return;
 
-  label.classList.add("selected");
-  label.scrollIntoView({ block: "nearest" });
+  function applyHighlight(label) {
+    console.log(`[HIGHLIGHT] Applying highlight to label`);
+    label.classList.add("selected");
+    label.scrollIntoView({ block: "nearest" });
 
-  // climb ancestors: expand nodes until reaching top
-  let parent = label.closest(".node");
-  while (parent) {
-    parent.classList.add("expanded");
-    const toggle = parent.querySelector(":scope > .label > .toggle");
-    if (toggle) toggle.textContent = "▾";
+    // Expand all ancestor nodes (in case they weren't already)
+    let current = label;
+    while (current) {
+      const ancestorNode = current.closest(".node");
+      if (!ancestorNode) break;
 
-    parent = parent.parentElement.closest(".node");
+      ancestorNode.classList.add("expanded");
+      const toggle = ancestorNode.querySelector(":scope > .label > .toggle");
+      if (toggle) toggle.textContent = "▾";
+
+      current = ancestorNode;
+    }
+    
+    console.log(`[HIGHLIGHT] Highlighting complete`);
   }
 }
 
 
 /* Load entries listing for conversation */
-function loadEntriesForConversation(convoID) {
+function loadEntriesForConversation(convoID, resetHistory = true) {
   convoID = parseInt(convoID, 10);
-  navigationHistory = [{ convoID, entryID: null }];
+  // Only reset history if this is a fresh navigation (e.g., from search or tree click)
+  if (resetHistory) {
+    navigationHistory = [{ convoID, entryID: null }];
+  } else {
+    // Check if we're switching to a different conversation; if so, add a visual divider
+    if (navigationHistory.length > 0) {
+      const lastEntry = navigationHistory[navigationHistory.length - 1];
+      if (lastEntry.convoID !== convoID) {
+        // Add a divider marker to the history
+        navigationHistory.push({ convoID: null, entryID: null, isDivider: true });
+      }
+    }
+  }
   if (currentEntryContainerEl) currentEntryContainerEl.style.display = "flex";
   const rows = DB.getEntriesForConversation(convoID);
   entryListHeaderEl.textContent = "Next Dialogue Options";
@@ -177,11 +214,17 @@ function updateBackButtonState() {
 function goBack() {
   if (navigationHistory.length <= 1) return;
   navigationHistory.pop();
-  const previous = navigationHistory[navigationHistory.length - 1];
-  if (previous && previous.entryID) {
-    const cid = parseInt(previous.convoID, 10);
-    const eid = parseInt(previous.entryID, 10);
-    navigateToEntry(cid, eid, false);
+  
+  // Skip dividers and find the last real entry
+  while (navigationHistory.length > 0) {
+    const previous = navigationHistory[navigationHistory.length - 1];
+    if (!previous.isDivider && previous.entryID) {
+      const cid = parseInt(previous.convoID, 10);
+      const eid = parseInt(previous.entryID, 10);
+      navigateToEntry(cid, eid, false);
+      return;
+    }
+    navigationHistory.pop();
   }
 }
 
@@ -195,11 +238,18 @@ async function navigateToEntry(convoID, entryID, addToHistory = true) {
   if (currentEntryContainerEl)
     currentEntryContainerEl.style.visibility = "visible";
 
-  // Highlight and expand conversation in tree
-  highlightConversationInTree(convoID);
-
   // small cache first
   const cached = DB.getCachedEntry(convoID, entryID);
+  
+  // Check if we're switching conversations BEFORE adding to history
+  let shouldAddDivider = false;
+  if (addToHistory && navigationHistory.length > 0) {
+    const lastEntry = navigationHistory[navigationHistory.length - 1];
+    if (lastEntry && lastEntry.convoID && lastEntry.convoID !== convoID && !lastEntry.isDivider) {
+      shouldAddDivider = true;
+    }
+  }
+  
   if (addToHistory) navigationHistory.push({ convoID, entryID });
   updateBackButtonState();
 
@@ -211,6 +261,12 @@ async function navigateToEntry(convoID, entryID, addToHistory = true) {
       chatLogEl.children[0].textContent.includes("(navigation log")
     )
       chatLogEl.innerHTML = "";
+    
+    // Add divider if switching conversations
+    if (shouldAddDivider) {
+      UI.appendHistoryDivider(chatLogEl, convoID);
+    }
+    
     const historyIndex = navigationHistory.length - 1;
     const coreRow = DB.getEntry(convoID, entryID);
     const title = coreRow
@@ -243,6 +299,11 @@ async function navigateToEntry(convoID, entryID, addToHistory = true) {
 
   currentConvoId = convoID;
   currentEntryId = entryID;
+
+  // Highlight and expand conversation in tree (do this after setting currentConvoId)
+  setTimeout(() => {
+    highlightConversationInTree(convoID);
+  }, 0);
 
   // Load child links (parents/children) and render options
   // Use DB.getParentsChildren which is optimized
@@ -365,10 +426,23 @@ async function showEntryDetails(convoID, entryID) {
 
 /* Search */
 function searchDialogues(q) {
+  const trimmedQ = q.trim();
   if (searchLoader) searchLoader.style.display = "flex";
   try {
     const actorId = actorFilter?.value || null;
-    const res = DB.searchDialogues(q, actorId, searchResultLimit);
+    
+    // Check if search query is empty
+    if (!trimmedQ) {
+      entryListHeaderEl.textContent = "Search Results";
+      entryListEl.innerHTML = "";
+      entryListEl.textContent = "(Please enter a search term to find dialogues)";
+      entryListHeaderEl.textContent += " (0)";
+      if (currentEntryContainerEl)
+        currentEntryContainerEl.style.visibility = "collapse";
+      return;
+    }
+    
+    const res = DB.searchDialogues(trimmedQ, actorId, searchResultLimit);
     entryListHeaderEl.textContent = "Search Results";
     entryListEl.innerHTML = "";
     if (!res.length) {
@@ -382,10 +456,10 @@ function searchDialogues(q) {
     res.forEach((r) => {
       const highlightedTitle = UI.highlightTerms(
         `${r.conversationid}:${r.id}. ${r.title || "(no title)"}`,
-        q
+        trimmedQ
       );
 
-      const highlightedText = UI.highlightTerms(r.dialoguetext || "", q);
+      const highlightedText = UI.highlightTerms(r.dialoguetext || "", trimmedQ);
 
       const div = UI.createCardItem(highlightedTitle, highlightedText, true);
 
@@ -409,12 +483,19 @@ function searchDialogues(q) {
 
 function jumpToHistoryPoint(historyIndex) {
   if (historyIndex < 0 || historyIndex >= navigationHistory.length) return;
-  navigationHistory = navigationHistory.slice(0, historyIndex + 1);
-  const target = navigationHistory[historyIndex];
-  if (target && target.entryID) {
-    const cid = parseInt(target.convoID, 10);
-    const eid = parseInt(target.entryID, 10);
-    navigateToEntry(cid, eid, false);
+  
+  // Find the actual entry at or before this index (skip dividers)
+  let actualIndex = historyIndex;
+  while (actualIndex >= 0) {
+    const target = navigationHistory[actualIndex];
+    if (target && !target.isDivider && target.entryID) {
+      navigationHistory = navigationHistory.slice(0, actualIndex + 1);
+      const cid = parseInt(target.convoID, 10);
+      const eid = parseInt(target.entryID, 10);
+      navigateToEntry(cid, eid, false);
+      return;
+    }
+    actualIndex--;
   }
 }
 
