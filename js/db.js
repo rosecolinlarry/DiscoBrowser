@@ -19,9 +19,11 @@ export async function initDatabase(sqlFactory, path = "db/discobase.sqlite3") {
 
     // Detect FTS table presence (works for prebuilt FTS5 named 'fts_dentries')
     try {
-      const r = _db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='fts_dentries';");
+      const r = _db.exec(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='fts_dentries';"
+      );
       hasFTS = !!(r && r.length && r[0].values && r[0].values.length);
-      console.info('FTS5 available:', hasFTS);
+      console.info("FTS5 available:", hasFTS);
     } catch (e) {
       hasFTS = false;
     }
@@ -73,13 +75,17 @@ export function getAllConversations() {
 
 /* Actors */
 export function getDistinctActors() {
-  return execRows(`SELECT DISTINCT id, name FROM actors WHERE name IS NOT NULL AND name != '' ORDER BY name;`);
+  return execRows(
+    `SELECT DISTINCT id, name FROM actors WHERE name IS NOT NULL AND name != '' ORDER BY name;`
+  );
 }
 
 /* Check for dead-end conversation quickly */
 export function isDeadEndConversation(convoID) {
   // Check quickly via count and checking titles
-  const rows = execRows(`SELECT title FROM dentries WHERE conversationid='${convoID}' ORDER BY id;`);
+  const rows = execRows(
+    `SELECT title FROM dentries WHERE conversationid='${convoID}' ORDER BY id;`
+  );
   if (rows.length === 2) {
     const t0 = (rows[0].title || "").toLowerCase();
     const t1 = (rows[1].title || "").toLowerCase();
@@ -91,23 +97,37 @@ export function isDeadEndConversation(convoID) {
 
 /* Load dentries for a conversation (summary listing) */
 export function getEntriesForConversation(convoID) {
-  return execRows(`SELECT id, title, dialoguetext, actor FROM dentries WHERE conversationid='${convoID}' ORDER BY id;`);
+  return execRows(`
+    SELECT dentries.id AS id,
+           dentries.title AS title,
+           dentries.dialoguetext AS dialoguetext,
+           dentries.actor AS actor
+    FROM dentries
+    WHERE dentries.conversationid='${convoID}'
+    ORDER BY dentries.id;
+  `);
 }
 
 /* Fetch a single entry row (core fields) */
 export function getEntry(convoID, entryID) {
-  const rows = execRows(`SELECT id, title, dialoguetext, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass FROM dentries WHERE conversationid='${convoID}' AND id='${entryID}' LIMIT 1;`);
+  const rows = execRows(
+    `SELECT id, title, dialoguetext, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass FROM dentries WHERE conversationid='${convoID}' AND id='${entryID}' LIMIT 1;`
+  );
   return rows[0] || null;
 }
 
 /* Fetch alternates for an entry */
 export function getAlternates(convoID, entryID) {
-  return execRows(`SELECT alternateline, condition FROM alternates WHERE conversationid=${convoID} AND dialogueid=${entryID};`);
+  return execRows(
+    `SELECT alternateline, condition FROM alternates WHERE conversationid=${convoID} AND dialogueid=${entryID};`
+  );
 }
 
 /* Fetch check(s) for an entry */
 export function getChecks(convoID, entryID) {
-  return execRows(`SELECT isred, difficulty, flagname, forced, skilltype FROM checks WHERE conversationid=${convoID} AND dialogueid=${entryID};`);
+  return execRows(
+    `SELECT isred, difficulty, flagname, forced, skilltype FROM checks WHERE conversationid=${convoID} AND dialogueid=${entryID};`
+  );
 }
 
 /* Fetch parents and children dlinks for an entry */
@@ -138,9 +158,17 @@ export function getEntriesBulk(pairs = []) {
   const results = [];
   for (const [convo, ids] of byConvo.entries()) {
     const inList = ids.map((i) => String(i)).join(",");
-    const rows = execRows(`SELECT id, title, dialoguetext, actor FROM dentries WHERE conversationid='${convo}' AND id IN (${inList});`);
-    rows.forEach(r => {
-      results.push({ convo, id: r.id, title: r.title, dialoguetext: r.dialoguetext, actor: r.actor });
+    const rows = execRows(
+      `SELECT id, title, dialoguetext, actor FROM dentries WHERE conversationid='${convo}' AND id IN (${inList});`
+    );
+    rows.forEach((r) => {
+      results.push({
+        convo,
+        id: r.id,
+        title: r.title,
+        dialoguetext: r.dialoguetext,
+        actor: r.actor,
+      });
     });
   }
   return results;

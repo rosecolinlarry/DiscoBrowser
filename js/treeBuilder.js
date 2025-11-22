@@ -9,12 +9,16 @@ export function buildTitleTree(rows) {
     const id = r.id;
     const raw = (r.title || `(id ${id})`).trim();
     convoTitleById[id] = raw;
-    const parts = raw.split("/").map(p => p.trim()).filter(Boolean);
+    const parts = raw
+      .split("/")
+      .map((p) => p.trim())
+      .filter(Boolean);
     if (!parts.length) parts.push(raw);
     let node = root;
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-      if (!node.children.has(part)) node.children.set(part, { children: new Map(), convoIds: [] });
+      if (!node.children.has(part))
+        node.children.set(part, { children: new Map(), convoIds: [] });
       node = node.children.get(part);
       if (i === parts.length - 1) node.convoIds.push(id);
     }
@@ -85,9 +89,8 @@ export function renderTree(container, rootObj, opts = {}) {
       // if this node's subtree is a single conversation, mark dataset and let main handle opening
       const total = nodeObj._subtreeSize || 0;
       if (total === 1 && nodeObj.convoIds.length === 1) {
-        // this label should act as a shortcut; set dataset.singleConvo and let caller use it
-        label.dataset.singleConvo = nodeObj.convoIds[0];
-        return;
+        // Always attach dataset to the wrapper "label" (HTML-safe)
+        label.dataset.singleConvo = String(nodeObj.convoIds[0]);
       }
 
       const isExpanded = wrapper.classList.toggle("expanded");
@@ -121,9 +124,11 @@ export function renderTree(container, rootObj, opts = {}) {
         leaf.className = "leaf";
         const leafLabel = document.createElement("div");
         leafLabel.className = "label";
-        leafLabel.dataset.convoId = cid;
+        leafLabel.dataset.singleConvo = String(cid);
         leafLabel.style.cursor = "pointer";
-        leafLabel.textContent = `${titleMap[cid] || ('(id '+cid+')')} — #${cid}`;
+        leafLabel.textContent = `${
+          titleMap[cid] || "(id " + cid + ")"
+        } — #${cid}`;
         leaf.appendChild(leafLabel);
         frag.appendChild(leaf);
       }
@@ -144,7 +149,9 @@ export function renderTree(container, rootObj, opts = {}) {
             leafLabel.className = "label";
             leafLabel.dataset.convoId = cid;
             leafLabel.style.cursor = "pointer";
-            leafLabel.textContent = `${titleMap[cid] || ('(id '+cid+')')} — #${cid}`;
+            leafLabel.textContent = `${
+              titleMap[cid] || "(id " + cid + ")"
+            } — #${cid}`;
             leaf.appendChild(leafLabel);
             frag.appendChild(leaf);
           }
@@ -161,7 +168,9 @@ export function renderTree(container, rootObj, opts = {}) {
     }
 
     // then child nodes
-    const keys = Array.from(nodeObj.children.keys()).sort((a,b)=>a.localeCompare(b));
+    const keys = Array.from(nodeObj.children.keys()).sort((a, b) =>
+      a.localeCompare(b)
+    );
     for (const k of keys) {
       const childNode = nodeObj.children.get(k);
       const nodeEl = makeNodeElement(k, childNode);
@@ -172,7 +181,9 @@ export function renderTree(container, rootObj, opts = {}) {
   }
 
   // top-level render: create node elements (do not populate children)
-  const topKeys = Array.from(root.children.keys()).sort((a,b)=>a.localeCompare(b));
+  const topKeys = Array.from(root.children.keys()).sort((a, b) =>
+    a.localeCompare(b)
+  );
   const topFrag = document.createDocumentFragment();
   for (const k of topKeys) {
     const nodeElem = makeNodeElement(k, root.children.get(k));

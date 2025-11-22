@@ -49,9 +49,7 @@ async function boot() {
     }
     const topLabel = e.target.closest(".label");
     if (topLabel && topLabel.dataset.singleConvo) {
-      const id = topLabel.dataset.singleConvo;
-      loadEntriesForConversation(id);
-      highlightConversationInTree(id);
+      loadEntriesForConversation(topLabel.dataset.singleConvo);
     }
   });
 
@@ -154,11 +152,13 @@ function loadEntriesForConversation(convoID) {
   }
   filtered.forEach((r) => {
     const id = r.id;
-    const title = r.title || "(no title)";
+    const title = r.title && r.title.trim() ? r.title : "(no title)";
+
     const text = r.dialoguetext || "";
     const el = UI.createCardItem(
-      UI.escapeHtml(`${convoID}:${id}. ${title}`),
-      UI.escapeHtml(text.substring(0, 300))
+      `${convoID}:${id}. ${title}`,
+      text.substring(0, 300),
+      false
     );
     el.addEventListener("click", () => navigateToEntry(convoID, id));
     entryListEl.appendChild(el);
@@ -252,18 +252,20 @@ async function navigateToEntry(convoID, entryID, addToHistory = true) {
     const destMap = new Map(destRows.map((r) => [`${r.convo}:${r.id}`, r]));
 
     for (const c of children) {
-      if (destMap.has(`${c.d_convo}:${c.d_id}`)) {
-        const dest = destMap.get(`${c.d_convo}:${c.d_id}`);
-        const idstr = `${c.d_convo}:${c.d_id}`;
-        if ((dest.title || "").toLowerCase() === "start") continue;
-        const el = UI.createCardItem(
-          idstr,
-          (dest.dialoguetext || "").substring(0, 200)
-        );
-        el.addEventListener("click", () => navigateToEntry(c.d_convo, c.d_id));
-        entryListEl.appendChild(el);
-      }
+      const dest = destMap.get(`${c.d_convo}:${c.d_id}`);
+      if (!dest) continue;
+
+      if ((dest.title || "").toLowerCase() === "start") continue;
+
+      const title = dest.title?.trim() || "(no title)";
+      const display = `${c.d_convo}:${c.d_id}. ${title}`;
+      const summary = dest.dialoguetext?.substring(0, 200) || "";
+
+      const el = UI.createCardItem(display, summary, false);
+      el.addEventListener("click", () => navigateToEntry(c.d_convo, c.d_id));
+      entryListEl.appendChild(el);
     }
+
     if (entryListEl.children.length === 0)
       entryListEl.textContent = "(no further options)";
   } catch (e) {
@@ -368,7 +370,6 @@ function searchDialogues(q) {
     }
     entryListHeaderEl.textContent += ` (${res.length})`;
     res.forEach((r) => {
-      // const div = UI.createCardItem(`${r.conversationid}:${r.id}. ${r.title || "(no title)"}`, r.dialoguetext || "");
       const highlightedTitle = UI.highlightTerms(
         `${r.conversationid}:${r.id}. ${r.title || "(no title)"}`,
         q

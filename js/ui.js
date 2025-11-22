@@ -6,6 +6,9 @@ export function $(sel) {
 }
 
 export function createCardItem(titleText, contentText, allowHtml = false) {
+  titleText = titleText ?? "";
+  contentText = contentText ?? "";
+
   const el = document.createElement("div");
   el.className = "card-item";
   el.style.cursor = "pointer";
@@ -25,7 +28,6 @@ export function createCardItem(titleText, contentText, allowHtml = false) {
   return el;
 }
 
-
 /* Chat log/history helpers */
 export function resetChatLog(chatLogEl) {
   if (!chatLogEl) return;
@@ -36,7 +38,13 @@ export function resetChatLog(chatLogEl) {
   chatLogEl.appendChild(hint);
 }
 
-export function appendHistoryItem(chatLogEl, title, text, historyIndex, onClick) {
+export function appendHistoryItem(
+  chatLogEl,
+  title,
+  text,
+  historyIndex,
+  onClick
+) {
   const item = document.createElement("div");
   item.className = "card-item";
   item.style.cursor = "pointer";
@@ -60,7 +68,11 @@ export function renderCurrentEntry(entryOverviewEl, title, dialoguetext) {
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
   entryOverviewEl.style.cursor = "pointer";
-  entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${parseSpeakerFromTitle(title)}</strong></div><div class="dialogue-text">${dialoguetext || "<i>No dialogue.</i>"}</div>`;
+  entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${parseSpeakerFromTitle(
+    title
+  )}</strong></div><div class="dialogue-text">${
+    dialoguetext || "<i>No dialogue.</i>"
+  }</div>`;
 }
 
 function parseSpeakerFromTitle(title) {
@@ -76,7 +88,9 @@ export function renderEntryDetails(containerEl, data) {
   const wrapper = document.createElement("div");
 
   const convoTitleDiv = document.createElement("div");
-  convoTitleDiv.innerHTML = `<strong class="details-section-header">Title</strong> <span class="details-item">${data.title || "(no title)"} -- #${data.entryID}</span>`;
+  convoTitleDiv.innerHTML = `<strong class="details-section-header">Title</strong> <span class="details-item">${
+    data.title || "(no title)"
+  } -- #${data.entryID}</span>`;
   wrapper.appendChild(convoTitleDiv);
 
   if (data.actorName) {
@@ -91,7 +105,7 @@ export function renderEntryDetails(containerEl, data) {
     altsDiv.innerHTML = `<div class="details-section-header">Alternates</div>`;
     const list = document.createElement("div");
     list.className = "details-list";
-    data.alternates.forEach(a => {
+    data.alternates.forEach((a) => {
       const it = document.createElement("div");
       it.className = "details-item";
       it.innerHTML = `${a.alternateline} <span>(condition: ${a.condition})</span>`;
@@ -107,12 +121,16 @@ export function renderEntryDetails(containerEl, data) {
     cDiv.innerHTML = `<div class="details-section-header">Checks</div>`;
     const table = document.createElement("table");
     table.className = "details-table";
-    data.checks.forEach(ch => {
-      Object.entries(ch).forEach(([k,v])=>{
+    data.checks.forEach((ch) => {
+      Object.entries(ch).forEach(([k, v]) => {
         const tr = document.createElement("tr");
-        const th = document.createElement("th"); th.textContent = k;
-        const td = document.createElement("td"); td.textContent = v === null || v === undefined ? "(none)" : String(v);
-        tr.appendChild(th); tr.appendChild(td); table.appendChild(tr);
+        const th = document.createElement("th");
+        th.textContent = k;
+        const td = document.createElement("td");
+        td.textContent = v === null || v === undefined ? "(none)" : String(v);
+        tr.appendChild(th);
+        tr.appendChild(td);
+        table.appendChild(tr);
       });
     });
     cDiv.appendChild(table);
@@ -122,47 +140,78 @@ export function renderEntryDetails(containerEl, data) {
   // Parents
   const parentsDiv = document.createElement("div");
   parentsDiv.innerHTML = `<div class="details-section-header">Parents</div>`;
-  const pList = document.createElement("div"); pList.className = "details-list";
+  const pList = document.createElement("div");
+  pList.className = "details-list";
   if (data.parents && data.parents.length) {
-    data.parents.forEach(p => {
-      const item = document.createElement("div"); item.className = "details-item";
-      const a = document.createElement("a"); a.textContent = `${p.o_convo}:${p.o_id}`; a.href = "#"; a.dataset.convo = p.o_convo; a.dataset.id = p.o_id;
-      a.addEventListener("click", (e)=>{ e.preventDefault(); if (data.onNavigate) data.onNavigate(p.o_convo, p.o_id); });
+    data.parents.forEach((p) => {
+      const item = document.createElement("div");
+      item.className = "details-item";
+      const a = document.createElement("a");
+      a.textContent = `${p.o_convo}:${p.o_id}`;
+      a.href = "#";
+      a.dataset.convo = p.o_convo;
+      a.dataset.id = p.o_id;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (data.onNavigate) data.onNavigate(p.o_convo, p.o_id);
+      });
       item.appendChild(a);
-      const meta = document.createElement("span"); meta.textContent = ` (priority: ${p.priority}, connector: ${p.isConnector})`; meta.style.color = "#999"; meta.style.fontSize = "11px";
+      const meta = document.createElement("span");
+      meta.textContent = ` (priority: ${p.priority}, connector: ${p.isConnector})`;
+      meta.style.color = "#999";
+      meta.style.fontSize = "11px";
       item.appendChild(meta);
       pList.appendChild(item);
     });
     parentsDiv.appendChild(pList);
   } else {
-    const it = document.createElement("div"); it.className = "details-item"; it.textContent = "(none)"; parentsDiv.appendChild(it);
+    const it = document.createElement("div");
+    it.className = "details-item";
+    it.textContent = "(none)";
+    parentsDiv.appendChild(it);
   }
   wrapper.appendChild(parentsDiv);
 
   // Children
   const childrenDiv = document.createElement("div");
   childrenDiv.innerHTML = `<div class="details-section-header">Children</div>`;
-  const cList = document.createElement("div"); cList.className = "details-list";
+  const cList = document.createElement("div");
+  cList.className = "details-list";
   if (data.children && data.children.length) {
-    data.children.forEach(c => {
-      const item = document.createElement("div"); item.className = "details-item";
-      const a = document.createElement("a"); a.textContent = `${c.d_convo}:${c.d_id}`; a.href = "#"; a.dataset.convo = c.d_convo; a.dataset.id = c.d_id;
-      a.addEventListener("click", (e)=>{ e.preventDefault(); if (data.onNavigate) data.onNavigate(c.d_convo, c.d_id); });
+    data.children.forEach((c) => {
+      const item = document.createElement("div");
+      item.className = "details-item";
+      const a = document.createElement("a");
+      a.textContent = `${c.d_convo}:${c.d_id}`;
+      a.href = "#";
+      a.dataset.convo = c.d_convo;
+      a.dataset.id = c.d_id;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (data.onNavigate) data.onNavigate(c.d_convo, c.d_id);
+      });
       item.appendChild(a);
-      const meta = document.createElement("span"); meta.textContent = ` (priority: ${c.priority}, connector: ${c.isConnector})`; meta.style.color = "#999"; meta.style.fontSize = "11px";
+      const meta = document.createElement("span");
+      meta.textContent = ` (priority: ${c.priority}, connector: ${c.isConnector})`;
+      meta.style.color = "#999";
+      meta.style.fontSize = "11px";
       item.appendChild(meta);
       cList.appendChild(item);
     });
     childrenDiv.appendChild(cList);
   } else {
-    const it = document.createElement("div"); it.className = "details-item"; it.textContent = "(none)"; childrenDiv.appendChild(it);
+    const it = document.createElement("div");
+    it.className = "details-item";
+    it.textContent = "(none)";
+    childrenDiv.appendChild(it);
   }
   wrapper.appendChild(childrenDiv);
 
   // conversation & meta table
   const convoDiv = document.createElement("div");
   convoDiv.innerHTML = `<div class="details-section-header">Conversation</div>`;
-  const t = document.createElement("table"); t.className = "details-table";
+  const t = document.createElement("table");
+  t.className = "details-table";
   const rows = [
     ["ID", data.convoID || "(none)"],
     ["Title", data.conversationTitle || "(none)"],
@@ -170,33 +219,53 @@ export function renderEntryDetails(containerEl, data) {
     ["Actor ID", data.conversationActorId || "(none)"],
     ["Actor name", data.conversationActorName || "(none)"],
   ];
-  rows.forEach(([label, val])=>{
+  rows.forEach(([label, val]) => {
     const tr = document.createElement("tr");
-    const th = document.createElement("th"); th.textContent = label;
-    const td = document.createElement("td"); td.textContent = val;
-    tr.appendChild(th); tr.appendChild(td); t.appendChild(tr);
+    const th = document.createElement("th");
+    th.textContent = label;
+    const td = document.createElement("td");
+    td.textContent = val;
+    tr.appendChild(th);
+    tr.appendChild(td);
+    t.appendChild(tr);
   });
-  convoDiv.appendChild(t); wrapper.appendChild(convoDiv);
+  convoDiv.appendChild(t);
+  wrapper.appendChild(convoDiv);
 
   // meta table
   const metaDiv = document.createElement("div");
   metaDiv.innerHTML = `<div class="details-section-header">Meta</div>`;
-  const mt = document.createElement("table"); mt.className = "details-table";
-  [["Sequence", data.sequence || "(none)"], ["Condition", data.conditionstring || "(none)"], ["Userscript", data.userscript || "(none)"], ["Difficulty", data.difficultypass || "(none)"]].forEach(([lab, val])=>{
+  const mt = document.createElement("table");
+  mt.className = "details-table";
+  [
+    ["Sequence", data.sequence || "(none)"],
+    ["Condition", data.conditionstring || "(none)"],
+    ["Userscript", data.userscript || "(none)"],
+    ["Difficulty", data.difficultypass || "(none)"],
+  ].forEach(([lab, val]) => {
     const tr = document.createElement("tr");
-    const th = document.createElement("th"); th.textContent = lab;
-    const td = document.createElement("td"); td.textContent = val;
-    tr.appendChild(th); tr.appendChild(td); mt.appendChild(tr);
+    const th = document.createElement("th");
+    th.textContent = lab;
+    const td = document.createElement("td");
+    td.textContent = val;
+    tr.appendChild(th);
+    tr.appendChild(td);
+    mt.appendChild(tr);
   });
-  metaDiv.appendChild(mt); wrapper.appendChild(metaDiv);
+  metaDiv.appendChild(mt);
+  wrapper.appendChild(metaDiv);
 
   containerEl.appendChild(wrapper);
 }
 
 // Escape HTML entities
 export function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c])
+  return s.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[
+        c
+      ])
   );
 }
 
@@ -207,14 +276,12 @@ export function highlightTerms(text, query) {
   const terms = query
     .trim()
     .split(/\s+/)
-    .filter(t => t.length > 0);
+    .filter((t) => t.length > 0);
 
   if (!terms.length) return escapeHtml(text);
 
   // Escape terms for regex
-  const escaped = terms.map(t =>
-    t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  );
+  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
   // Regex: match any term (case-insensitive)
   const re = new RegExp("(" + escaped.join("|") + ")", "gi");
