@@ -42,14 +42,15 @@ async function boot() {
   convoListEl.addEventListener("click", (e) => {
     const target = e.target.closest("[data-convo-id]");
     if (target) {
-      const id = target.dataset.convoId;
+      const id = parseInt(target.dataset.convoId, 10);
       loadEntriesForConversation(id);
       highlightConversationInTree(id);
       return;
     }
     const topLabel = e.target.closest(".label");
     if (topLabel && topLabel.dataset.singleConvo) {
-      loadEntriesForConversation(topLabel.dataset.singleConvo);
+      const id = parseInt(topLabel.dataset.singleConvo, 10);
+      loadEntriesForConversation(id);
     }
   });
 
@@ -97,47 +98,45 @@ async function populateActorDropdown() {
     actorFilter.appendChild(opt);
   });
 }
-
 function highlightConversationInTree(convoID) {
-  // clear previous
-  const prev = convoListEl.querySelectorAll(".label.selected");
-  prev.forEach((p) => p.classList.remove("selected"));
+  // Remove old highlights
+  convoListEl.querySelectorAll(".label.selected")
+    .forEach(el => el.classList.remove("selected"));
 
-  let leafLabel = convoListEl.querySelector(`[data-convo-id="${convoID}"]`);
-  if (!leafLabel)
-    leafLabel = convoListEl.querySelector(
-      `[data-convo-id="${String(convoID)}"]`
-    );
-  if (!leafLabel) return;
-
-  const node = leafLabel.closest(".node");
-  if (!node) return;
-
-  // walk up to top-level and expand as needed
-  let current = node;
-  const treeContainer =
-    convoListEl.querySelector(".tree.scrolling-card") || convoListEl;
-  while (
-    current &&
-    current.parentElement &&
-    current.parentElement !== treeContainer
-  ) {
-    current = current.parentElement.closest(".node");
+  // find the target label by numeric ID comparison
+  let label = null;
+  convoListEl.querySelectorAll("[data-convo-id]").forEach(el => {
+    if (parseInt(el.dataset.convoId, 10) === convoID) {
+      label = el;
+    }
+  });
+  if (!label) {
+    convoListEl.querySelectorAll("[data-single-convo]").forEach(el => {
+      if (parseInt(el.dataset.singleConvo, 10) === convoID) {
+        label = el;
+      }
+    });
   }
-  if (current) {
-    current.classList.add("expanded");
-    const toggle = current.querySelector(":scope > .label > .toggle");
+  if (!label) return;
+
+  label.classList.add("selected");
+  label.scrollIntoView({ block: "nearest" });
+
+  // climb ancestors: expand nodes until reaching top
+  let parent = label.closest(".node");
+  while (parent) {
+    parent.classList.add("expanded");
+    const toggle = parent.querySelector(":scope > .label > .toggle");
     if (toggle) toggle.textContent = "▾";
-  }
-  const parentLabel = node.querySelector(":scope > .label");
-  if (parentLabel) {
-    parentLabel.classList.add("selected");
-    parentLabel.scrollIntoView({ block: "nearest" });
+
+    parent = parent.parentElement.closest(".node");
   }
 }
 
+
 /* Load entries listing for conversation */
 function loadEntriesForConversation(convoID) {
+  convoID = parseInt(convoID, 10);
   navigationHistory = [{ convoID, entryID: null }];
   if (currentEntryContainerEl) currentEntryContainerEl.style.display = "flex";
   const rows = DB.getEntriesForConversation(convoID);
@@ -151,7 +150,7 @@ function loadEntriesForConversation(convoID) {
     return;
   }
   filtered.forEach((r) => {
-    const id = r.id;
+    const id = parseInt(r.id, 10);
     const title = r.title && r.title.trim() ? r.title : "(no title)";
 
     const text = r.dialoguetext || "";
@@ -179,14 +178,25 @@ function goBack() {
   if (navigationHistory.length <= 1) return;
   navigationHistory.pop();
   const previous = navigationHistory[navigationHistory.length - 1];
-  if (previous) navigateToEntry(previous.convoID, previous.entryID, false);
+  if (previous && previous.entryID) {
+    const cid = parseInt(previous.convoID, 10);
+    const eid = parseInt(previous.entryID, 10);
+    navigateToEntry(cid, eid, false);
+  }
 }
 
 /* navigateToEntry optimized */
 async function navigateToEntry(convoID, entryID, addToHistory = true) {
+  // Ensure numeric IDs
+  convoID = parseInt(convoID, 10);
+  entryID = parseInt(entryID, 10);
+
   // Make visible
   if (currentEntryContainerEl)
     currentEntryContainerEl.style.visibility = "visible";
+
+  // Highlight and expand conversation in tree
+  highlightConversationInTree(convoID);
 
   // small cache first
   const cached = DB.getCachedEntry(convoID, entryID);
@@ -380,9 +390,10 @@ function searchDialogues(q) {
       const div = UI.createCardItem(highlightedTitle, highlightedText, true);
 
       div.addEventListener("click", () => {
-        navigationHistory = [{ convoID: r.conversationid, entryID: null }];
-        navigateToEntry(r.conversationid, r.id);
-        highlightConversationInTree(r.conversationid);
+        const cid = parseInt(r.conversationid, 10);
+        const eid = parseInt(r.id, 10);
+        navigationHistory = [{ convoID: cid, entryID: null }];
+        navigateToEntry(cid, eid);
       });
       entryListEl.appendChild(div);
     });
@@ -400,8 +411,11 @@ function jumpToHistoryPoint(historyIndex) {
   if (historyIndex < 0 || historyIndex >= navigationHistory.length) return;
   navigationHistory = navigationHistory.slice(0, historyIndex + 1);
   const target = navigationHistory[historyIndex];
-  if (target && target.entryID)
-    navigateToEntry(target.convoID, target.entryID, false);
+  if (target && target.entryID) {
+    const cid = parseInt(target.convoID, 10);
+    const eid = parseInt(target.entryID, 10);
+    navigateToEntry(cid, eid, false);
+  }
 }
 
 /* Initialize boot sequence */

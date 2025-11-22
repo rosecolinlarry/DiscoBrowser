@@ -24,9 +24,49 @@ export function buildTitleTree(rows) {
     }
   });
   // compute sizes iteratively using a stack
+  collapseTree(root);
   computeSizesIterative(root);
   return { root, convoTitleById };
 }
+
+// Top-level wrapper that passes correct parent keys
+function collapseTree(root) {
+  // iterate each top-level key
+  for (const [key, child] of [...root.children.entries()]) {
+    const collapsed = collapseNode(child, key);
+    // If collapse changed the node, update the parent map
+    if (collapsed.newKey !== key) {
+      root.children.delete(key);
+      root.children.set(collapsed.newKey, collapsed.node);
+    }
+  }
+}
+
+// Returns { node, newKey }
+function collapseNode(node, key) {
+  let current = node;
+  let currentKey = key;
+
+  // collapse chain
+  while (current.children.size === 1 && current.convoIds.length === 0) {
+    // get only child & its key
+    const [childKey, childNode] = current.children.entries().next().value;
+    current = childNode;
+    currentKey = currentKey + " / " + childKey;
+  }
+
+  // recursively collapse deeper children
+  for (const [childKey, childNode] of [...current.children.entries()]) {
+    const collapsed = collapseNode(childNode, childKey);
+    if (collapsed.newKey !== childKey) {
+      current.children.delete(childKey);
+      current.children.set(collapsed.newKey, collapsed.node);
+    }
+  }
+
+  return { node: current, newKey: currentKey };
+}
+
 
 function computeSizesIterative(root) {
   // Post-order traversal using stack
@@ -90,7 +130,7 @@ export function renderTree(container, rootObj, opts = {}) {
       const total = nodeObj._subtreeSize || 0;
       if (total === 1 && nodeObj.convoIds.length === 1) {
         // Always attach dataset to the wrapper "label" (HTML-safe)
-        label.dataset.singleConvo = String(nodeObj.convoIds[0]);
+        label.dataset.singleConvo = nodeObj.convoIds[0];
       }
 
       const isExpanded = wrapper.classList.toggle("expanded");
@@ -112,6 +152,12 @@ export function renderTree(container, rootObj, opts = {}) {
     containerEl.innerHTML = "";
     const frag = document.createDocumentFragment();
 
+    // Helper to extract final segment from full title path
+    function getLastSegment(fullTitle) {
+      const parts = fullTitle.split("/").map(p => p.trim()).filter(Boolean);
+      return parts[parts.length - 1] || fullTitle;
+    }
+
     // local convo leaves first
     if (nodeObj.convoIds && nodeObj.convoIds.length) {
       const convos = nodeObj.convoIds;
@@ -124,11 +170,13 @@ export function renderTree(container, rootObj, opts = {}) {
         leaf.className = "leaf";
         const leafLabel = document.createElement("div");
         leafLabel.className = "label";
-        leafLabel.dataset.singleConvo = String(cid);
+        leafLabel.dataset.singleConvo = cid;
+        leafLabel.dataset.convoId = cid;
         leafLabel.style.cursor = "pointer";
-        leafLabel.textContent = `${
-          titleMap[cid] || "(id " + cid + ")"
-        } — #${cid}`;
+        // show only final segment of the rolled-up key
+        const fullTitle = titleMap[cid] || `(id ${cid})`;
+        const finalSegment = getLastSegment(fullTitle);
+        leafLabel.textContent = finalSegment;
         leaf.appendChild(leafLabel);
         frag.appendChild(leaf);
       }
@@ -149,9 +197,11 @@ export function renderTree(container, rootObj, opts = {}) {
             leafLabel.className = "label";
             leafLabel.dataset.convoId = cid;
             leafLabel.style.cursor = "pointer";
-            leafLabel.textContent = `${
-              titleMap[cid] || "(id " + cid + ")"
-            } — #${cid}`;
+            const fullTitle = titleMap[cid] || `(id ${cid})`;
+            const finalSegment = getLastSegment(fullTitle);
+            leafLabel.textContent = finalSegment;
+            leafLabel.dataset.singleConvo = cid;
+            leafLabel.dataset.convoId = cid;
             leaf.appendChild(leafLabel);
             frag.appendChild(leaf);
           }
