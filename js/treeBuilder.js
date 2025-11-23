@@ -40,10 +40,16 @@ function collapseTree(root) {
 }
 
 // Returns { node, newKey }
+// key = Display Title (e.g. "BACKYARD", "Nodus Mullen", "Flow - The Actic Swimmer / 1435")
+// convoIds = Array of conversatoin Ids
+// node: Object { children: Map( key: string, value: node ), convoIds: int[], _subtreeSize: int)}
+// Only time convo ids length is greater than 1 is if the key has an identical other key, for our database, that is only smoker on the balcony.
+// Ideally we should figure out how to merge those so we do not need to handle logic for an array of convo ids. Or update the key to include the convo id
+// or a unique identifier if duplicate
 function collapseNode(node, key) {
   let current = node;
   let currentKey = key;
-
+  
   // collapse chain: keep collapsing while this node has:
   // - either: 1 child + no convoIds (intermediate node)
   // - or: 1 convoId + no children (leaf node that's an only child)
@@ -120,8 +126,7 @@ export function renderTree(container, rootObj, opts = {}) {
 
     const toggle = document.createElement("span");
     toggle.className = "toggle";
-    toggle.textContent =
-      nodeObj._subtreeSize > 1 && !hasCollapsedLeaf ? "▸" : "";
+    toggle.textContent = nodeObj._subtreeSize > 1 && !hasCollapsedLeaf ? "▸" : "";
     label.appendChild(toggle);
 
     const titleSpan = document.createElement("span");

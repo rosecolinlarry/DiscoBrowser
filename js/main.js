@@ -78,12 +78,14 @@ async function boot() {
       searchDialogues(searchInput.value, minSearchLength, searchResultLimit)
     );
     searchInput.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter") searchDialogues(searchInput.value, minSearchLength, searchResultLimit);
+      if (ev.key === "Enter")
+        searchDialogues(searchInput.value, minSearchLength, searchResultLimit);
     });
   }
   if (actorFilter)
     actorFilter.addEventListener("change", () => {
-      if (searchInput.value) searchDialogues(searchInput.value, minSearchLength, searchResultLimit);
+      if (searchInput.value)
+        searchDialogues(searchInput.value, minSearchLength, searchResultLimit);
     });
 
   if (backBtn) {
@@ -114,7 +116,9 @@ async function populateActorDropdown() {
   });
 }
 
+// convoId = number
 function highlightConversationInTree(convoId) {
+  // TODO KA not being called for smoker
   // Remove highlight from all labels (both leaf and node labels)
   const allLabels = convoListEl.querySelectorAll(".label.selected");
   allLabels.forEach((label) => {
@@ -123,35 +127,30 @@ function highlightConversationInTree(convoId) {
 
   // Find the leaf with data-convo-id
   let leafLabel = convoListEl.querySelector(`[data-convo-id="${convoId}"]`);
-  
-  if (!leafLabel) {
-    leafLabel = convoListEl.querySelector(
-      `[data-convo-id="${String(convoId)}"]`
-    );
-  }
 
   if (leafLabel) {
     // Highlight the leaf label itself
-    leafLabel.classList.add("selected");
+    // leafLabel.classList.add("selected");
     // Walk up the tree and expand all ancestor nodes
-    let node = leafLabel.closest(".node");
+    let node = leafLabel.closest(".node").querySelector(".label");
+    node.classList.add("selected");
+    node.scrollIntoView();
+
+    // Move up one level
+    node = node.parentElement.parentElement.closest(".node");
     while (node) {
       node.classList.add("expanded");
-      
       // Update toggle text
       const toggle = node.querySelector(":scope > .label > .toggle");
       if (toggle && toggle.textContent === "▸") {
         toggle.textContent = "▾";
       }
-      
+
       // Move up one level
       node = node.parentElement?.closest(".node");
     }
-    
-    leafLabel.scrollIntoView({ block: "nearest" });
   }
 }
-
 
 /* Load entries listing for conversation */
 function loadEntriesForConversation(convoId, resetHistory = false) {
@@ -165,7 +164,11 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
       const lastEntry = navigationHistory[navigationHistory.length - 1];
       if (lastEntry.convoId !== convoId) {
         // Add a divider marker to the history
-        navigationHistory.push({ convoId: null, entryId: null, isDivider: true });
+        navigationHistory.push({
+          convoId: null,
+          entryId: null,
+          isDivider: true,
+        });
       }
     }
   }
@@ -208,7 +211,7 @@ function updateBackButtonState() {
 function goBack() {
   if (navigationHistory.length <= 1) return;
   navigationHistory.pop();
-  
+
   // Skip dividers and find the last real entry
   while (navigationHistory.length > 0) {
     const previous = navigationHistory[navigationHistory.length - 1];
@@ -237,11 +240,11 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
   let shouldAddDivider = false;
   if (addToHistory && navigationHistory.length > 0) {
     const lastEntry = navigationHistory[navigationHistory.length - 1];
-    if(lastEntry?.convoId !== convoId) {
+    if (lastEntry?.convoId !== convoId) {
       shouldAddDivider = true;
     }
   }
-  
+
   if (addToHistory) navigationHistory.push({ convoId, entryId });
   updateBackButtonState();
 
@@ -253,12 +256,12 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
       chatLogEl.children[0].textContent.includes("(navigation log")
     )
       chatLogEl.innerHTML = "";
-    
+
     // Add divider if switching conversations
     if (shouldAddDivider) {
       UI.appendHistoryDivider(chatLogEl, convoId);
     }
-    
+
     const historyIndex = navigationHistory.length - 1;
     const coreRow = DB.getEntry(convoId, entryId);
     const title = coreRow
@@ -303,7 +306,8 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
 
     // Build a list of destination pairs to fetch in batch, to avoid many queries
     const pairs = [];
-    for (const c of children) pairs.push({ convoId: c.d_convo, entryId: c.d_id });
+    for (const c of children)
+      pairs.push({ convoId: c.d_convo, entryId: c.d_id });
     // But skip START entries when rendering
     const destRows = DB.getEntriesBulk(pairs);
     // Map by key
@@ -359,14 +363,15 @@ async function showEntryDetails(convoId, entryId) {
   }
 
   // Fetch alternates, checks, parents/children
-  const alternates = entry.hasalts > 0 ? DB.getAlternates(convoId, entryId) : [];
+  const alternates =
+    entry.hasalts > 0 ? DB.getAlternates(convoId, entryId) : [];
   const checks = entry.hascheck > 0 ? DB.getChecks(convoId, entryId) : [];
   const { parents, children } = DB.getParentsChildren(convoId, entryId);
   // Get conversation data
   const convoRow = DB.getConversationById(convoId) || {};
   // Get actor names
-  let entryActorName = DB.getActorNameById(entry.actor)
-  let convoActorName =  DB.getActorNameById(convoRow.actor)
+  let entryActorName = DB.getActorNameById(entry.actor);
+  let convoActorName = DB.getActorNameById(convoRow.actor);
   let convoConversantActorName = DB.getActorNameById(convoRow.conversant);
 
   const payload = {
@@ -404,19 +409,25 @@ function searchDialogues(q) {
   if (searchLoader) searchLoader.style.display = "flex";
   try {
     const actorId = actorFilter?.value || null;
-    
+
     // Check if search query is empty
     if (!trimmedQ) {
       entryListHeaderEl.textContent = "Search Results";
       entryListEl.innerHTML = "";
-      entryListEl.textContent = "(Please enter a search term to find dialogues)";
+      entryListEl.textContent =
+        "(Please enter a search term to find dialogues)";
       entryListHeaderEl.textContent += " (0)";
       if (currentEntryContainerEl)
         currentEntryContainerEl.style.visibility = "collapse";
       return;
     }
-    
-    const res = DB.searchDialogues(trimmedQ, minSearchLength, searchResultLimit, actorId);
+
+    const res = DB.searchDialogues(
+      trimmedQ,
+      minSearchLength,
+      searchResultLimit,
+      actorId
+    );
     entryListHeaderEl.textContent = "Search Results";
     entryListEl.innerHTML = "";
     if (!res.length) {
@@ -443,6 +454,7 @@ function searchDialogues(q) {
         navigationHistory = [{ convoId: cid, entryId: null }];
         navigateToEntry(cid, eid);
         highlightConversationInTree(cid);
+        document.querySelector(".selected").scrollIntoView(true);
       });
       entryListEl.appendChild(div);
     });
@@ -458,7 +470,7 @@ function searchDialogues(q) {
 
 function jumpToHistoryPoint(historyIndex) {
   if (historyIndex < 0 || historyIndex >= navigationHistory.length) return;
-  
+
   // Find the actual entry at or before this index (skip dividers)
   let actualIndex = historyIndex;
   while (actualIndex >= 0) {
