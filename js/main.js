@@ -115,14 +115,15 @@ async function populateActorDropdown() {
 }
 
 function highlightConversationInTree(convoId) {
-  // Remove highlight from all parent labels first
-  const allLabels = convoListEl.querySelectorAll(".node > .label.selected");
+  // Remove highlight from all labels (both leaf and node labels)
+  const allLabels = convoListEl.querySelectorAll(".label.selected");
   allLabels.forEach((label) => {
     label.classList.remove("selected");
   });
 
-  // Find the leaf with data-convo-id, then highlight its parent node's label
+  // Find the leaf with data-convo-id
   let leafLabel = convoListEl.querySelector(`[data-convo-id="${convoId}"]`);
+  
   if (!leafLabel) {
     leafLabel = convoListEl.querySelector(
       `[data-convo-id="${String(convoId)}"]`
@@ -130,34 +131,24 @@ function highlightConversationInTree(convoId) {
   }
 
   if (leafLabel) {
-    // Walk up the tree to find the parent .node, then highlight its .label
+    // Highlight the leaf label itself
+    leafLabel.classList.add("selected");
+    // Walk up the tree and expand all ancestor nodes
     let node = leafLabel.closest(".node");
-    if (node) {
-      // Add "expanded" class to the parent node directly under .tree.scrolling-card
-      let currentNode = node;
-      let treeContainer = convoListEl.querySelector(".tree.scrolling-card");
-
-      // Walk up to find the direct child of tree.scrolling-card
-      while (currentNode && currentNode.parentElement !== treeContainer) {
-        currentNode = currentNode.parentElement?.closest(".node");
-        if (!currentNode) break;
+    while (node) {
+      node.classList.add("expanded");
+      
+      // Update toggle text
+      const toggle = node.querySelector(":scope > .label > .toggle");
+      if (toggle && toggle.textContent === "▸") {
+        toggle.textContent = "▾";
       }
-
-      // If we found the top-level node, expand it
-      if (currentNode && currentNode.parentElement === treeContainer) {
-        currentNode.classList.add("expanded");
-        const toggle = currentNode.querySelector(":scope > .label > .toggle");
-        if (toggle) {
-          toggle.textContent = "▾";
-        }
-      }
-
-      const parentLabel = node.querySelector(":scope > .label");
-      if (parentLabel) {
-        parentLabel.classList.add("selected");
-        parentLabel.scrollIntoView({ behavior: "smooth", block: "start", container: "nearest", inline: "nearest" });
-      }
+      
+      // Move up one level
+      node = node.parentElement?.closest(".node");
     }
+    
+    leafLabel.scrollIntoView({ block: "nearest" });
   }
 }
 

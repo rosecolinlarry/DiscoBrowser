@@ -19,14 +19,11 @@ export async function loadSqlJs({ vendorPath = "./vendor/sql-wasm/sql-wasm.js", 
     try {
       await loadScript(vendorPath);
       useVendor = true;
-      console.info("Loaded vendored sql-wasm.js from", vendorPath);
     } catch (_) {
       try {
         await loadScript(localPath);
         useLocal = true;
-        console.info("Loaded local sql-wasm.js from", localPath);
       } catch (err) {
-        console.warn("Local sql-wasm.js not found; falling back to CDN");
         await loadScript(cdn);
       }
     }

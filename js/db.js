@@ -14,7 +14,6 @@ export async function initDatabase(sqlFactory, path = "db/discobase.sqlite3") {
     if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status}`);
     const buffer = await res.arrayBuffer();
     _db = new SQL.Database(new Uint8Array(buffer));
-    console.info("Database loaded:", path);
   } catch (err) {
     console.error("initDatabase error", err);
     throw err;
