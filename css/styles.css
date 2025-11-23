@@ -1,4 +1,4 @@
-/* Minimal styles so the demo page looks presentable */
+/* Reskinned with CSS Grid - Responsive Design */
 :root {
   --bg: #000000;
   --panel: #2e2424;
@@ -10,9 +10,11 @@
   --card-bg: #1a1818;
   --card-border: #444;
 }
+
 * {
   box-sizing: border-box;
 }
+
 html,
 body {
   height: 100%;
@@ -22,13 +24,15 @@ body {
   font-family: Segoe UI, system-ui, Roboto, Arial, sans-serif;
   background: var(--bg);
   color: #ffffff;
-  overflow: auto;
+  overflow: hidden;
 }
+
 main {
   margin: 0;
   padding: 16px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto 1fr;
   height: 100vh;
   width: 100%;
   gap: 12px;
@@ -38,6 +42,8 @@ h1 {
   margin: 0;
   font-size: 24px;
   padding: 8px 0;
+  grid-column: 1;
+  grid-row: 1;
 }
 
 section {
@@ -55,6 +61,8 @@ section {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 6px;
   min-height: 44px;
+  grid-column: 1;
+  grid-row: 2;
 }
 
 #search-bar {
@@ -62,10 +70,12 @@ section {
   gap: 8px;
   align-items: center;
   flex: 1;
+  flex-wrap: wrap;
 }
 
 #search {
   flex: 1;
+  min-width: 150px;
   max-width: 400px;
   padding: 8px 12px;
   border: 1px solid var(--card-border);
@@ -79,56 +89,16 @@ section {
 }
 
 #browser {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;
   gap: 12px;
-  flex: 1;
+  grid-column: 1;
+  grid-row: 3;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
-#entries-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: auto;
-}
-
-#entries-section h3 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  padding: 0;
-}
-
-#history-section {
-  flex: 0 0 280px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: auto;
-}
-
-#history-section h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-}
-
-.card {
-  border: 1px solid var(--card-border);
-  border-radius: 6px;
-  padding: 12px;
-  background: var(--card-bg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-/* Conversations tree styles */
 #conversations-section {
-  flex: 0 0 280px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -152,10 +122,76 @@ section {
   display: block;
 }
 
-#searchBar {
+#entries-section {
+  flex: 1;
   display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#entries-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  padding: 0;
+}
+
+#history-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#history-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+
+.card {
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+#currentEntryContainer {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(34, 106, 168, 0.1);
+  text-align: left;
+  font-size: 14px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.entry-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  align-items: center;
+}
+
+#entryListHeader {
+  margin: 8px 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#entryList {
+  min-height: 0;
+  flex: 1;
 }
 
 #backButtonContainer {
@@ -179,25 +215,25 @@ section {
   flex-shrink: 0;
 }
 
-.dflex {
-  display: flex;
-}
-
+/* Tree styles */
 .tree {
   list-style: none;
   margin: 0;
   padding: 0;
   font-size: 14px;
 }
+
 .tree .node {
   margin: 2px 0;
 }
+
 .tree .label {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
 }
+
 .tree .toggle {
   width: 16px;
   display: inline-block;
@@ -214,12 +250,15 @@ section {
   margin-left: 12px;
   display: none;
 }
+
 .tree .expanded > .children {
   display: block;
 }
+
 .tree .leaf .label {
   padding-left: 6px;
 }
+
 .tree .leaf .label:hover {
   text-decoration: underline;
 }
@@ -231,80 +270,7 @@ section {
   min-width: fit-content;
 }
 
-.history-divider {
-  text-align: "center";
-  margin: "8px 0";
-  opacity: "0.6";
-  font-size: "0.9em";
-  font-style: "italic";
-  color: var(--muted);
-  &__label {
-    cursor: pointer;
-    color: var(--muted);
-    a {
-      color: var(--accent);
-    }
-  }
-}
-
-.highlighted_term {
-  font-weight: bold !important;
-  color: var(--accent) !important;
-}
-
-button {
-  background: var(--accent);
-  color: #fff;
-  border-radius: 4px;
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s, box-shadow 0.2s;
-  white-space: nowrap;
-}
-
-button:hover {
-  background: #2974c6;
-  box-shadow: 0 2px 8px rgba(34, 106, 168, 0.3);
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.scrolling-card {
-  border: 1px solid var(--card-border);
-  border-radius: 6px;
-  padding: 12px;
-  background: var(--card-bg);
-  font-size: 14px;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.scrolling-card::-webkit-scrollbar {
-  width: 8px;
-}
-
-.scrolling-card::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrolling-card::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-
-.scrolling-card::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
-
+/* Card items */
 .card-item {
   margin: 0;
   padding: 10px 12px;
@@ -343,6 +309,38 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
+/* Scrolling */
+.scrolling-card {
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--card-bg);
+  font-size: 14px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scrolling-card::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrolling-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrolling-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.scrolling-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
 /* Details section */
 #moreDetails {
   margin-top: 8px;
@@ -376,17 +374,6 @@ button:disabled {
   flex-direction: column;
   gap: 12px;
   padding-right: 8px;
-}
-
-#entryList {
-  min-height: 0;
-  flex: 1;
-}
-
-#entryListHeader {
-  margin: 8px 0 8px 0;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 /* Meta info table */
@@ -451,35 +438,17 @@ button:disabled {
   font-size: 12px;
   color: #ddd;
   line-height: 1.4;
-  span {
-    color: #999;
-    font-size: 11px;
-  }
 }
 
 .preformatted-check-text {
   white-space: pre-wrap;
-  background-color: #f5f5f5;
+  word-wrap: break-word;
+  background: rgba(0, 0, 0, 0.3);
   padding: 8px;
   border-radius: 4px;
-  border-left: 2px solid #ddd;
+  border-left: 2px solid var(--accent);
+  font-size: 11px;
   overflow-x: auto;
-  font-size: 11px !important;
-}
-
-#currentEntryContainer {
-  display: flex;
-  flex-direction: column;
-  border: 2px solid var(--accent);
-  border-radius: 8px;
-  padding: 14px;
-  background: rgba(34, 106, 168, 0.1);
-  text-align: left;
-  font-size: 14px;
-  margin-bottom: 12px;
-  flex-shrink: 0;
-  max-height: 280px;
-  overflow-y: auto;
 }
 
 .current-item {
@@ -503,28 +472,34 @@ button:disabled {
   color: #e0e0e0;
 }
 
-.small-text {
-  font-size: 12px;
+/* Buttons */
+button {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 4px;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
 }
 
-.muted-text {
-  font-size: 13px;
-  color: var(--muted);
+button:hover {
+  background: #2974c6;
+  box-shadow: 0 2px 8px rgba(34, 106, 168, 0.3);
 }
 
-.hint-text {
-  color: var(--muted);
-  font-size: 13px;
-  font-style: italic;
-  padding: 8px;
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* Link styling */
+/* Links */
 a {
   color: var(--accent);
   text-decoration: none;
   transition: color 0.2s;
-  cursor: pointer;
 }
 
 a:hover {
@@ -534,7 +509,7 @@ a:hover {
 
 .details-item a {
   color: var(--accent);
-  font-weight: 500;
+  text-decoration: none;
 }
 
 .details-item a:hover {
@@ -546,13 +521,12 @@ a:hover {
 #actorFilter {
   appearance: none;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  margin-left: 12px;
   padding: 8px 12px;
-  border: 1px solid #444;
-  background: #1a1818;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
   color: #fff;
   border-radius: 4px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 #actorFilter:hover {
@@ -590,73 +564,133 @@ a:hover {
   }
 }
 
-.entry-list {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* Utility classes */
+.small-text {
+  font-size: 12px;
 }
 
-@media (max-width: 1200px) {
-  #conversations-section,
-  #history-section {
-    flex: 0 0 240px;
-  }
+.muted-text {
+  font-size: 13px;
+  color: var(--muted);
 }
 
+.hint-text {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+  padding: 8px;
+}
+
+.mobile-hide {
+  display: block;
+}
+
+.history-divider {
+  text-align: center;
+  margin: 8px 0;
+  opacity: 0.6;
+  font-size: 0.9em;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.highlighted_term {
+  font-weight: bold !important;
+  color: var(--accent) !important;
+}
+
+/* Responsive: Tablet (1024px and below) */
 @media (max-width: 1024px) {
-  .mobile-hide {
-    font-size: x-small;
+  main {
+    grid-template-rows: auto auto 1fr;
   }
-  #conversations-section,
+
+  #browser {
+    grid-template-columns: 1fr;
+  }
+
+  #conversations-section {
+    display: none;
+  }
+
   #history-section {
-    flex: 0 0 200px;
+    display: none;
   }
 }
 
-@media (max-width: 768px) {
+/* Responsive: Landscape Tablet (768px to 1024px) */
+@media (max-width: 768px) and (orientation: landscape) {
   main {
-    margin: 8px;
     padding: 12px;
-    gap: 8px;
+    gap: 10px;
   }
 
-  h1 {
-    font-size: 18px;
+  #controls {
+    min-height: 40px;
+  }
+
+  #search-bar {
+    gap: 6px;
+  }
+
+  #search {
+    max-width: 200px;
+  }
+
+  #browser {
+    grid-template-columns: 200px 1fr;
+    gap: 10px;
+  }
+
+  #conversations-section {
+    max-height: 300px;
+  }
+
+  #history-section {
+    display: none;
+  }
+
+  #entries-section h3 {
+    font-size: 14px;
   }
 
   .mobile-hide {
     display: none;
   }
+}
+
+/* Responsive: Mobile (768px and below) */
+@media (max-width: 768px) {
+  main {
+    padding: 12px;
+    gap: 10px;
+    height: 100vh;
+    grid-template-rows: auto auto 1fr;
+  }
+
+  h1 {
+    font-size: 20px;
+    padding: 4px 0;
+  }
 
   #controls {
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 8px;
-    min-height: auto;
+    min-height: 40px;
     padding: 6px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 
   #search-bar {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: inherit;
     gap: 6px;
+    flex-direction: column;
   }
 
   #search {
-    flex: 1;
+    width: 100%;
     max-width: 100%;
-    min-width: 150px;
+    min-width: unset;
     padding: 6px 10px;
-    font-size: 13px;
-  }
-
-  #actorFilter {
-    margin-left: 0;
-    padding: 6px 10px;
-    font-size: 13px;
   }
 
   button {
@@ -664,58 +698,61 @@ a:hover {
     font-size: 12px;
   }
 
+  #searchBtn {
+    width: 100%;
+  }
+
+  #actorFilter {
+    width: 100%;
+    padding: 6px 10px;
+  }
+
   #browser {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     gap: 8px;
   }
 
   #conversations-section {
-    flex: 0 0 auto;
-    max-height: 30%;
-    padding: 0;
-  }
-
-  #convoList {
-    padding: 8px;
-  }
-
-  #entries-section {
-    flex: 1;
-    min-height: 0;
-  }
-  #entries-section h3 {
-    font-size: 9pt;
+    display: none;
   }
 
   #history-section {
-    flex: 0 0 auto;
-    max-height: 130px;
+    display: none;
   }
 
-  #history-section h4 {
-    margin: 0 0 4px 0;
-    font-size: 13px;
+  #entries-section {
+    min-height: 0;
   }
 
-  #chatLog {
-    max-height: 65px;
-    padding: 6px;
-    gap: 4px;
+  #entries-section h3 {
+    font-size: 14px;
+    margin: 0 0 6px 0;
   }
 
-  #backButtonContainer {
-    margin-top: 4px;
-    gap: 4px;
-    padding: 4px;
+  #currentEntryContainer {
+    max-height: 200px;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 6px;
   }
 
-  #backStatus {
-    font-size: 11px;
+  .entry-list {
+    gap: 6px;
   }
 
-  #backBtn {
-    padding: 5px 10px;
+  #entryListHeader {
     font-size: 12px;
+    margin: 6px 0;
+  }
+
+  .scrolling-card {
+    border-radius: 4px;
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .card {
+    padding: 8px;
   }
 
   .card-item {
@@ -729,24 +766,17 @@ a:hover {
 
   .card-item .card-text {
     font-size: 11px;
-    max-height: 60px;
-    line-height: 1.3;
+    max-height: 100px;
   }
 
-  #currentEntryContainer {
-    max-height: 160px;
-    padding: 10px;
-    margin-bottom: 8px;
+  #moreDetails summary {
+    font-size: 12px;
+    padding: 6px 0;
   }
 
-  #entryListHeader {
-    margin: 4px 0;
-    font-size: 13px;
-  }
-
-  .scrolling-card {
-    padding: 8px;
-    gap: 6px;
+  #entryDetails {
+    gap: 8px;
+    padding-right: 4px;
   }
 
   .details-section-header {
@@ -758,87 +788,72 @@ a:hover {
     font-size: 11px;
   }
 
-  .details-list {
-    gap: 4px;
+  .mobile-hide {
+    display: none;
   }
 
-  .entry-list {
-    gap: 6px;
+  .muted-text {
+    font-size: 11px;
   }
 }
 
-@media (max-width: 600px) {
+/* Responsive: Small Mobile (480px and below) */
+@media (max-width: 480px) {
   main {
-    margin: 4px;
     padding: 8px;
-    gap: 6px;
+    gap: 8px;
   }
 
   h1 {
-    font-size: 16px;
-    margin-bottom: 2px;
+    font-size: 18px;
+    padding: 4px 0;
   }
 
   #controls {
+    min-height: 36px;
+    padding: 4px;
     gap: 6px;
-    padding: 6px;
-    min-height: auto;
   }
 
   #search-bar {
     gap: 4px;
-    flex-wrap: inherit;
   }
 
   #search {
-    min-width: 100px;
-    padding: 5px 8px;
-    font-size: 12px;
-  }
-
-  #actorFilter {
-    padding: 5px 8px;
-    font-size: 12px;
-    margin-left: 0;
-    max-width: 40%;
-  }
-
-  .search-loader {
-    font-size: 12px;
-    gap: 4px;
-  }
-
-  .spinner {
-    width: 14px;
-    height: 14px;
-    border-width: 1.5px;
+    padding: 4px 8px;
+    font-size: 13px;
   }
 
   button {
-    padding: 5px 10px;
+    padding: 4px 8px;
     font-size: 11px;
+    border-radius: 3px;
   }
 
-  #browser {
-    gap: 6px;
+  #searchBtn {
+    min-width: 50px;
   }
 
-  #conversations-section {
-    max-height: 120px;
+  #actorFilter {
+    font-size: 12px;
+    padding: 4px 8px;
   }
 
-  #history-section {
-    max-height: 100px;
+  #currentEntryContainer {
+    max-height: 150px;
+    padding: 8px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    border: 1px solid var(--accent);
   }
 
-  #chatLog {
-    max-height: 50px;
-    font-size: 11px;
-    padding: 4px;
+  .current-item .speaker {
+    font-size: 10px;
   }
 
   .card-item {
     padding: 6px 8px;
+    margin: 2px 0;
   }
 
   .card-item .card-title {
@@ -848,34 +863,7 @@ a:hover {
 
   .card-item .card-text {
     font-size: 10px;
-    max-height: 50px;
-    line-height: 1.2;
-  }
-
-  #currentEntryContainer {
-    max-height: 120px;
-    padding: 8px;
-    border-radius: 6px;
-    margin-bottom: 6px;
-  }
-
-  .current-item .speaker {
-    font-size: 10px;
-    letter-spacing: 0.3px;
-  }
-
-  .current-item .dialogue-text {
-    font-size: 11px;
-    line-height: 1.3;
-  }
-
-  #moreDetails summary {
-    font-size: 12px;
-    padding: 6px 0;
-  }
-
-  #entryDetails {
-    gap: 8px;
+    max-height: 80px;
   }
 
   .scrolling-card {
@@ -883,92 +871,32 @@ a:hover {
     gap: 4px;
   }
 
-  .tree .label {
-    font-size: 12px;
+  #entryListHeader {
+    font-size: 11px;
+    margin: 4px 0;
+  }
+
+  #backButtonContainer {
     gap: 4px;
+    margin-top: 4px;
   }
 
-  .tree .toggle {
-    width: 14px;
-  }
-
-  .details-table {
+  #backBtn {
+    padding: 4px 8px;
     font-size: 10px;
+    flex: 1;
   }
 
-  .details-table th {
-    padding: 4px 6px;
-    font-size: 10px;
-  }
-
-  .details-table td {
-    padding: 4px 6px;
+  #backStatus {
     font-size: 10px;
   }
 
   .details-section-header {
     font-size: 11px;
-    margin: 4px 0 3px 0;
-  }
-
-  .details-list {
-    gap: 2px;
-    padding-left: 8px;
+    margin: 4px 0 2px 0;
   }
 
   .details-item {
     font-size: 10px;
-    line-height: 1.3;
-  }
-
-  .muted-text {
-    font-size: 11px;
-  }
-
-  .entry-list {
-    gap: 4px;
-  }
-}
-
-@media (max-width: 480px) {
-  main {
-    padding: 6px;
-  }
-
-  #controls {
-    padding: 4px;
-  }
-
-  #search-bar {
-    gap: 3px;
-    flex-wrap: inherit;
-  }
-
-  #search {
-    max-width: 60%;
-  }
-
-  #actorFilter {
-    max-width: 20%;
-  }
-
-  #searchBtn {
-    padding: 4px 8px;
-  }
-
-  #conversations-section {
-    max-height: 100px;
-  }
-
-  #history-section {
-    max-height: 80px;
-  }
-
-  #chatLog {
-    max-height: 40px;
-  }
-
-  .card-item .card-text {
-    max-height: 40px;
   }
 }

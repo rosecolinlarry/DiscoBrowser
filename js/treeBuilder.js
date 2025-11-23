@@ -1,6 +1,4 @@
 // treeBuilder.js (lazy + iterative rendering + simple virtualization)
-// Builds a hierarchical tree and renders nodes lazily when expanded. For large child lists,
-// it renders in batches with a "Show more" button to avoid DOM bloat.
 
 export function buildTitleTree(rows) {
   const root = { children: new Map(), convoIds: [] };
