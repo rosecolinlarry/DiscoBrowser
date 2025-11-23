@@ -291,18 +291,18 @@ export function renderTree(container, rootObj, opts = {}) {
 }
 
 /* Global helper to find and expand a conversation in the tree */
-export function findAndExpandConversation(convoID) {
-  console.log(`[TREE] findAndExpandConversation called for ${convoID}`);
+export function findAndExpandConversation(convoId) {
+  console.log(`[TREE] findAndExpandConversation called for ${convoId}`);
   
   if (!window._treeRoot || !window._treeContainer) {
     console.warn("[TREE] Tree not initialized");
     return null;
   }
 
-  // Step 1: Find which node in the tree structure contains this convoID
+  // Step 1: Find which node in the tree structure contains this convoId
   function findConvoInNode(node, path = []) {
-    if (node.convoIds && node.convoIds.includes(convoID)) {
-      console.log(`[TREE] Found convoID ${convoID} in node structure at path:`, path);
+    if (node.convoIds && node.convoIds.includes(convoId)) {
+      console.log(`[TREE] Found convoId ${convoId} in node structure at path:`, path);
       return { found: true, node, path };
     }
 
@@ -318,11 +318,11 @@ export function findAndExpandConversation(convoID) {
 
   const structureResult = findConvoInNode(window._treeRoot);
   if (!structureResult.found) {
-    console.warn(`[TREE] ConvoID ${convoID} not found in tree structure at all`);
+    console.warn(`[TREE] ConvoId ${convoId} not found in tree structure at all`);
     return null;
   }
 
-  console.log(`[TREE] ConvoID found in structure, path:`, structureResult.path);
+  console.log(`[TREE] ConvoId found in structure, path:`, structureResult.path);
 
   // Step 2: Now we need to expand the tree from root down the path to make the label appear
   // First, expand all top-level nodes to see if ours is there
@@ -360,8 +360,8 @@ export function findAndExpandConversation(convoID) {
       const convoId = parseInt(lbl.dataset.convoId, 10);
       const singleConvo = parseInt(lbl.dataset.singleConvo, 10);
       
-      if (convoId === convoID || singleConvo === convoID) {
-        console.log(`[TREE] FOUND label in DOM for ${convoID}:`, lbl);
+      if (convoId === convoId || singleConvo === convoId) {
+        console.log(`[TREE] FOUND label in DOM for ${convoId}:`, lbl);
         
         // Expand all ancestors
         let current = lbl;
@@ -378,13 +378,13 @@ export function findAndExpandConversation(convoID) {
         
         // Call the highlight callback with the label
         if (typeof window._onConvoFound === 'function') {
-          window._onConvoFound(lbl, convoID);
+          window._onConvoFound(lbl, convoId);
         }
         return;
       }
     }
     
-    console.warn(`[TREE] Still not found in DOM after expansion for ${convoID}`);
+    console.warn(`[TREE] Still not found in DOM after expansion for ${convoId}`);
   }, 100);
 
   return null;

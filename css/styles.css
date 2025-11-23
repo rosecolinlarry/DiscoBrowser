@@ -232,6 +232,11 @@ section {
   min-width: fit-content;
 }
 
+.highlighted_term {
+  font-weight: bold !important;
+  color: var(--accent) !important;
+}
+
 button {
   background: var(--accent);
   color: #fff;

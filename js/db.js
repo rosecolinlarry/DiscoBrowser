@@ -28,6 +28,7 @@ function run(sql) {
 
 /* Minimal safe helper for retrieving rows */
 export function execRows(sql) {
+  console.log(sql);
   const res = run(sql);
   if (!res || !res.length) return [];
   const cols = res[0].columns;
@@ -36,6 +37,19 @@ export function execRows(sql) {
     for (let i = 0; i < cols.length; i++) o[cols[i]] = v[i];
     return o;
   });
+}
+
+export function execRowsFirstOrDefault(sql) {
+  // Remove last character if semicolon
+  if(sql?.at(-1) === ";") {
+    sql = sql.slice(0, -1) 
+  }
+  sql += ' LIMIT 1;'
+  const values = execRows(sql);
+  if(values && values.length > 0) {
+    return values[0];
+  }
+  return null;
 }
 
 /* Prepared statement helper (for repeated queries) */
@@ -55,24 +69,43 @@ export function prepareAndAll(stmtSql, params = []) {
   return out;
 }
 
-/* Conversations list (no heavy processing) */
+/* Conversations list */
 export function getAllConversations() {
-  const rows = execRows(`SELECT id, title FROM dialogues ORDER BY title;`);
-  return rows;
+  return execRows(`SELECT id, title FROM dialogues ORDER BY title;`);
 }
 
 /* Actors */
 export function getDistinctActors() {
-  return execRows(
-    `SELECT DISTINCT id, name FROM actors WHERE name IS NOT NULL AND name != '' ORDER BY name;`
+  return execRows(`SELECT DISTINCT id, name FROM actors WHERE name IS NOT NULL AND name != '' ORDER BY name;`);
+}
+
+export function getActorNameById(actorId) {
+  if (!actorId || actorId === 0) {
+    return "";
+  }
+  const actor = execRowsFirstOrDefault(
+    `SELECT id, name
+        FROM actors
+        WHERE id='${actorId}'`
   );
+  return actor?.name;
+}
+
+export function getConversationById(convoId) {
+  if(convoId) {
+    return execRowsFirstOrDefault(
+      `SELECT id, title, description, actor, conversant 
+        FROM dialogues 
+        WHERE id='${convoId}';`
+    )
+  }
 }
 
 /* Check for dead-end conversation quickly */
-export function isDeadEndConversation(convoID) {
+export function isDeadEndConversation(convoId) {
   // Check quickly via count and checking titles
   const rows = execRows(
-    `SELECT title FROM dentries WHERE conversationid='${convoID}' ORDER BY id;`
+    `SELECT title FROM dentries WHERE conversationid='${convoId}' ORDER BY id;`
   );
   if (rows.length === 2) {
     const t0 = (rows[0].title || "").toLowerCase();
@@ -84,51 +117,58 @@ export function isDeadEndConversation(convoID) {
 }
 
 /* Load dentries for a conversation (summary listing) */
-export function getEntriesForConversation(convoID) {
+export function getEntriesForConversation(convoId) {
   return execRows(`
-    SELECT dentries.id AS id,
-           dentries.title AS title,
-           dentries.dialoguetext AS dialoguetext,
-           dentries.actor AS actor
-    FROM dentries
-    WHERE dentries.conversationid='${convoID}'
-    ORDER BY dentries.id;
+    SELECT id, title, dialoguetext, actor
+      FROM dentries
+      WHERE conversationid='${convoId}'
+      ORDER BY id;
   `);
 }
 
 /* Fetch a single entry row (core fields) */
-export function getEntry(convoID, entryID) {
-  const rows = execRows(
-    `SELECT id, title, dialoguetext, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass FROM dentries WHERE conversationid='${convoID}' AND id='${entryID}' LIMIT 1;`
+export function getEntry(convoId, entryId) {
+  return execRowsFirstOrDefault(
+    `SELECT id, title, dialoguetext, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass 
+      FROM dentries 
+      WHERE conversationid='${convoId}' 
+      AND id='${entryId}'`
   );
-  return rows[0] || null;
 }
 
 /* Fetch alternates for an entry */
-export function getAlternates(convoID, entryID) {
+export function getAlternates(convoId, entryId) {
   return execRows(
-    `SELECT alternateline, condition FROM alternates WHERE conversationid=${convoID} AND dialogueid=${entryID};`
+    `SELECT alternateline, condition 
+      FROM alternates 
+      WHERE conversationid=${convoId} 
+      AND dialogueid=${entryId};`
   );
 }
 
 /* Fetch check(s) for an entry */
-export function getChecks(convoID, entryID) {
+export function getChecks(convoId, entryId) {
   return execRows(
-    `SELECT isred, difficulty, flagname, forced, skilltype FROM checks WHERE conversationid=${convoID} AND dialogueid=${entryID};`
+    `SELECT isred, difficulty, flagname, forced, skilltype 
+      FROM checks 
+      WHERE conversationid=${convoId} 
+      AND dialogueid=${entryId};`
   );
 }
 
 /* Fetch parents and children dlinks for an entry */
-export function getParentsChildren(convoID, entryID) {
+export function getParentsChildren(convoId, entryId) {
   const parents = execRows(`
     SELECT originconversationid AS o_convo, origindialogueid AS o_id, priority, isConnector
-    FROM dlinks
-    WHERE destinationconversationid=${convoID} AND destinationdialogueid=${entryID};
+      FROM dlinks
+      WHERE destinationconversationid=${convoId} 
+      AND destinationdialogueid=${entryId};
   `);
   const children = execRows(`
     SELECT destinationconversationid AS d_convo, destinationdialogueid AS d_id, priority, isConnector
-    FROM dlinks
-    WHERE originconversationid=${convoID} AND origindialogueid=${entryID};
+      FROM dlinks
+      WHERE originconversationid=${convoId} 
+      AND origindialogueid=${entryId};
   `);
   return { parents, children };
 }
@@ -137,21 +177,24 @@ export function getParentsChildren(convoID, entryID) {
 export function getEntriesBulk(pairs = []) {
   // pairs = [{convo, id}, ...] -> batch by convo to use IN
   if (!pairs.length) return [];
-  const byConvo = new Map();
+  const groupByConvoId = new Map();
   for (const p of pairs) {
-    const arr = byConvo.get(p.convo) || [];
-    arr.push(p.id);
-    byConvo.set(p.convo, arr);
+    const entryIds = groupByConvoId.get(p.convoId) || [];
+    entryIds.push(p.entryId);
+    groupByConvoId.set(p.convoId, entryIds);
   }
   const results = [];
-  for (const [convo, ids] of byConvo.entries()) {
-    const inList = ids.map((i) => String(i)).join(",");
+  for (const [convoId, entryIds] of groupByConvoId.entries()) {
+    const entryIdList = entryIds.map((i) => String(i)).join(",");
     const rows = execRows(
-      `SELECT id, title, dialoguetext, actor FROM dentries WHERE conversationid='${convo}' AND id IN (${inList});`
+      `SELECT id, title, dialoguetext, actor 
+        FROM dentries 
+        WHERE conversationid='${convoId}' 
+        AND id IN (${entryIdList});`
     );
     rows.forEach((r) => {
       results.push({
-        convo,
+        convo: convoId,
         id: r.id,
         title: r.title,
         dialoguetext: r.dialoguetext,
@@ -162,7 +205,8 @@ export function getEntriesBulk(pairs = []) {
   return results;
 }
 
-export function searchDialogues(q, actorId = null, limit = 1000) {
+/** Search entry dialogues */
+export function searchDialogues(q, minLength = 3, limit = 1000, actorId = null) {
   const raw = (q || "").trim();
   if (!raw) {
     // No query -> return empty array (caller will handle limits)
@@ -172,11 +216,15 @@ export function searchDialogues(q, actorId = null, limit = 1000) {
   // Make a SQL-safe single-quoted literal (basic)
   const safe = raw.replace(/'/g, "''");
 
-  // Fallback: LIKE-based search (slower)
   let where = `(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`;
   if (actorId) where += ` AND actor='${actorId}'`;
-  const limitClause = raw.length <= 3 ? ` LIMIT ${limit}` : "";
-  const sql = `SELECT conversationid, id, dialoguetext, title, actor FROM dentries WHERE ${where} ORDER BY conversationid, id ${limitClause};`;
+  const limitClause = raw.length <= minLength ? ` LIMIT ${limit}` : "";
+  const sql = `
+    SELECT conversationid, id, dialoguetext, title, actor 
+      FROM dentries 
+      WHERE ${where} 
+      ORDER BY conversationid, id 
+      ${limitClause};`;
   return execRows(sql);
 }
 

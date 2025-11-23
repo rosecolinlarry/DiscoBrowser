@@ -64,9 +64,9 @@ async function boot() {
   // Handle navigateToConversation events from history dividers
   if (chatLogEl) {
     chatLogEl.addEventListener("navigateToConversation", (e) => {
-      const convoID = e.detail.convoID;
-      loadEntriesForConversation(convoID);
-      highlightConversationInTree(convoID);
+      const convoId = e.detail.convoId;
+      loadEntriesForConversation(convoId);
+      highlightConversationInTree(convoId);
     });
   }
 
@@ -76,15 +76,15 @@ async function boot() {
   // wire search
   if (searchBtn && searchInput) {
     searchBtn.addEventListener("click", () =>
-      searchDialogues(searchInput.value)
+      searchDialogues(searchInput.value, minSearchLength, searchResultLimit)
     );
     searchInput.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter") searchDialogues(searchInput.value);
+      if (ev.key === "Enter") searchDialogues(searchInput.value, minSearchLength, searchResultLimit);
     });
   }
   if (actorFilter)
     actorFilter.addEventListener("change", () => {
-      if (searchInput.value) searchDialogues(searchInput.value);
+      if (searchInput.value) searchDialogues(searchInput.value, minSearchLength, searchResultLimit);
     });
 
   if (backBtn) {
@@ -114,22 +114,22 @@ async function populateActorDropdown() {
     actorFilter.appendChild(opt);
   });
 }
-function highlightConversationInTree(convoID) {
-  console.log(`[HIGHLIGHT] Looking for conversation ${convoID}`);
+function highlightConversationInTree(convoId) {
+  console.log(`[HIGHLIGHT] Looking for conversation ${convoId}`);
   
   // Remove old highlights
   convoListEl.querySelectorAll(".label.selected")
     .forEach(el => el.classList.remove("selected"));
 
   // Set up callback for when tree builder finds the label
-  window._onConvoFound = (label, foundConvoID) => {
-    console.log(`[HIGHLIGHT] Callback: Label found for ${foundConvoID}`, label);
+  window._onConvoFound = (label, foundConvoId) => {
+    console.log(`[HIGHLIGHT] Callback: Label found for ${foundConvoId}`, label);
     applyHighlight(label);
     delete window._onConvoFound;
   };
 
   // Use the imported tree builder helper function
-  const label = findAndExpandConversation(convoID);
+  const label = findAndExpandConversation(convoId);
   
   if (label) {
     console.log(`[HIGHLIGHT] Got label immediately`);
@@ -160,23 +160,23 @@ function highlightConversationInTree(convoID) {
 
 
 /* Load entries listing for conversation */
-function loadEntriesForConversation(convoID, resetHistory = true) {
-  convoID = parseInt(convoID, 10);
+function loadEntriesForConversation(convoId, resetHistory = true) {
+  convoId = parseInt(convoId, 10);
   // Only reset history if this is a fresh navigation (e.g., from search or tree click)
   if (resetHistory) {
-    navigationHistory = [{ convoID, entryID: null }];
+    navigationHistory = [{ convoId, entryId: null }];
   } else {
     // Check if we're switching to a different conversation; if so, add a visual divider
     if (navigationHistory.length > 0) {
       const lastEntry = navigationHistory[navigationHistory.length - 1];
-      if (lastEntry.convoID !== convoID) {
+      if (lastEntry.convoId !== convoId) {
         // Add a divider marker to the history
-        navigationHistory.push({ convoID: null, entryID: null, isDivider: true });
+        navigationHistory.push({ convoId: null, entryId: null, isDivider: true });
       }
     }
   }
   if (currentEntryContainerEl) currentEntryContainerEl.style.display = "flex";
-  const rows = DB.getEntriesForConversation(convoID);
+  const rows = DB.getEntriesForConversation(convoId);
   entryListHeaderEl.textContent = "Next Dialogue Options";
   entryListEl.innerHTML = "";
   const filtered = rows.filter(
@@ -192,11 +192,11 @@ function loadEntriesForConversation(convoID, resetHistory = true) {
 
     const text = r.dialoguetext || "";
     const el = UI.createCardItem(
-      `${convoID}:${id}. ${title}`,
+      `${convoId}:${id}. ${title}`,
       text.substring(0, 300),
       false
     );
-    el.addEventListener("click", () => navigateToEntry(convoID, id));
+    el.addEventListener("click", () => navigateToEntry(convoId, id));
     entryListEl.appendChild(el);
   });
 }
@@ -218,9 +218,9 @@ function goBack() {
   // Skip dividers and find the last real entry
   while (navigationHistory.length > 0) {
     const previous = navigationHistory[navigationHistory.length - 1];
-    if (!previous.isDivider && previous.entryID) {
-      const cid = parseInt(previous.convoID, 10);
-      const eid = parseInt(previous.entryID, 10);
+    if (!previous.isDivider && previous.entryId) {
+      const cid = parseInt(previous.convoId, 10);
+      const eid = parseInt(previous.entryId, 10);
       navigateToEntry(cid, eid, false);
       return;
     }
@@ -229,28 +229,28 @@ function goBack() {
 }
 
 /* navigateToEntry optimized */
-async function navigateToEntry(convoID, entryID, addToHistory = true) {
-  // Ensure numeric IDs
-  convoID = parseInt(convoID, 10);
-  entryID = parseInt(entryID, 10);
+async function navigateToEntry(convoId, entryId, addToHistory = true) {
+  // Ensure numeric Ids
+  convoId = parseInt(convoId, 10);
+  entryId = parseInt(entryId, 10);
 
   // Make visible
   if (currentEntryContainerEl)
     currentEntryContainerEl.style.visibility = "visible";
 
   // small cache first
-  const cached = DB.getCachedEntry(convoID, entryID);
+  const cached = DB.getCachedEntry(convoId, entryId);
   
   // Check if we're switching conversations BEFORE adding to history
   let shouldAddDivider = false;
   if (addToHistory && navigationHistory.length > 0) {
     const lastEntry = navigationHistory[navigationHistory.length - 1];
-    if (lastEntry && lastEntry.convoID && lastEntry.convoID !== convoID && !lastEntry.isDivider) {
+    if (lastEntry && lastEntry.convoId && lastEntry.convoId !== convoId && !lastEntry.isDivider) {
       shouldAddDivider = true;
     }
   }
   
-  if (addToHistory) navigationHistory.push({ convoID, entryID });
+  if (addToHistory) navigationHistory.push({ convoId, entryId });
   updateBackButtonState();
 
   // Append chat log entry
@@ -264,18 +264,18 @@ async function navigateToEntry(convoID, entryID, addToHistory = true) {
     
     // Add divider if switching conversations
     if (shouldAddDivider) {
-      UI.appendHistoryDivider(chatLogEl, convoID);
+      UI.appendHistoryDivider(chatLogEl, convoId);
     }
     
     const historyIndex = navigationHistory.length - 1;
-    const coreRow = DB.getEntry(convoID, entryID);
+    const coreRow = DB.getEntry(convoId, entryId);
     const title = coreRow
       ? coreRow.title || "(no title)"
-      : `(line ${convoID}:${entryID})`;
+      : `(line ${convoId}:${entryId})`;
     const dialoguetext = coreRow ? coreRow.dialoguetext : "";
     const item = UI.appendHistoryItem(
       chatLogEl,
-      `${title} — #${entryID}`,
+      `${title} — #${entryId}`,
       dialoguetext,
       historyIndex,
       () => {
@@ -297,12 +297,12 @@ async function navigateToEntry(convoID, entryID, addToHistory = true) {
     UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext);
   }
 
-  currentConvoId = convoID;
-  currentEntryId = entryID;
+  currentConvoId = convoId;
+  currentEntryId = entryId;
 
   // Highlight and expand conversation in tree (do this after setting currentConvoId)
   setTimeout(() => {
-    highlightConversationInTree(convoID);
+    highlightConversationInTree(convoId);
   }, 0);
 
   // Load child links (parents/children) and render options
@@ -312,11 +312,11 @@ async function navigateToEntry(convoID, entryID, addToHistory = true) {
     entryListEl.innerHTML = "";
 
     // get children via DB.getParentsChildren
-    const { parents, children } = DB.getParentsChildren(convoID, entryID);
+    const { parents, children } = DB.getParentsChildren(convoId, entryId);
 
     // Build a list of destination pairs to fetch in batch, to avoid many queries
     const pairs = [];
-    for (const c of children) pairs.push({ convo: c.d_convo, id: c.d_id });
+    for (const c of children) pairs.push({ convoId: c.d_convo, entryId: c.d_id });
     // But skip START entries when rendering
     const destRows = DB.getEntriesBulk(pairs);
     // Map by key
@@ -346,16 +346,16 @@ async function navigateToEntry(convoID, entryID, addToHistory = true) {
 
   // Show details lazily only when expanded
   if (moreDetailsEl && moreDetailsEl.open) {
-    await showEntryDetails(convoID, entryID);
+    await showEntryDetails(convoId, entryId);
   }
 }
 
 /* Show entry details (optimized) */
-async function showEntryDetails(convoID, entryID) {
+async function showEntryDetails(convoId, entryId) {
   if (!DB || !entryDetailsEl) return;
 
   // Check cache
-  const cached = DB.getCachedEntry(convoID, entryID);
+  const cached = DB.getCachedEntry(convoId, entryId);
   if (cached) {
     UI.renderEntryDetails(entryDetailsEl, {
       ...cached,
@@ -365,43 +365,28 @@ async function showEntryDetails(convoID, entryID) {
   }
 
   // core row
-  const core = DB.getEntry(convoID, entryID);
-  if (!core) {
+  const entry = DB.getEntry(convoId, entryId);
+  if (!entry) {
     entryDetailsEl.textContent = "(not found)";
     return;
   }
 
   // Fetch alternates, checks, parents/children
-  const alternates = core.hasalts > 0 ? DB.getAlternates(convoID, entryID) : [];
-  const checks = core.hascheck > 0 ? DB.getChecks(convoID, entryID) : [];
-  const { parents, children } = DB.getParentsChildren(convoID, entryID);
-
-  // Optionally get conversation metadata (first row of dialogues)
-  const convoRow =
-    DB.execRows(
-      `SELECT id, title, description, actor, conversant FROM dialogues WHERE id='${convoID}' LIMIT 1;`
-    )[0] || {};
-  // If actor ids present, get actor names
-  let entryActorName = null;
-  if (core.actor && core.actor !== 0) {
-    const a = DB.execRows(
-      `SELECT id, name FROM actors WHERE id='${core.actor}' LIMIT 1;`
-    )[0];
-    if (a) entryActorName = a.name;
-  }
-  let convoActorName = null;
-  if (convoRow.actor && convoRow.actor !== 0) {
-    const a2 = DB.execRows(
-      `SELECT id, name FROM actors WHERE id='${convoRow.actor}' LIMIT 1;`
-    )[0];
-    if (a2) convoActorName = a2.name;
-  }
+  const alternates = entry.hasalts > 0 ? DB.getAlternates(convoId, entryId) : [];
+  const checks = entry.hascheck > 0 ? DB.getChecks(convoId, entryId) : [];
+  const { parents, children } = DB.getParentsChildren(convoId, entryId);
+  // Get conversation data
+  const convoRow = DB.getConversationById(convoId) || {};
+  // Get actor names
+  let entryActorName = DB.getActorNameById(entry.actor)
+  let convoActorName =  DB.getActorNameById(convoRow.actor)
+  let convoConversantActorName = DB.getActorNameById(convoRow.conversant);
 
   const payload = {
-    convoID: convoID,
-    entryID: entryID,
-    title: core.title,
-    actorID: core.actor,
+    convoId: convoId,
+    entryId: entryId,
+    title: entry.title,
+    actorId: entry.actor,
     actorName: entryActorName,
     alternates,
     checks,
@@ -411,15 +396,17 @@ async function showEntryDetails(convoID, entryID) {
     conversationDescription: convoRow.description,
     conversationActorId: convoRow.actor,
     conversationActorName: convoActorName,
-    sequence: core.sequence,
-    conditionstring: core.conditionstring,
-    userscript: core.userscript,
-    difficultypass: core.difficultypass,
+    conversationConversantId: convoRow.conversant,
+    conversationConversantName: convoConversantActorName,
+    sequence: entry.sequence,
+    conditionstring: entry.conditionstring,
+    userscript: entry.userscript,
+    difficultypass: entry.difficultypass,
     onNavigate: navigateToEntry,
   };
 
   // Cache it
-  DB.cacheEntry(convoID, entryID, payload);
+  DB.cacheEntry(convoId, entryId, payload);
 
   UI.renderEntryDetails(entryDetailsEl, payload);
 }
@@ -442,7 +429,7 @@ function searchDialogues(q) {
       return;
     }
     
-    const res = DB.searchDialogues(trimmedQ, actorId, searchResultLimit);
+    const res = DB.searchDialogues(trimmedQ, minSearchLength, searchResultLimit, actorId);
     entryListHeaderEl.textContent = "Search Results";
     entryListEl.innerHTML = "";
     if (!res.length) {
@@ -466,7 +453,7 @@ function searchDialogues(q) {
       div.addEventListener("click", () => {
         const cid = parseInt(r.conversationid, 10);
         const eid = parseInt(r.id, 10);
-        navigationHistory = [{ convoID: cid, entryID: null }];
+        navigationHistory = [{ convoId: cid, entryId: null }];
         navigateToEntry(cid, eid);
       });
       entryListEl.appendChild(div);
@@ -488,10 +475,10 @@ function jumpToHistoryPoint(historyIndex) {
   let actualIndex = historyIndex;
   while (actualIndex >= 0) {
     const target = navigationHistory[actualIndex];
-    if (target && !target.isDivider && target.entryID) {
+    if (target && !target.isDivider && target.entryId) {
       navigationHistory = navigationHistory.slice(0, actualIndex + 1);
-      const cid = parseInt(target.convoID, 10);
-      const eid = parseInt(target.entryID, 10);
+      const cid = parseInt(target.convoId, 10);
+      const eid = parseInt(target.entryId, 10);
       navigateToEntry(cid, eid, false);
       return;
     }

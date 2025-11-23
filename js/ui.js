@@ -64,18 +64,18 @@ export function appendHistoryItem(
 }
 
 /* Add visual divider for new conversations in history */
-export function appendHistoryDivider(chatLogEl, convoID = null) {
+export function appendHistoryDivider(chatLogEl, convoId = null) {
   const divider = document.createElement("div");
   divider.className = "history-divider";
   
-  if (convoID) {
-    divider.innerHTML = `<span style="cursor: pointer; opacity: 0.7;" title="Click to jump to this conversation">─── Conversation #${convoID} ───</span>`;
+  if (convoId) {
+    divider.innerHTML = `<span style="cursor: pointer; opacity: 0.7;" title="Click to jump to this conversation">─── Conversation #${convoId} ───</span>`;
     const span = divider.querySelector("span");
     if (span) {
       span.addEventListener("click", () => {
         // Dispatch event to navigate to this conversation
         const event = new CustomEvent("navigateToConversation", {
-          detail: { convoID },
+          detail: { convoId },
           bubbles: true
         });
         chatLogEl.dispatchEvent(event);
@@ -121,12 +121,12 @@ export function renderEntryDetails(containerEl, data) {
   const convoTitleDiv = document.createElement("div");
   convoTitleDiv.innerHTML = `<strong class="details-section-header">Title</strong> <span class="details-item">${
     data.title || "(no title)"
-  } -- #${data.entryID}</span>`;
+  } -- #${data.entryId}</span>`;
   wrapper.appendChild(convoTitleDiv);
 
   if (data.actorName) {
     const actorDiv = document.createElement("div");
-    actorDiv.innerHTML = `<strong class="details-section-header">Actor</strong> <span class="details-item">${data.actorName} -- #${data.actorID}</span>`;
+    actorDiv.innerHTML = `<strong class="details-section-header">Actor</strong> <span class="details-item">${data.actorName} -- #${data.actorId}</span>`;
     wrapper.appendChild(actorDiv);
   }
 
@@ -244,11 +244,14 @@ export function renderEntryDetails(containerEl, data) {
   const t = document.createElement("table");
   t.className = "details-table";
   const rows = [
-    ["ID", data.convoID || "(none)"],
+    ["Id", data.convoId || "(none)"],
     ["Title", data.conversationTitle || "(none)"],
     ["Description", data.conversationDescription || "(none)"],
-    ["Actor ID", data.conversationActorId || "(none)"],
+    ["Actor Id", data.conversationActorId || "(none)"],
     ["Actor name", data.conversationActorName || "(none)"],
+    ["Conversant Id", data.conversationConversantId || "(none)"],
+    ["Conversant name", data.conversationConversantName || "(none)"],
+    ["Description", data.conversationDescription || "(none)"],
   ];
   rows.forEach(([label, val]) => {
     const tr = document.createElement("tr");
@@ -317,5 +320,5 @@ export function highlightTerms(text, query) {
   // Regex: match any term (case-insensitive)
   const re = new RegExp("(" + escaped.join("|") + ")", "gi");
 
-  return escapeHtml(text).replace(re, "<strong>$1</strong>");
+  return escapeHtml(text).replace(re, "<strong class='highlighted_term'>$1</strong>");
 }
