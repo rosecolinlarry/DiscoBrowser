@@ -1,9 +1,8 @@
-// db.js (FTS-integrated)
-// Wraps sql.js Database and provides helper methods, FTS-aware search, and simple caching.
+// db.js
+// Wraps sql.js Database and provides helper methods, search, and simple caching.
 
 let _db = null;
 let SQL = null;
-let hasFTS = false; // whether the loaded DB contains fts_dentries (FTS5)
 
 const entryCache = new Map();
 const conversationCache = new Map();
@@ -16,17 +15,6 @@ export async function initDatabase(sqlFactory, path = "db/discobase.sqlite3") {
     const buffer = await res.arrayBuffer();
     _db = new SQL.Database(new Uint8Array(buffer));
     console.info("Database loaded:", path);
-
-    // Detect FTS table presence (works for prebuilt FTS5 named 'fts_dentries')
-    try {
-      const r = _db.exec(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='fts_dentries';"
-      );
-      hasFTS = !!(r && r.length && r[0].values && r[0].values.length);
-      console.info("FTS5 available:", hasFTS);
-    } catch (e) {
-      hasFTS = false;
-    }
   } catch (err) {
     console.error("initDatabase error", err);
     throw err;
@@ -174,10 +162,6 @@ export function getEntriesBulk(pairs = []) {
   return results;
 }
 
-/* FTS-aware search:
-   If the DB has an 'fts_dentries' FTS5 virtual table (prebuilt), use MATCH queries which are much faster.
-   Otherwise fall back to LIKE queries on dialoguetext/title.
-*/
 export function searchDialogues(q, actorId = null, limit = 1000) {
   const raw = (q || "").trim();
   if (!raw) {
@@ -187,28 +171,6 @@ export function searchDialogues(q, actorId = null, limit = 1000) {
 
   // Make a SQL-safe single-quoted literal (basic)
   const safe = raw.replace(/'/g, "''");
-
-  // If FTS present, use it
-  if (hasFTS) {
-    // Build MATCH expression. Use phrase match if multi-word.
-    // For safety wrap in quotes so "foo bar" matches phrase; user can still type boolean operators.
-    const matchTerm = `"${safe}"`;
-    // Join to dentries to get conversationid and id
-    let sql = `SELECT dentries.conversationid AS conversationid, dentries.id AS id, dentries.dialoguetext AS dialoguetext, dentries.title AS title, dentries.actor AS actor
-               FROM fts_dentries JOIN dentries ON dentries.id = fts_dentries.rowid
-               WHERE fts_dentries MATCH ${matchTerm}`;
-    if (actorId) {
-      sql += ` AND dentries.actor='${actorId}'`;
-    }
-    // bm25() is an FTS5 function; if not present this may error; try/catch below
-    sql += ` ORDER BY bm25(fts_dentries) LIMIT ${limit};`;
-    try {
-      return execRows(sql);
-    } catch (e) {
-      console.warn("FTS search failed, falling back to LIKE:", e);
-      // Fall through to LIKE below
-    }
-  }
 
   // Fallback: LIKE-based search (slower)
   let where = `(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`;
@@ -229,8 +191,4 @@ export function getCachedEntry(convo, id) {
 export function clearCaches() {
   entryCache.clear();
   conversationCache.clear();
-}
-
-export function ftsAvailable() {
-  return hasFTS;
 }
