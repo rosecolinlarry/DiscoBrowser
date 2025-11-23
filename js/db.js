@@ -28,7 +28,6 @@ function run(sql) {
 
 /* Minimal safe helper for retrieving rows */
 export function execRows(sql) {
-  console.log(sql);
   const res = run(sql);
   if (!res || !res.length) return [];
   const cols = res[0].columns;

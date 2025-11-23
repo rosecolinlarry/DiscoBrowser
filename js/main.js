@@ -1,7 +1,7 @@
 // main.js - entry point (use <script type="module"> in index.html)
 import { loadSqlJs } from "./sqlLoader.js";
 import * as DB from "./db.js";
-import { buildTitleTree, renderTree, findAndExpandConversation } from "./treeBuilder.js";
+import { buildTitleTree, renderTree } from "./treeBuilder.js";
 import * as UI from "./ui.js";
 
 const searchInput = UI.$("search");
@@ -44,7 +44,6 @@ async function boot() {
     if (target) {
       const id = parseInt(target.dataset.convoId, 10);
       loadEntriesForConversation(id);
-      highlightConversationInTree(id);
       return;
     }
     const topLabel = e.target.closest(".label");
@@ -114,47 +113,51 @@ async function populateActorDropdown() {
     actorFilter.appendChild(opt);
   });
 }
+
 function highlightConversationInTree(convoId) {
-  console.log(`[HIGHLIGHT] Looking for conversation ${convoId}`);
-  
-  // Remove old highlights
-  convoListEl.querySelectorAll(".label.selected")
-    .forEach(el => el.classList.remove("selected"));
+  // Remove highlight from all parent labels first
+  const allLabels = convoListEl.querySelectorAll(".node > .label.selected");
+  allLabels.forEach((label) => {
+    label.classList.remove("selected");
+  });
 
-  // Set up callback for when tree builder finds the label
-  window._onConvoFound = (label, foundConvoId) => {
-    console.log(`[HIGHLIGHT] Callback: Label found for ${foundConvoId}`, label);
-    applyHighlight(label);
-    delete window._onConvoFound;
-  };
-
-  // Use the imported tree builder helper function
-  const label = findAndExpandConversation(convoId);
-  
-  if (label) {
-    console.log(`[HIGHLIGHT] Got label immediately`);
-    applyHighlight(label);
+  // Find the leaf with data-convo-id, then highlight its parent node's label
+  let leafLabel = convoListEl.querySelector(`[data-convo-id="${convoId}"]`);
+  if (!leafLabel) {
+    leafLabel = convoListEl.querySelector(
+      `[data-convo-id="${String(convoId)}"]`
+    );
   }
 
-  function applyHighlight(label) {
-    console.log(`[HIGHLIGHT] Applying highlight to label`);
-    label.classList.add("selected");
-    label.scrollIntoView({ block: "nearest" });
+  if (leafLabel) {
+    // Walk up the tree to find the parent .node, then highlight its .label
+    let node = leafLabel.closest(".node");
+    if (node) {
+      // Add "expanded" class to the parent node directly under .tree.scrolling-card
+      let currentNode = node;
+      let treeContainer = convoListEl.querySelector(".tree.scrolling-card");
 
-    // Expand all ancestor nodes (in case they weren't already)
-    let current = label;
-    while (current) {
-      const ancestorNode = current.closest(".node");
-      if (!ancestorNode) break;
+      // Walk up to find the direct child of tree.scrolling-card
+      while (currentNode && currentNode.parentElement !== treeContainer) {
+        currentNode = currentNode.parentElement?.closest(".node");
+        if (!currentNode) break;
+      }
 
-      ancestorNode.classList.add("expanded");
-      const toggle = ancestorNode.querySelector(":scope > .label > .toggle");
-      if (toggle) toggle.textContent = "▾";
+      // If we found the top-level node, expand it
+      if (currentNode && currentNode.parentElement === treeContainer) {
+        currentNode.classList.add("expanded");
+        const toggle = currentNode.querySelector(":scope > .label > .toggle");
+        if (toggle) {
+          toggle.textContent = "▾";
+        }
+      }
 
-      current = ancestorNode;
+      const parentLabel = node.querySelector(":scope > .label");
+      if (parentLabel) {
+        parentLabel.classList.add("selected");
+        parentLabel.scrollIntoView({ behavior: "smooth", block: "start", container: "nearest", inline: "nearest" });
+      }
     }
-    
-    console.log(`[HIGHLIGHT] Highlighting complete`);
   }
 }
 
@@ -299,11 +302,6 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
 
   currentConvoId = convoId;
   currentEntryId = entryId;
-
-  // Highlight and expand conversation in tree (do this after setting currentConvoId)
-  setTimeout(() => {
-    highlightConversationInTree(convoId);
-  }, 0);
 
   // Load child links (parents/children) and render options
   // Use DB.getParentsChildren which is optimized
@@ -455,6 +453,7 @@ function searchDialogues(q) {
         const eid = parseInt(r.id, 10);
         navigationHistory = [{ convoId: cid, entryId: null }];
         navigateToEntry(cid, eid);
+        highlightConversationInTree(cid);
       });
       entryListEl.appendChild(div);
     });
