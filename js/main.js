@@ -42,14 +42,14 @@ async function boot() {
   convoListEl.addEventListener("click", (e) => {
     const target = e.target.closest("[data-convo-id]");
     if (target) {
-      const id = parseInt(target.dataset.convoId, 10);
-      loadEntriesForConversation(id);
+      const convoId = parseInt(target.dataset.convoId, 10);
+      loadEntriesForConversation(convoId);
       return;
     }
     const topLabel = e.target.closest(".label");
     if (topLabel && topLabel.dataset.singleConvo) {
-      const id = parseInt(topLabel.dataset.singleConvo, 10);
-      loadEntriesForConversation(id);
+      const convoId = parseInt(topLabel.dataset.singleConvo, 10);
+      loadEntriesForConversation(convoId);
     }
   });
 
@@ -154,7 +154,7 @@ function highlightConversationInTree(convoId) {
 
 
 /* Load entries listing for conversation */
-function loadEntriesForConversation(convoId, resetHistory = true) {
+function loadEntriesForConversation(convoId, resetHistory = false) {
   convoId = parseInt(convoId, 10);
   // Only reset history if this is a fresh navigation (e.g., from search or tree click)
   if (resetHistory) {
@@ -181,16 +181,16 @@ function loadEntriesForConversation(convoId, resetHistory = true) {
     return;
   }
   filtered.forEach((r) => {
-    const id = parseInt(r.id, 10);
+    const entryId = parseInt(r.id, 10);
     const title = r.title && r.title.trim() ? r.title : "(no title)";
 
     const text = r.dialoguetext || "";
     const el = UI.createCardItem(
-      `${convoId}:${id}. ${title}`,
+      `${convoId}:${entryId}. ${title}`,
       text.substring(0, 300),
       false
     );
-    el.addEventListener("click", () => navigateToEntry(convoId, id));
+    el.addEventListener("click", () => navigateToEntry(convoId, entryId));
     entryListEl.appendChild(el);
   });
 }
@@ -233,13 +233,11 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
     currentEntryContainerEl.style.visibility = "visible";
 
   // small cache first
-  const cached = DB.getCachedEntry(convoId, entryId);
-  
   // Check if we're switching conversations BEFORE adding to history
   let shouldAddDivider = false;
   if (addToHistory && navigationHistory.length > 0) {
     const lastEntry = navigationHistory[navigationHistory.length - 1];
-    if (lastEntry && lastEntry.convoId && lastEntry.convoId !== convoId && !lastEntry.isDivider) {
+    if(lastEntry?.convoId !== convoId) {
       shouldAddDivider = true;
     }
   }

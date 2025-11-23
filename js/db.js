@@ -5,7 +5,6 @@ let _db = null;
 let SQL = null;
 
 const entryCache = new Map();
-const conversationCache = new Map();
 
 export async function initDatabase(sqlFactory, path = "db/discobase.sqlite3") {
   SQL = sqlFactory;
@@ -227,14 +226,14 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorId = null) 
 }
 
 /* Cache helpers */
-export function cacheEntry(convo, id, payload) {
-  entryCache.set(`${convo}:${id}`, payload);
+export function cacheEntry(convoId, entryId, payload) {
+  entryCache.set(`${convoId}:${entryId}`, payload);
 }
-export function getCachedEntry(convo, id) {
-  return entryCache.get(`${convo}:${id}`);
+export function getCachedEntry(convoId, entryId) {
+  return entryCache.get(`${convoId}:${entryId}`);
 }
+
 
 export function clearCaches() {
   entryCache.clear();
-  conversationCache.clear();
 }

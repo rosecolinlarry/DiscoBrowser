@@ -224,12 +224,27 @@ section {
   text-decoration: underline;
 }
 
-/* Highlighted conversation selection */
 .tree .label.selected {
   font-weight: bold !important;
   color: var(--disco-orange) !important;
   display: inline-block !important;
   min-width: fit-content;
+}
+
+.history-divider {
+  text-align: "center";
+  margin: "8px 0";
+  opacity: "0.6";
+  font-size: "0.9em";
+  font-style: "italic";
+  color: var(--muted);
+  &__label {
+    cursor: pointer;
+    color: var(--muted);
+    a {
+      color: var(--accent);
+    }
+  }
 }
 
 .highlighted_term {

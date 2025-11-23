@@ -69,7 +69,7 @@ export function appendHistoryDivider(chatLogEl, convoId = null) {
   divider.className = "history-divider";
   
   if (convoId) {
-    divider.innerHTML = `<span style="cursor: pointer; opacity: 0.7;" title="Click to jump to this conversation">─── Conversation #${convoId} ───</span>`;
+    divider.innerHTML = `<span style="history-divider__label" title="Click to jump to this conversation">─── Conversation <a>#${convoId}</a> ───</span>`;
     const span = divider.querySelector("span");
     if (span) {
       span.addEventListener("click", () => {
