@@ -266,7 +266,6 @@ section {
 .tree .label.selected {
   font-weight: bold !important;
   color: var(--disco-orange) !important;
-  display: inline-block !important;
   min-width: fit-content;
 }
 
