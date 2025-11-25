@@ -69,8 +69,8 @@ export function appendHistoryItem(
 
 /* Utility to render current entry summary */
 export function renderCurrentEntry(entryOverviewEl, title, dialoguetext) {
-  dialoguetext = getStringOrDefault(dialoguetext,"<i>No dialogue.</i>");
-  title = getStringOrDefault(parseSpeakerFromTitle(title),"<i>No title.</i>")
+  dialoguetext = getStringOrDefault(dialoguetext, "<i>No dialogue.</i>");
+  title = getStringOrDefault(parseSpeakerFromTitle(title), "<i>No title.</i>");
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
   entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${title}</strong></div>
@@ -83,7 +83,10 @@ export function renderConversationOverview(entryOverviewEl, conversation) {
   entryOverviewEl.className = "entry-item current-item";
 
   const title = getStringOrDefault(conversation.title, "(no title)");
-  const description = getStringOrDefault(conversation.description,"<i>No conversation description.</i>");
+  const description = getStringOrDefault(
+    conversation.description,
+    "<i>No conversation description.</i>"
+  );
 
   entryOverviewEl.innerHTML = `
     <div class="current-item">
@@ -107,49 +110,14 @@ export function parseSpeakerFromTitle(title) {
   return title;
 }
 
-export function buildTable(rows) {
-  const t = document.createElement("table");
-  t.className = "details-table";
-  rows.forEach(([label, value]) => {
-    const tr = document.createElement("tr");
-    const th = document.createElement("th");
-    const td = document.createElement("td");
-    th.textContent = getStringOrDefault(label, "(none)");
-    td.textContent = getStringOrDefault(value, "(none)");
-    tr.appendChild(th);
-    tr.appendChild(td);
-    t.appendChild(tr);
-  });
-  return t;
-}
-
 /* Render details container - caller provides data */
 export function renderEntryDetails(containerEl, data) {
   containerEl.innerHTML = "";
   const wrapper = document.createElement("div");
 
-  const convoTitleDiv = document.createElement("div");
-  convoTitleDiv.innerHTML = `<strong class="details-section-header">Title</strong> <span class="details-item">${getStringOrDefault(
-    data.title,
-    "(no title)"
-  )} -- #${data.entryId}</span>`;
-  wrapper.appendChild(convoTitleDiv);
-
-  if (data.actorName) {
-    const actorDiv = document.createElement("div");
-    actorDiv.innerHTML = `<strong class="details-section-header">Actor</strong> <span class="details-item">${data.actorName} -- #${data.actorId}</span>`;
-    wrapper.appendChild(actorDiv);
-  }
-
-  // Alternates
-  if (data.alternates && data.alternates.length) {
-    wrapper.appendChild(createAlternatesList(data));
-  }
-
-  if (data.checks && data.checks.length) {
-    wrapper.appendChild(createChecksTable(data));
-  }
-
+  wrapper.appendChild(createEntryTable(data));
+  wrapper.appendChild(createAlternatesList(data));
+  wrapper.appendChild(createChecksList(data));
   wrapper.appendChild(createParentsList(data));
   wrapper.appendChild(createChildrenList(data));
   wrapper.appendChild(createConvoTable(data));
@@ -159,34 +127,59 @@ export function renderEntryDetails(containerEl, data) {
 }
 
 function createAlternatesList(data) {
-  const listDiv = document.createElement("div");
-  listDiv.innerHTML = `<div class="details-section-header">Alternates</div>`;
+  const listDiv = createDetailsSectionHeader("Alternates");
   const list = document.createElement("div");
   list.className = "details-list";
-  data.alternates.forEach((a) => {
-    const it = document.createElement("div");
-    it.className = "details-item";
-    it.innerHTML = `${a.alternateline} <span>(condition: ${a.condition})</span>`;
-    list.appendChild(it);
-  });
-  listDiv.appendChild(list);
+  if (data.alternates && data.alternates.length) {
+    data.alternates.forEach((a) => {
+      const item = document.createElement("div");
+      item.className = "details-item";
+      item.innerHTML = `${a.alternateline} <span>(condition: ${a.condition})</span>`;
+      list.appendChild(item);
+    });
+    listDiv.appendChild(list);
+  } else {
+    listDiv.append(createPlaceholderItem());
+  }
+
   return listDiv;
 }
 
-function createChecksTable(data) {
-  const tableDiv = document.createElement("div");
-  tableDiv.innerHTML = `<div class="details-section-header">Checks</div>`;
-  const rows = data.checks;
-  const table = buildTable(rows);
-  tableDiv.appendChild(table);
-  return tableDiv;
+function createDetailsSectionHeader(sectionTitle) {
+  const sectionHeader = document.createElement("div");
+  sectionHeader.innerHTML = `<div class="details-section-header">${sectionTitle}</div>`;
+  return sectionHeader;
 }
 
-// Create parents list
+function createPlaceholderItem() {
+  const item = document.createElement("span");
+  item.classList = "details-item details-item-placeholder";
+  item.textContent = "(none)";
+  return item;
+}
+
+function createChecksList(data) {
+  const checksDiv = createDetailsSectionHeader("Checks");
+  const checksList = document.createElement("div");
+  checksList.className = "details-list";
+  if (data.checks && data.checks.length) {
+    data.checks.forEach((check) => {
+      const item = document.createElement("div");
+      item.className = "details-item";
+      const checkText = document.createElement("span");
+      checkText.textContent = getStringOrDefault(check);
+      item.appendChild(checkText);
+    });
+    checksList.appendChild(item);
+  } else {
+    checksDiv.append(createPlaceholderItem());
+  }
+  return checksDiv;
+}
+
 function createParentsList(data) {
   // Parents
-  const parentsDiv = document.createElement("div");
-  parentsDiv.innerHTML = `<div class="details-section-header">Parents</div>`;
+  const parentsDiv = createDetailsSectionHeader("Parents");
   const parentsList = document.createElement("div");
   parentsList.className = "details-list";
   if (data.parents && data.parents.length) {
@@ -210,18 +203,13 @@ function createParentsList(data) {
     });
     parentsDiv.appendChild(parentsList);
   } else {
-    const item = document.createElement("div");
-    item.className = "details-item";
-    item.textContent = "(none)";
-    parentsDiv.appendChild(item);
+    parentsDiv.appendChild(createPlaceholderItem());
   }
   return parentsDiv;
 }
 
-// Create children list
 function createChildrenList(data) {
-  const childrenDiv = document.createElement("div");
-  childrenDiv.innerHTML = `<div class="details-section-header">Children</div>`;
+  const childrenDiv = createDetailsSectionHeader("Children");
   const childrenList = document.createElement("div");
   childrenList.className = "details-list";
   if (data.children && data.children.length) {
@@ -245,20 +233,26 @@ function createChildrenList(data) {
     });
     childrenDiv.appendChild(childrenList);
   } else {
-    const it = document.createElement("div");
-    it.className = "details-item";
-    it.textContent = "(none)";
-    childrenDiv.appendChild(it);
+    childrenDiv.appendChild(createPlaceholderItem());
   }
   return childrenDiv;
 }
 
-// Create Conversation details table
+function createEntryTable(data) {
+  const tableDiv = createDetailsSectionHeader("Entry");
+  const rows = [
+    ["Entry Id", data.entryId],
+    ["Entry Title", data.title],
+    ["Entry Actor Id", data.actorId],
+    ["Entry Actor Name", data.actorName],
+  ];
+
+  tableDiv.appendChild(buildTable(rows));
+  return tableDiv;
+}
+
 function createConvoTable(data) {
-  const tableDiv = document.createElement("div");
-  tableDiv.innerHTML = `<div class="details-section-header">Conversation</div>`;
-  const t = document.createElement("table");
-  t.className = "details-table";
+  const tableDiv = createDetailsSectionHeader("Conversation");
   const rows = [
     ["Id", data.convoId],
     ["Title", data.conversationTitle],
@@ -270,27 +264,37 @@ function createConvoTable(data) {
     ["Description", data.conversationDescription],
   ];
 
-  const table = buildTable(rows);
-  tableDiv.appendChild(table);
+  tableDiv.appendChild(buildTable(rows));
   return tableDiv;
 }
 
-// Create Meta details table
 function createMetaTable(data) {
-  const tableDiv = document.createElement("div");
-  tableDiv.innerHTML = `<div class="details-section-header">Meta</div>`;
+  const tableDiv = createDetailsSectionHeader("Meta");
   const rows = [
     ["Sequence", data.sequence],
     ["Condition", data.conditionstring],
     ["Userscript", data.userscript],
     ["Difficulty", data.difficultypass],
   ];
-  const table = buildTable(rows);
-  tableDiv.appendChild(table);
+  tableDiv.appendChild(buildTable(rows));
   return tableDiv;
 }
 
-// Return string or default value if it is null/whitespace/0
+export function buildTable(rows) {
+  const t = document.createElement("table");
+  t.className = "details-table";
+  rows.forEach(([label, value]) => {
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    const td = document.createElement("td");
+    th.textContent = getStringOrDefault(label, "(none)");
+    td.textContent = getStringOrDefault(value, "(none)");
+    tr.appendChild(th);
+    tr.appendChild(td);
+    t.appendChild(tr);
+  });
+  return t;
+}
 export function getStringOrDefault(str, defaultValue = "") {
   if (str === null || str === undefined || str === 0) {
     return defaultValue;
@@ -301,7 +305,6 @@ export function getStringOrDefault(str, defaultValue = "") {
   return str;
 }
 
-// Escape HTML entities
 export function escapeHtml(s) {
   return s.replace(
     /[&<>"']/g,
@@ -312,7 +315,6 @@ export function escapeHtml(s) {
   );
 }
 
-// Bold-match highlighter: safe HTML output
 export function highlightTerms(text, query) {
   if (!text || !query) return escapeHtml(text || "");
 
