@@ -232,6 +232,8 @@ section {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .tree .toggle {
@@ -303,6 +305,8 @@ section {
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .card-item .card-text {
