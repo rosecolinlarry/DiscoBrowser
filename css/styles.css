@@ -279,6 +279,14 @@ section {
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Allow text selection in entry list (dialogue options) */
+#entryList .card-item {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .card-item:hover {
@@ -362,10 +370,6 @@ section {
 #moreDetails summary:hover {
   color: #5fa3d8;
   text-decoration: underline;
-}
-
-#moreDetails[open] summary {
-  margin-bottom: 12px;
 }
 
 #entryDetails {
@@ -482,6 +486,8 @@ button {
   font-size: 14px;
   transition: background-color 0.2s, box-shadow 0.2s;
   white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 button:hover {
@@ -514,6 +520,11 @@ a:hover {
 .details-item a:hover {
   color: #5fa3d8;
   text-decoration: underline;
+}
+
+.details-list > .details-item > span {
+  color: #666;
+  font-size: 11px;
 }
 
 /* Actor filter dropdown */

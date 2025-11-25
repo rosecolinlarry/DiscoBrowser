@@ -20,8 +20,8 @@ export function createCardItem(titleText, contentText, allowHtml = false) {
 
   const text = document.createElement("div");
   text.className = "card-text";
-  if (allowHtml) text.innerHTML = contentText || "";
-  else text.textContent = contentText || "";
+  if (allowHtml) text.innerHTML = getStringOrDefault(contentText);
+  else text.textContent = getStringOrDefault(contentText);
 
   el.appendChild(title);
   el.appendChild(text);
@@ -34,7 +34,7 @@ export function resetChatLog(chatLogEl) {
   chatLogEl.innerHTML = "";
   const hint = document.createElement("div");
   hint.className = "hint-text";
-  hint.textContent = "(navigation log - click a line to begin)";
+  hint.textContent = "(navigation log - select a conversation to begin)";
   chatLogEl.appendChild(hint);
 }
 
@@ -46,71 +46,81 @@ export function appendHistoryItem(
   onClick
 ) {
   const item = document.createElement("div");
-  item.className = "card-item";
-  item.style.cursor = "pointer";
+  item.className = "card-item history-item";
+  item.style.cursor = onClick ? "pointer" : "default";
   item.dataset.historyIndex = historyIndex;
+
   const titleDiv = document.createElement("div");
   titleDiv.className = "card-title";
   titleDiv.textContent = title;
+
   const textDiv = document.createElement("div");
   textDiv.className = "card-text";
-  textDiv.textContent = text || "";
+  textDiv.textContent = getStringOrDefault(text);
+
   item.appendChild(titleDiv);
   item.appendChild(textDiv);
+
   if (onClick) item.addEventListener("click", onClick);
   chatLogEl.appendChild(item);
   chatLogEl.scrollTop = chatLogEl.scrollHeight;
   return item;
 }
 
-/* Add visual divider for new conversations in history */
-export function appendHistoryDivider(chatLogEl, convoId = null) {
-  const divider = document.createElement("div");
-  divider.className = "history-divider";
-  
-  if (convoId) {
-    divider.innerHTML = `<span style="history-divider__label" title="Click to jump to this conversation">─── Conversation <a>#${convoId}</a> ───</span>`;
-    const span = divider.querySelector("span");
-    if (span) {
-      span.addEventListener("click", () => {
-        // Dispatch event to navigate to this conversation
-        const event = new CustomEvent("navigateToConversation", {
-          detail: { convoId },
-          bubbles: true
-        });
-        chatLogEl.dispatchEvent(event);
-      });
-    }
-  } else {
-    divider.textContent = "─── New Conversation ───";
-  }
-  
-  divider.style.textAlign = "center";
-  divider.style.margin = "8px 0";
-  divider.style.opacity = "0.6";
-  divider.style.fontSize = "0.9em";
-  divider.style.fontStyle = "italic";
-  divider.style.color = "#999";
-  chatLogEl.appendChild(divider);
-}
-
 /* Utility to render current entry summary */
 export function renderCurrentEntry(entryOverviewEl, title, dialoguetext) {
+  dialoguetext = getStringOrDefault(dialoguetext,"<i>No dialogue.</i>");
+  title = getStringOrDefault(parseSpeakerFromTitle(title),"<i>No title.</i>")
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
-  entryOverviewEl.style.cursor = "pointer";
-  entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${parseSpeakerFromTitle(
-    title
-  )}</strong></div><div class="dialogue-text">${
-    dialoguetext || "<i>No dialogue.</i>"
-  }</div>`;
+  entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${title}</strong></div>
+    <div class="dialogue-text">${dialoguetext}</div>`;
 }
 
-function parseSpeakerFromTitle(title) {
+/* Utility to render conversation metadata */
+export function renderConversationOverview(entryOverviewEl, conversation) {
+  entryOverviewEl.innerHTML = "";
+  entryOverviewEl.className = "entry-item current-item";
+
+  const title = getStringOrDefault(conversation.title, "(no title)");
+  const description = getStringOrDefault(conversation.description,"<i>No conversation description.</i>");
+
+  entryOverviewEl.innerHTML = `
+    <div class="current-item">
+      <strong class="speaker">Conversation #${conversation.id}</strong>
+      <div>
+        <strong>Title:</strong> ${title}</div>
+      <div class="dialogue-text">${description}</div>
+    </div>
+  `;
+}
+
+export function parseSpeakerFromTitle(title) {
   if (!title) return "";
   const splitTitle = title.split(":");
-  if (splitTitle.length > 1) return splitTitle[0].trim();
+  if (
+    splitTitle.length > 1 &&
+    !title.startsWith("Jump to") &&
+    !title.startsWith("NewspaperEndgame")
+  )
+    return splitTitle[0].trim();
   return title;
+}
+
+export function buildTable(rows) {
+  const t = document.createElement("table");
+  t.className = "details-table";
+  rows.forEach(([label, value]) => {
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    const td = document.createElement("td");
+    th.textContent = getStringOrDefault(label, "(none)");
+    td.textContent = getStringOrDefault(value, "(none)");
+    tr.appendChild(th);
+    tr.appendChild(td);
+    t.appendChild(tr);
+  });
+  return t;
 }
 
 /* Render details container - caller provides data */
@@ -119,9 +129,10 @@ export function renderEntryDetails(containerEl, data) {
   const wrapper = document.createElement("div");
 
   const convoTitleDiv = document.createElement("div");
-  convoTitleDiv.innerHTML = `<strong class="details-section-header">Title</strong> <span class="details-item">${
-    data.title || "(no title)"
-  } -- #${data.entryId}</span>`;
+  convoTitleDiv.innerHTML = `<strong class="details-section-header">Title</strong> <span class="details-item">${getStringOrDefault(
+    data.title,
+    "(no title)"
+  )} -- #${data.entryId}</span>`;
   wrapper.appendChild(convoTitleDiv);
 
   if (data.actorName) {
@@ -132,47 +143,52 @@ export function renderEntryDetails(containerEl, data) {
 
   // Alternates
   if (data.alternates && data.alternates.length) {
-    const altsDiv = document.createElement("div");
-    altsDiv.innerHTML = `<div class="details-section-header">Alternates</div>`;
-    const list = document.createElement("div");
-    list.className = "details-list";
-    data.alternates.forEach((a) => {
-      const it = document.createElement("div");
-      it.className = "details-item";
-      it.innerHTML = `${a.alternateline} <span>(condition: ${a.condition})</span>`;
-      list.appendChild(it);
-    });
-    altsDiv.appendChild(list);
-    wrapper.appendChild(altsDiv);
+    wrapper.appendChild(createAlternatesList(data));
   }
 
-  // Checks
   if (data.checks && data.checks.length) {
-    const cDiv = document.createElement("div");
-    cDiv.innerHTML = `<div class="details-section-header">Checks</div>`;
-    const table = document.createElement("table");
-    table.className = "details-table";
-    data.checks.forEach((ch) => {
-      Object.entries(ch).forEach(([k, v]) => {
-        const tr = document.createElement("tr");
-        const th = document.createElement("th");
-        th.textContent = k;
-        const td = document.createElement("td");
-        td.textContent = v === null || v === undefined ? "(none)" : String(v);
-        tr.appendChild(th);
-        tr.appendChild(td);
-        table.appendChild(tr);
-      });
-    });
-    cDiv.appendChild(table);
-    wrapper.appendChild(cDiv);
+    wrapper.appendChild(createChecksTable(data));
   }
 
+  wrapper.appendChild(createParentsList(data));
+  wrapper.appendChild(createChildrenList(data));
+  wrapper.appendChild(createConvoTable(data));
+  wrapper.appendChild(createMetaTable(data));
+
+  containerEl.appendChild(wrapper);
+}
+
+function createAlternatesList(data) {
+  const listDiv = document.createElement("div");
+  listDiv.innerHTML = `<div class="details-section-header">Alternates</div>`;
+  const list = document.createElement("div");
+  list.className = "details-list";
+  data.alternates.forEach((a) => {
+    const it = document.createElement("div");
+    it.className = "details-item";
+    it.innerHTML = `${a.alternateline} <span>(condition: ${a.condition})</span>`;
+    list.appendChild(it);
+  });
+  listDiv.appendChild(list);
+  return listDiv;
+}
+
+function createChecksTable(data) {
+  const tableDiv = document.createElement("div");
+  tableDiv.innerHTML = `<div class="details-section-header">Checks</div>`;
+  const rows = data.checks;
+  const table = buildTable(rows);
+  tableDiv.appendChild(table);
+  return tableDiv;
+}
+
+// Create parents list
+function createParentsList(data) {
   // Parents
   const parentsDiv = document.createElement("div");
   parentsDiv.innerHTML = `<div class="details-section-header">Parents</div>`;
-  const pList = document.createElement("div");
-  pList.className = "details-list";
+  const parentsList = document.createElement("div");
+  parentsList.className = "details-list";
   if (data.parents && data.parents.length) {
     data.parents.forEach((p) => {
       const item = document.createElement("div");
@@ -189,25 +205,25 @@ export function renderEntryDetails(containerEl, data) {
       item.appendChild(a);
       const meta = document.createElement("span");
       meta.textContent = ` (priority: ${p.priority}, connector: ${p.isConnector})`;
-      meta.style.color = "#999";
-      meta.style.fontSize = "11px";
       item.appendChild(meta);
-      pList.appendChild(item);
+      parentsList.appendChild(item);
     });
-    parentsDiv.appendChild(pList);
+    parentsDiv.appendChild(parentsList);
   } else {
-    const it = document.createElement("div");
-    it.className = "details-item";
-    it.textContent = "(none)";
-    parentsDiv.appendChild(it);
+    const item = document.createElement("div");
+    item.className = "details-item";
+    item.textContent = "(none)";
+    parentsDiv.appendChild(item);
   }
-  wrapper.appendChild(parentsDiv);
+  return parentsDiv;
+}
 
-  // Children
+// Create children list
+function createChildrenList(data) {
   const childrenDiv = document.createElement("div");
   childrenDiv.innerHTML = `<div class="details-section-header">Children</div>`;
-  const cList = document.createElement("div");
-  cList.className = "details-list";
+  const childrenList = document.createElement("div");
+  childrenList.className = "details-list";
   if (data.children && data.children.length) {
     data.children.forEach((c) => {
       const item = document.createElement("div");
@@ -224,72 +240,65 @@ export function renderEntryDetails(containerEl, data) {
       item.appendChild(a);
       const meta = document.createElement("span");
       meta.textContent = ` (priority: ${c.priority}, connector: ${c.isConnector})`;
-      meta.style.color = "#999";
-      meta.style.fontSize = "11px";
       item.appendChild(meta);
-      cList.appendChild(item);
+      childrenList.appendChild(item);
     });
-    childrenDiv.appendChild(cList);
+    childrenDiv.appendChild(childrenList);
   } else {
     const it = document.createElement("div");
     it.className = "details-item";
     it.textContent = "(none)";
     childrenDiv.appendChild(it);
   }
-  wrapper.appendChild(childrenDiv);
+  return childrenDiv;
+}
 
-  // conversation & meta table
-  const convoDiv = document.createElement("div");
-  convoDiv.innerHTML = `<div class="details-section-header">Conversation</div>`;
+// Create Conversation details table
+function createConvoTable(data) {
+  const tableDiv = document.createElement("div");
+  tableDiv.innerHTML = `<div class="details-section-header">Conversation</div>`;
   const t = document.createElement("table");
   t.className = "details-table";
   const rows = [
-    ["Id", data.convoId || "(none)"],
-    ["Title", data.conversationTitle || "(none)"],
-    ["Description", data.conversationDescription || "(none)"],
-    ["Actor Id", data.conversationActorId || "(none)"],
-    ["Actor name", data.conversationActorName || "(none)"],
-    ["Conversant Id", data.conversationConversantId || "(none)"],
-    ["Conversant name", data.conversationConversantName || "(none)"],
-    ["Description", data.conversationDescription || "(none)"],
+    ["Id", data.convoId],
+    ["Title", data.conversationTitle],
+    ["Description", data.conversationDescription],
+    ["Actor Id", data.conversationActorId],
+    ["Actor name", data.conversationActorName],
+    ["Conversant Id", data.conversationConversantId],
+    ["Conversant name", data.conversationConversantName],
+    ["Description", data.conversationDescription],
   ];
-  rows.forEach(([label, val]) => {
-    const tr = document.createElement("tr");
-    const th = document.createElement("th");
-    th.textContent = label;
-    const td = document.createElement("td");
-    td.textContent = val;
-    tr.appendChild(th);
-    tr.appendChild(td);
-    t.appendChild(tr);
-  });
-  convoDiv.appendChild(t);
-  wrapper.appendChild(convoDiv);
 
-  // meta table
-  const metaDiv = document.createElement("div");
-  metaDiv.innerHTML = `<div class="details-section-header">Meta</div>`;
-  const mt = document.createElement("table");
-  mt.className = "details-table";
-  [
-    ["Sequence", data.sequence || "(none)"],
-    ["Condition", data.conditionstring || "(none)"],
-    ["Userscript", data.userscript || "(none)"],
-    ["Difficulty", data.difficultypass || "(none)"],
-  ].forEach(([lab, val]) => {
-    const tr = document.createElement("tr");
-    const th = document.createElement("th");
-    th.textContent = lab;
-    const td = document.createElement("td");
-    td.textContent = val;
-    tr.appendChild(th);
-    tr.appendChild(td);
-    mt.appendChild(tr);
-  });
-  metaDiv.appendChild(mt);
-  wrapper.appendChild(metaDiv);
+  const table = buildTable(rows);
+  tableDiv.appendChild(table);
+  return tableDiv;
+}
 
-  containerEl.appendChild(wrapper);
+// Create Meta details table
+function createMetaTable(data) {
+  const tableDiv = document.createElement("div");
+  tableDiv.innerHTML = `<div class="details-section-header">Meta</div>`;
+  const rows = [
+    ["Sequence", data.sequence],
+    ["Condition", data.conditionstring],
+    ["Userscript", data.userscript],
+    ["Difficulty", data.difficultypass],
+  ];
+  const table = buildTable(rows);
+  tableDiv.appendChild(table);
+  return tableDiv;
+}
+
+// Return string or default value if it is null/whitespace/0
+export function getStringOrDefault(str, defaultValue = "") {
+  if (str === null || str === undefined || str === 0) {
+    return defaultValue;
+  }
+  if (String(str)?.trim() === "") {
+    return defaultValue;
+  }
+  return str;
 }
 
 // Escape HTML entities
@@ -320,5 +329,8 @@ export function highlightTerms(text, query) {
   // Regex: match any term (case-insensitive)
   const re = new RegExp("(" + escaped.join("|") + ")", "gi");
 
-  return escapeHtml(text).replace(re, "<strong class='highlighted_term'>$1</strong>");
+  return escapeHtml(text).replace(
+    re,
+    "<strong class='highlighted_term'>$1</strong>"
+  );
 }

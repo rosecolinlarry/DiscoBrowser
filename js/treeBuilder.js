@@ -63,7 +63,7 @@ function collapseNode(node, key) {
     }
     // case 2: has one leaf (convoId), no children - just append to key and stop
     else if (current.convoIds.length === 1 && current.children.size === 0) {
-      currentKey = currentKey + " / " + current.convoIds[0];
+      currentKey = currentKey + " #" + current.convoIds[0];
       break;
     }
   }
@@ -182,6 +182,14 @@ export function renderTree(container, rootObj, opts = {}) {
 
   // Helper to extract final segment from full title path
   function getLastSegment(fullTitle) {
+    // Check if the title ends with #<id> pattern
+    const hashMatch = fullTitle.match(/(.*?)\s*#(\d+)$/);
+    if (hashMatch) {
+      // Return just the #id part
+      return `#${hashMatch[2]}`;
+    }
+    
+    // Otherwise use the old logic
     const parts = fullTitle
       .split("/")
       .map((p) => p.trim())
