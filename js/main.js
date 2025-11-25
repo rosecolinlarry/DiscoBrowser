@@ -43,13 +43,13 @@ async function boot() {
   convoListEl.addEventListener("click", (e) => {
     const target = e.target.closest("[data-convo-id]");
     if (target) {
-      const convoId = parseInt(target.dataset.convoId, 10);
+      const convoId = UI.getParsedIntOrDefault(target.dataset.convoId);
       loadEntriesForConversation(convoId, true);
       return;
     }
     const topLabel = e.target.closest(".label");
     if (topLabel && topLabel.dataset.singleConvo) {
-      const convoId = parseInt(topLabel.dataset.singleConvo, 10);
+      const convoId = UI.getParsedIntOrDefault(topLabel.dataset.singleConvo);
       loadEntriesForConversation(convoId, true);
     }
   });
@@ -161,7 +161,7 @@ function highlightConversationInTree(convoId) {
 
 /* Load entries listing for conversation */
 function loadEntriesForConversation(convoId, resetHistory = false) {
-  convoId = parseInt(convoId, 10);
+  convoId = UI.getParsedIntOrDefault(convoId);
   
   // If switching conversations or resetting, clear the chat log
   if (resetHistory || (currentConvoId !== null && currentConvoId !== convoId)) {
@@ -206,11 +206,11 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     return;
   }
   filtered.forEach((r) => {
-    const entryId = parseInt(r.id, 10);
-    const title = r.title && r.title.trim() ? r.title : "(no title)";
+    const entryId = UI.getParsedIntOrDefault(r.id);
+    const title = UI.getStringOrDefault(r.title, "(no title)");
 
     const text = r.dialoguetext || "";
-    const el = UI.createCardItem(`${convoId}:${entryId} ${UI.parseSpeakerFromTitle(title)}`,text,false);
+    const el = UI.createCardItem(title, convoId, entryId, text);
     el.addEventListener("click", () => navigateToEntry(convoId, entryId));
     entryListEl.appendChild(el);
   });
@@ -238,7 +238,7 @@ async function goBack() {
   // Get the previous entry (now at the end of the array)
   const previous = navigationHistory[navigationHistory.length - 1];
   if (previous) {
-    const cid = parseInt(previous.convoId, 10);
+    const cid = UI.getParsedIntOrDefault(previous.convoId);
     
     // If entryId is null, we're going back to the conversation root
     if (previous.entryId === null) {
@@ -250,7 +250,7 @@ async function goBack() {
     
     // Update current state
     currentConvoId = cid;
-    currentEntryId = parseInt(previous.entryId, 10);
+    currentEntryId = UI.getParsedIntOrDefault(previous.entryId);
     
     // Update the UI to show this entry
     const coreRow = DB.getEntry(currentConvoId, currentEntryId);
@@ -312,8 +312,8 @@ async function jumpToHistoryPoint(targetIndex) {
   // Get the target entry
   const target = navigationHistory[targetIndex];
   if (target) {
-    const cid = parseInt(target.convoId, 10);
-    const eid = parseInt(target.entryId, 10);
+    const cid = UI.getParsedIntOrDefault(target.convoId);
+    const eid = UI.getParsedIntOrDefault(target.entryId);
     
     // Update current state
     currentConvoId = cid;
@@ -360,8 +360,8 @@ function jumpToConversationRoot() {
 /* navigateToEntry simplified */
 async function navigateToEntry(convoId, entryId, addToHistory = true) {
   // Ensure numeric Ids
-  convoId = parseInt(convoId, 10);
-  entryId = parseInt(entryId, 10);
+  convoId = UI.getParsedIntOrDefault(convoId);
+  entryId = UI.getParsedIntOrDefault(entryId);
 
   // Check if we're already at this entry - if so, do nothing
   // BUT allow if we're not adding to history (going back)
@@ -528,18 +528,13 @@ function searchDialogues(q) {
     }
     entryListHeaderEl.textContent += ` (${res.length})`;
     res.forEach((r) => {
-      const highlightedTitle = UI.highlightTerms(
-        `${r.conversationid}:${r.id} ${UI.parseSpeakerFromTitle(r.title) || "(no title)"}`,
-        trimmedQ
-      );
-
+      const highlightedTitle = UI.highlightTerms(r.title || "", trimmedQ);
       const highlightedText = UI.highlightTerms(r.dialoguetext || "", trimmedQ);
-
-      const div = UI.createCardItem(highlightedTitle, highlightedText, true);
+      const div = UI.createCardItem(highlightedTitle, UI.getParsedIntOrDefault(r.conversationid), r.id, highlightedText, true);
 
       div.addEventListener("click", () => {
-        const cid = parseInt(r.conversationid, 10);
-        const eid = parseInt(r.id, 10);
+        const cid = UI.getParsedIntOrDefault(r.conversationid);
+        const eid = UI.getParsedIntOrDefault(r.id);
         navigationHistory = [{ convoId: cid, entryId: null }];
         navigateToEntry(cid, eid);
         highlightConversationInTree(cid);
@@ -576,11 +571,7 @@ function loadChildOptions(convoId, entryId) {
       if (!dest) continue;
       if ((dest.title || "").toLowerCase() === "start") continue;
 
-      const title = dest.title?.trim() || "(no title)";
-      const display = `${c.d_convo}:${c.d_id} ${UI.parseSpeakerFromTitle(title)}`;
-      const summary = dest.dialoguetext || "";
-
-      const el = UI.createCardItem(display, summary, false);
+      const el = UI.createCardItem(dest.title, c.d_convo, c.d_id, dest.dialoguetext);
       el.addEventListener("click", () => navigateToEntry(c.d_convo, c.d_id));
       entryListEl.appendChild(el);
     }

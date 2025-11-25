@@ -5,9 +5,13 @@ export function $(sel) {
   return document.getElementById(sel);
 }
 
-export function createCardItem(titleText, contentText, allowHtml = false) {
-  titleText = titleText ?? "";
-  contentText = contentText ?? "";
+export function createCardItem(titleText, convoId, entryId, contentText, allowHtml = false) {
+  convoId = getParsedIntOrDefault(convoId, null)
+  entryId = getParsedIntOrDefault(entryId, null)
+  const titleId = `${convoId || ""}:${entryId || ""}`
+  titleText = parseSpeakerFromTitle(getStringOrDefault(titleText))
+  titleText = `${titleId} ${titleText}`
+  contentText = getStringOrDefault(contentText)
 
   const el = document.createElement("div");
   el.className = "card-item";
@@ -20,8 +24,8 @@ export function createCardItem(titleText, contentText, allowHtml = false) {
 
   const text = document.createElement("div");
   text.className = "card-text";
-  if (allowHtml) text.innerHTML = getStringOrDefault(contentText);
-  else text.textContent = getStringOrDefault(contentText);
+  if (allowHtml) text.innerHTML = contentText;
+  else text.textContent = contentText;
 
   el.appendChild(title);
   el.appendChild(text);
@@ -76,6 +80,7 @@ export function renderCurrentEntry(entryOverviewEl, title, dialoguetext) {
     <div class="dialogue-text">${dialoguetext}</div>`;
 }
 
+
 export function renderConversationOverview(entryOverviewEl, conversation) {
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
@@ -113,11 +118,11 @@ export function renderEntryDetails(containerEl, data) {
   const wrapper = document.createElement("div");
 
   wrapper.appendChild(createEntryTable(data));
-  if(data?.checks?.length) wrapper.appendChild(createChecksList(data.checks));
-  if(data?.parents?.length) wrapper.appendChild(createParentsList(data.parents));
-  if(data?.children.length) wrapper.appendChild(createChildrenList(data.children));
+  if (data?.checks?.length) wrapper.appendChild(createChecksList(data.checks));
+  if (data?.parents?.length) wrapper.appendChild(createParentsList(data.parents));
+  if (data?.children.length) wrapper.appendChild(createChildrenList(data.children));
   wrapper.appendChild(createConvoTable(data));
-  if(data?.alternates.length) wrapper.appendChild(createAlternatesList(data.alternates));
+  if (data?.alternates.length) wrapper.appendChild(createAlternatesList(data.alternates));
   wrapper.appendChild(createMetaTable(data));
 
   containerEl.appendChild(wrapper);
@@ -300,6 +305,11 @@ export function getStringOrDefault(str, defaultValue = "") {
     return defaultValue;
   }
   return str;
+}
+
+export function getParsedIntOrDefault(value, defaultValue = null) {
+  const parsedValue = parseInt(value, 10);
+  return isNaN(parsedValue) ? defaultValue : parsedValue;
 }
 
 export function escapeHtml(s) {
