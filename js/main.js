@@ -126,9 +126,8 @@ async function populateActorDropdown() {
   });
 }
 
-// convoId = number
+// Expand and highlight conversation in the conversation tree
 function highlightConversationInTree(convoId) {
-  // TODO KA not being called for smoker
   // Remove highlight from all labels (both leaf and node labels)
   const allLabels = convoListEl.querySelectorAll(".label.selected");
   allLabels.forEach((label) => {
@@ -139,9 +138,7 @@ function highlightConversationInTree(convoId) {
   let leafLabel = convoListEl.querySelector(`[data-convo-id="${convoId}"]`);
 
   if (leafLabel) {
-    // Highlight the leaf label itself
-    // leafLabel.classList.add("selected");
-    // Walk up the tree and expand all ancestor nodes
+    // Highlight the leaf label itself and walk up the tree and expand all ancestor nodes
     let node = leafLabel.closest(".node").querySelector(".label");
     node.classList.add("selected");
     node.scrollIntoView();
@@ -205,7 +202,7 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     (r) => (r.title || "").toLowerCase() !== "start"
   );
   if (!filtered.length) {
-    entryListEl.textContent = "(no meaningful entries - only START)";
+    entryListEl.textContent = "(no meaningful entries)";
     return;
   }
   filtered.forEach((r) => {
@@ -213,7 +210,7 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     const title = r.title && r.title.trim() ? r.title : "(no title)";
 
     const text = r.dialoguetext || "";
-    const el = UI.createCardItem(`${convoId}:${entryId}. ${UI.parseSpeakerFromTitle(title)}`,text,false);
+    const el = UI.createCardItem(`${convoId}:${entryId} ${UI.parseSpeakerFromTitle(title)}`,text,false);
     el.addEventListener("click", () => navigateToEntry(convoId, entryId));
     entryListEl.appendChild(el);
   });
@@ -257,7 +254,7 @@ async function goBack() {
     
     // Update the UI to show this entry
     const coreRow = DB.getEntry(currentConvoId, currentEntryId);
-    const title = coreRow ? UI.parseSpeakerFromTitle(coreRow.title) || "(no title)" : `(line ${currentConvoId}:${currentEntryId})`;
+    const title = coreRow ? coreRow.title : `(line ${currentConvoId}:${currentEntryId})`;
     const dialoguetext = coreRow ? coreRow.dialoguetext : "";
     
     UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext);
@@ -272,6 +269,23 @@ async function goBack() {
   }
   
   updateBackButtonState();
+}
+
+async function updateUiToShowEntry() {
+    // Update the UI
+    const coreRow = DB.getEntry(currentConvoId, currentEntryId); // About 650 entries without titles
+    const title = coreRow ? coreRow.title : `(line ${currentConvoId}:${currentEntryId})`;
+    const dialoguetext = coreRow ? coreRow.dialoguetext : "";
+    
+    UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext);
+    
+    // Load child options
+    loadChildOptions(currentConvoId, currentEntryId);
+    
+    // Show details if expanded
+    if (moreDetailsEl && moreDetailsEl.open) {
+      await showEntryDetails(currentConvoId, currentEntryId);
+    }
 }
 
 /* Jump back to a specific point in history by removing all entries after it */
@@ -307,7 +321,7 @@ async function jumpToHistoryPoint(targetIndex) {
     
     // Update the UI
     const coreRow = DB.getEntry(currentConvoId, currentEntryId);
-    const title = coreRow ? coreRow.title || "(no title)" : `(line ${currentConvoId}:${currentEntryId})`;
+    const title = coreRow ? coreRow.title : `(line ${currentConvoId}:${currentEntryId})`;
     const dialoguetext = coreRow ? coreRow.dialoguetext : "";
     
     UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext);
@@ -351,6 +365,7 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
 
   // Check if we're already at this entry - if so, do nothing
   // BUT allow if we're not adding to history (going back)
+  // BUG: When searching, I cannot click on a result if it is the current entry
   if (currentConvoId === convoId && currentEntryId === entryId && addToHistory) {
     return;
   }
@@ -394,9 +409,7 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
 
   // Render current entry in the overview section
   const coreRow = DB.getEntry(convoId, entryId);
-  const title = coreRow
-    ? UI.parseSpeakerFromTitle(coreRow.title) || "(no title)"
-    : `(line ${convoId}:${entryId})`;
+  const title = coreRow ? coreRow.title : `(line ${convoId}:${entryId})`;
   const dialoguetext = coreRow ? coreRow.dialoguetext : "";
   UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext);
 
@@ -516,7 +529,7 @@ function searchDialogues(q) {
     entryListHeaderEl.textContent += ` (${res.length})`;
     res.forEach((r) => {
       const highlightedTitle = UI.highlightTerms(
-        `${r.conversationid}:${r.id}. ${UI.parseSpeakerFromTitle(r.title) || "(no title)"}`,
+        `${r.conversationid}:${r.id} ${UI.parseSpeakerFromTitle(r.title) || "(no title)"}`,
         trimmedQ
       );
 
@@ -564,7 +577,7 @@ function loadChildOptions(convoId, entryId) {
       if ((dest.title || "").toLowerCase() === "start") continue;
 
       const title = dest.title?.trim() || "(no title)";
-      const display = `${c.d_convo}:${c.d_id}. ${UI.parseSpeakerFromTitle(title)}`;
+      const display = `${c.d_convo}:${c.d_id} ${UI.parseSpeakerFromTitle(title)}`;
       const summary = dest.dialoguetext || "";
 
       const el = UI.createCardItem(display, summary, false);

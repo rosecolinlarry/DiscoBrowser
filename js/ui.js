@@ -67,7 +67,6 @@ export function appendHistoryItem(
   return item;
 }
 
-/* Utility to render current entry summary */
 export function renderCurrentEntry(entryOverviewEl, title, dialoguetext) {
   dialoguetext = getStringOrDefault(dialoguetext, "<i>No dialogue.</i>");
   title = getStringOrDefault(parseSpeakerFromTitle(title), "<i>No title.</i>");
@@ -77,7 +76,6 @@ export function renderCurrentEntry(entryOverviewEl, title, dialoguetext) {
     <div class="dialogue-text">${dialoguetext}</div>`;
 }
 
-/* Utility to render conversation metadata */
 export function renderConversationOverview(entryOverviewEl, conversation) {
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
@@ -110,80 +108,66 @@ export function parseSpeakerFromTitle(title) {
   return title;
 }
 
-/* Render details container - caller provides data */
 export function renderEntryDetails(containerEl, data) {
   containerEl.innerHTML = "";
   const wrapper = document.createElement("div");
 
   wrapper.appendChild(createEntryTable(data));
-  wrapper.appendChild(createAlternatesList(data));
-  wrapper.appendChild(createChecksList(data));
-  wrapper.appendChild(createParentsList(data));
-  wrapper.appendChild(createChildrenList(data));
+  if(data?.checks?.length) wrapper.appendChild(createChecksList(data.checks));
+  if(data?.parents?.length) wrapper.appendChild(createParentsList(data.parents));
+  if(data?.children.length) wrapper.appendChild(createChildrenList(data.children));
   wrapper.appendChild(createConvoTable(data));
+  if(data?.alternates.length) wrapper.appendChild(createAlternatesList(data.alternates));
   wrapper.appendChild(createMetaTable(data));
 
   containerEl.appendChild(wrapper);
 }
 
-function createAlternatesList(data) {
-  const listDiv = createDetailsSectionHeader("Alternates");
+function createAlternatesList(alternates) {
+  const section = createDetailsSectionHeader("Alternates");
   const list = document.createElement("div");
   list.className = "details-list";
-  if (data.alternates && data.alternates.length) {
-    data.alternates.forEach((a) => {
+  if (alternates && alternates.length) {
+    alternates.forEach((a) => {
       const item = document.createElement("div");
       item.className = "details-item";
       item.innerHTML = `${a.alternateline} <span>(condition: ${a.condition})</span>`;
       list.appendChild(item);
     });
-    listDiv.appendChild(list);
+    section.appendChild(list);
   } else {
-    listDiv.append(createPlaceholderItem());
+    section.append(createPlaceholderItem());
   }
 
-  return listDiv;
+  return section;
 }
 
-function createDetailsSectionHeader(sectionTitle) {
-  const sectionHeader = document.createElement("div");
-  sectionHeader.innerHTML = `<div class="details-section-header">${sectionTitle}</div>`;
-  return sectionHeader;
-}
-
-function createPlaceholderItem() {
-  const item = document.createElement("span");
-  item.classList = "details-item details-item-placeholder";
-  item.textContent = "(none)";
-  return item;
-}
-
-function createChecksList(data) {
-  const checksDiv = createDetailsSectionHeader("Checks");
-  const checksList = document.createElement("div");
-  checksList.className = "details-list";
-  if (data.checks && data.checks.length) {
-    data.checks.forEach((check) => {
+function createChecksList(checks) {
+  const section = createDetailsSectionHeader("Checks");
+  const list = document.createElement("div");
+  list.className = "details-list";
+  if (checks && checks.length) {
+    checks.forEach((check) => {
       const item = document.createElement("div");
       item.className = "details-item";
       const checkText = document.createElement("span");
       checkText.textContent = getStringOrDefault(check);
       item.appendChild(checkText);
     });
-    checksList.appendChild(item);
+    list.appendChild(item);
   } else {
-    checksDiv.append(createPlaceholderItem());
+    section.append(createPlaceholderItem());
   }
-  return checksDiv;
+  return section;
 }
 
-function createParentsList(data) {
+function createParentsList(parents) {
   // Parents
-  const parentsDiv = createDetailsSectionHeader("Parents");
-  const parentsList = document.createElement("div");
-  parentsList.className = "details-list";
-  if (data.parents && data.parents.length) {
-    data.parents.forEach((p) => {
+  const section = createDetailsSectionHeader("Parents");
+  const list = document.createElement("div");
+  list.className = "details-list";
+  if (parents && parents.length) {
+    parents.forEach((p) => {
       const item = document.createElement("div");
       item.className = "details-item";
       const a = document.createElement("a");
@@ -199,21 +183,21 @@ function createParentsList(data) {
       const meta = document.createElement("span");
       meta.textContent = ` (priority: ${p.priority}, connector: ${p.isConnector})`;
       item.appendChild(meta);
-      parentsList.appendChild(item);
+      list.appendChild(item);
     });
-    parentsDiv.appendChild(parentsList);
+    section.appendChild(list);
   } else {
-    parentsDiv.appendChild(createPlaceholderItem());
+    section.appendChild(createPlaceholderItem());
   }
-  return parentsDiv;
+  return section;
 }
 
-function createChildrenList(data) {
-  const childrenDiv = createDetailsSectionHeader("Children");
-  const childrenList = document.createElement("div");
-  childrenList.className = "details-list";
-  if (data.children && data.children.length) {
-    data.children.forEach((c) => {
+function createChildrenList(children) {
+  const section = createDetailsSectionHeader("Children");
+  const list = document.createElement("div");
+  list.className = "details-list";
+  if (children && children.length) {
+    children.forEach((c) => {
       const item = document.createElement("div");
       item.className = "details-item";
       const a = document.createElement("a");
@@ -229,13 +213,13 @@ function createChildrenList(data) {
       const meta = document.createElement("span");
       meta.textContent = ` (priority: ${c.priority}, connector: ${c.isConnector})`;
       item.appendChild(meta);
-      childrenList.appendChild(item);
+      list.appendChild(item);
     });
-    childrenDiv.appendChild(childrenList);
+    section.appendChild(list);
   } else {
-    childrenDiv.appendChild(createPlaceholderItem());
+    section.appendChild(createPlaceholderItem());
   }
-  return childrenDiv;
+  return section;
 }
 
 function createEntryTable(data) {
@@ -252,35 +236,47 @@ function createEntryTable(data) {
 }
 
 function createConvoTable(data) {
-  const tableDiv = createDetailsSectionHeader("Conversation");
+  const section = createDetailsSectionHeader("Conversation");
   const rows = [
-    ["Id", data.convoId],
-    ["Title", data.conversationTitle],
+    ["Conversation Id", data.convoId],
+    ["Conversation Title", data.conversationTitle],
     ["Description", data.conversationDescription],
     ["Actor Id", data.conversationActorId],
     ["Actor name", data.conversationActorName],
     ["Conversant Id", data.conversationConversantId],
     ["Conversant name", data.conversationConversantName],
-    ["Description", data.conversationDescription],
   ];
 
-  tableDiv.appendChild(buildTable(rows));
-  return tableDiv;
+  section.appendChild(buildTable(rows));
+  return section;
 }
 
 function createMetaTable(data) {
-  const tableDiv = createDetailsSectionHeader("Meta");
+  const section = createDetailsSectionHeader("Meta");
   const rows = [
     ["Sequence", data.sequence],
     ["Condition", data.conditionstring],
     ["Userscript", data.userscript],
     ["Difficulty", data.difficultypass],
   ];
-  tableDiv.appendChild(buildTable(rows));
-  return tableDiv;
+  section.appendChild(buildTable(rows));
+  return section;
 }
 
-export function buildTable(rows) {
+function createDetailsSectionHeader(sectionTitle) {
+  const sectionHeader = document.createElement("div");
+  sectionHeader.innerHTML = `<div class="details-section-header">${sectionTitle}</div>`;
+  return sectionHeader;
+}
+
+function createPlaceholderItem() {
+  const item = document.createElement("span");
+  item.classList = "details-item details-item-placeholder";
+  item.textContent = "(none)";
+  return item;
+}
+
+function buildTable(rows) {
   const t = document.createElement("table");
   t.className = "details-table";
   rows.forEach(([label, value]) => {
@@ -295,6 +291,7 @@ export function buildTable(rows) {
   });
   return t;
 }
+
 export function getStringOrDefault(str, defaultValue = "") {
   if (str === null || str === undefined || str === 0) {
     return defaultValue;
