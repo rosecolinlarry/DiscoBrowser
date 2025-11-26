@@ -6,6 +6,13 @@ import * as UI from "./ui.js";
 
 const searchInput = UI.$("search");
 const searchBtn = UI.$("searchBtn");
+const conversationFilterBtn = UI.$("conversationFilterBtn");
+const conversationFilterLabel = UI.$("conversationFilterLabel");
+const conversationFilterDropdown = UI.$("conversationFilterDropdown");
+const conversationSearchInput = UI.$("conversationSearch");
+const conversationCheckboxList = UI.$("conversationCheckboxList");
+const selectAllConversations = UI.$("selectAllConversations");
+const addConversationToSelectionBtn = UI.$("addConversationToSelection");
 const actorFilterBtn = UI.$("actorFilterBtn");
 const actorFilterLabel = UI.$("actorFilterLabel");
 const actorFilterDropdown = UI.$("actorFilterDropdown");
@@ -33,14 +40,34 @@ const backStatus = UI.$("backStatus");
 const rootBtn = UI.$("rootBtn");
 const moreDetailsEl = UI.$("moreDetails");
 
+// Tablet sidebar elements
+const tabletConvoSearchInput = UI.$("tabletConvoSearch");
+const tabletConvoSidebar = UI.$("tabletConvoSidebar");
+const tabletConvoSidebarClose = UI.$("tabletConvoSidebarClose");
+const tabletConvoToggle = UI.$("tabletConvoToggle");
+const tabletConvoList = UI.$("tabletConvoList");
+const tabletHistorySidebar = UI.$("tabletHistorySidebar");
+const tabletHistorySidebarClose = UI.$("tabletHistorySidebarClose");
+const tabletHistoryToggle = UI.$("tabletHistoryToggle");
+const tabletChatLog = UI.$("tabletChatLog");
+const tabletBackBtn = UI.$("tabletBackBtn");
+const tabletRootBtn = UI.$("tabletRootBtn");
+
+// Search option elements
+const wholeWordsCheckbox = UI.$("wholeWordsCheckbox");
+const mobileWholeWordsCheckbox = UI.$("mobileWholeWordsCheckbox");
+
 // Mobile search elements
 const mobileSearchTrigger = UI.$("mobileSearchTrigger");
 const mobileSearchScreen = UI.$("mobileSearchScreen");
 const mobileSearchInput = UI.$("mobileSearchInput");
 const mobileSearchBtn = UI.$("mobileSearchBtn");
+const mobileSearchIconBtn = UI.$("mobileSearchIconBtn");
 const mobileSearchBack = UI.$("mobileSearchBack");
 const mobileSearchResults = UI.$("mobileSearchResults");
 const mobileSearchLoader = UI.$("mobileSearchLoader");
+const mobileSearchCount = UI.$("mobileSearchCount");
+const mobileClearFilters = UI.$("mobileClearFilters");
 const mobileConvoFilter = UI.$("mobileConvoFilter");
 const mobileTypeFilter = UI.$("mobileTypeFilter");
 const mobileActorFilter = UI.$("mobileActorFilter");
@@ -58,6 +85,13 @@ const conversationsSection = UI.$("conversations-section");
 const mobileHeader = UI.$("mobileHeader");
 const mobileHeaderTitle = UI.$("mobileHeaderTitle");
 const mobileBackBtn = UI.$("mobileBackBtn");
+
+// Tree control elements
+const expandAllBtn = UI.$("expandAllBtn");
+const collapseAllBtn = UI.$("collapseAllBtn");
+
+// Clear filters button
+const clearFiltersBtn = UI.$("clearFiltersBtn");
 const mobileRootBtn = UI.$("mobileRootBtn");
 
 const minSearchLength = 3;
@@ -72,12 +106,14 @@ let conversationTree = null;
 let activeTypeFilter = "all";
 let allActors = [];
 let selectedActorIds = new Set();
+let selectedConvoIds = new Set();
 let selectedTypeIds = new Set(["flow", "orb", "task"]); // All types selected by default
 let filteredActors = [];
 
 // Search pagination state
 let currentSearchQuery = "";
 let currentSearchActorIds = null;
+let currentSearchConvoIds = null;
 let currentSearchOffset = 0;
 let currentSearchTotal = 0;
 let currentSearchFilteredCount = 0; // Count after type filtering
@@ -89,6 +125,10 @@ let mobileSelectedConvoIds = new Set();
 let mobileSelectedTypes = new Set(["all"]);
 let mobileSelectedActorIds = new Set();
 
+// Mobile actor filter state
+let tempSelectedActorIds = new Set();
+let filteredActorsForMobile = [];
+
 // Mobile search pagination state
 let mobileSearchQuery = "";
 let mobileSearchActorIds = null;
@@ -96,6 +136,10 @@ let mobileSearchOffset = 0;
 let mobileSearchTotal = 0;
 let mobileSearchFilteredCount = 0;
 let isMobileLoadingMore = false;
+
+// Browser history state tracking
+let currentAppState = 'home'; // 'home', 'conversation', 'search'
+let isHandlingPopState = false;
 
 async function boot() {
   const SQL = await loadSqlJs();
@@ -106,6 +150,11 @@ async function boot() {
   // Build tree and render (includes all types: flow, orb, task)
   conversationTree = buildTitleTree(convos);
   renderTree(convoListEl, conversationTree);
+  
+  // Also render to tablet sidebar if it exists
+  if (tabletConvoList) {
+    renderTree(tabletConvoList, conversationTree);
+  }
 
   // Set up conversation filter
   setupConversationFilter();
@@ -141,11 +190,30 @@ async function boot() {
     });
   }
 
+  // Setup tablet sidebars
+  setupTabletSidebars();
+  
   // actor dropdown
   populateActorDropdown();
   
   // type filter dropdown
   setupTypeFilter();
+  
+  // clear filters button
+  setupClearFiltersButton();
+  
+  // Make header clickable to go home
+  const headerTitle = document.querySelector('h1');
+  if (headerTitle) {
+    headerTitle.style.cursor = 'pointer';
+    headerTitle.addEventListener('click', () => {
+      // Use browser history to go back to home
+      if (currentConvoId !== null || currentAppState !== 'home') {
+        window.history.pushState({ view: 'home' }, '', window.location.pathname);
+        goToHomeView();
+      }
+    });
+  }
 
   // wire search
   if (searchBtn && searchInput) {
@@ -157,11 +225,18 @@ async function boot() {
         searchDialogues(searchInput.value);
     });
   }
+  
+  // Whole words toggle - trigger search when changed
+  if (wholeWordsCheckbox) {
+    wholeWordsCheckbox.addEventListener("change", () => {
+      triggerSearch();
+    });
+  }
 
   if (backBtn) {
     backBtn.addEventListener("click", () => {
-      goBack();
-      updateBackButtonState();
+      // Use browser back button instead of manual history management
+      window.history.back();
     });
   }
   
@@ -208,14 +283,19 @@ async function boot() {
   setupSearchInfiniteScroll();
   setupMobileSearchInfiniteScroll();
   
-  // Setup conversation help tooltip
-  setupConversationHelpTooltip();
-  
   // Setup mobile sidebar
   setupMobileSidebar();
   
   // Setup mobile search
   setupMobileSearch();
+  
+  // Initialize mobile filter labels
+  updateMobileConvoFilterLabel();
+  updateMobileActorFilterLabel();
+  updateMobileTypeFilterLabel();
+  
+  // Setup browser history handling
+  setupBrowserHistory();
 }
 
 function setupConversationFilter() {
@@ -240,87 +320,211 @@ function setupConversationFilter() {
       filterConversationTree();
     });
   });
+  
+  // Expand/Collapse all buttons
+  if (expandAllBtn) {
+    expandAllBtn.addEventListener("click", () => {
+      expandAllTreeNodes();
+    });
+  }
+  
+  if (collapseAllBtn) {
+    collapseAllBtn.addEventListener("click", () => {
+      collapseAllTreeNodes();
+    });
+  }
+}
+
+function expandAllTreeNodes() {
+  const allNodes = convoListEl.querySelectorAll('.node');
+  allNodes.forEach(node => {
+    const toggle = node.querySelector('.toggle');
+    if (toggle && toggle.textContent && !node.classList.contains('expanded')) {
+      node.classList.add('expanded');
+      toggle.textContent = '▾';
+    }
+  });
+}
+
+function collapseAllTreeNodes() {
+  const allNodes = convoListEl.querySelectorAll('.node');
+  allNodes.forEach(node => {
+    if (node.classList.contains('expanded')) {
+      const toggle = node.querySelector('.toggle');
+      node.classList.remove('expanded');
+      if (toggle) {
+        toggle.textContent = '▸';
+      }
+    }
+  });
 }
 
 function filterConversationTree() {
   if (!conversationTree) return;
   
-  const searchText = convoSearchInput ? convoSearchInput.value.toLowerCase().trim() : "";
+  let searchText = convoSearchInput ? convoSearchInput.value.toLowerCase().trim() : "";
+  if(tabletConvoList) {
+    searchText = tabletConvoSearchInput ? tabletConvoSearchInput.value.toLowerCase().trim() : "";
+  }
   
   // If no filters active, render the original tree
   if (!searchText && activeTypeFilter === "all") {
     renderTree(convoListEl, conversationTree);
+    if (tabletConvoList) {
+      renderTree(tabletConvoList, conversationTree);
+    }
     if (currentConvoId !== null) {
       highlightConversationInTree(currentConvoId);
     }
     return;
   }
   
-  // Filter the tree root
-  const filteredRoot = filterTreeNode(conversationTree.root, searchText, activeTypeFilter);
+  // Get all matching conversation leaves
+  const matches = [];
+  collectMatchingLeaves(conversationTree.root, searchText, activeTypeFilter, matches, conversationTree);
   
-  // Create filtered tree object with original metadata
-  const filteredTree = {
-    root: filteredRoot,
-    convoTitleById: conversationTree.convoTitleById,
-    convoTypeById: conversationTree.convoTypeById
-  };
-  
-  // Re-render the tree
-  renderTree(convoListEl, filteredTree);
-  
-  // Re-highlight current conversation if it exists
-  if (currentConvoId !== null) {
-    highlightConversationInTree(currentConvoId);
+  // Clear and render matching results directly as a flat list
+  convoListEl.innerHTML = "";
+  if (tabletConvoList) {
+    tabletConvoList.innerHTML = "";
   }
+  
+  if (matches.length === 0) {
+    const noResults = document.createElement("div");
+    noResults.className = "hint-text";
+    noResults.textContent = "No matching conversations found.";
+    convoListEl.appendChild(noResults);
+    
+    if (tabletConvoList) {
+      const noResultsTablet = document.createElement("div");
+      noResultsTablet.className = "hint-text";
+      noResultsTablet.textContent = "No matching conversations found.";
+      tabletConvoList.appendChild(noResultsTablet);
+    }
+    return;
+  }
+  
+  // Render each match as a leaf item
+  matches.forEach(match => {
+    const item = createFilteredLeafItem(match, searchText, conversationTree);
+    convoListEl.appendChild(item);
+    
+    // Also add to tablet list
+    if (tabletConvoList) {
+      const tabletItem = createFilteredLeafItem(match, searchText, conversationTree);
+      tabletConvoList.appendChild(tabletItem);
+    }
+  });
 }
 
-function filterTreeNode(node, searchText, typeFilter) {
-  // Clone the node to avoid modifying the original
-  const filtered = {
-    segment: node.segment,
-    children: new Map(),
-    convoIds: [],
-    _subtreeSize: 0
-  };
-  
-  // Filter conversation IDs
+function collectMatchingLeaves(node, searchText, typeFilter, matches, tree) {
+  // Check if this node has conversation IDs
   if (node.convoIds && node.convoIds.length > 0) {
-    filtered.convoIds = node.convoIds.filter(cid => {
+    node.convoIds.forEach(cid => {
       const convo = DB.getConversationById(cid);
-      if (!convo) return false;
+      if (!convo) return;
       
       // Type filter
       if (typeFilter !== "all" && convo.type !== typeFilter) {
-        return false;
+        return;
       }
       
       // Text filter
       if (searchText) {
         const titleMatch = convo.title.toLowerCase().includes(searchText);
         const idMatch = cid.toString().includes(searchText);
-        return titleMatch || idMatch;
+        if (titleMatch || idMatch) {
+          matches.push({
+            convoId: cid,
+            title: convo.title,
+            type: convo.type || 'flow'
+          });
+        }
+      } else {
+        matches.push({
+          convoId: cid,
+          title: convo.title,
+          type: convo.type || 'flow'
+        });
       }
-      
-      return true;
     });
   }
   
-  // Recursively filter children
+  // Recursively search children
   if (node.children) {
-    for (const [key, child] of node.children) {
-      const filteredChild = filterTreeNode(child, searchText, typeFilter);
-      // Only include children that have matches
-      if (filteredChild.convoIds.length > 0 || filteredChild.children.size > 0) {
-        filtered.children.set(key, filteredChild);
-        filtered._subtreeSize += filteredChild._subtreeSize || filteredChild.convoIds.length;
-      }
+    for (const child of node.children.values()) {
+      collectMatchingLeaves(child, searchText, typeFilter, matches, tree);
     }
   }
+}
+
+function createFilteredLeafItem(match, searchText, tree) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "node leaf-result";
   
-  filtered._subtreeSize += filtered.convoIds.length;
+  const label = document.createElement("div");
+  label.className = "label";
+  label.dataset.convoId = match.convoId;
   
-  return filtered;
+  // No toggle for leaf items
+  const toggle = document.createElement("span");
+  toggle.className = "toggle";
+  label.appendChild(toggle);
+  
+  const titleSpan = document.createElement("span");
+  
+  // Highlight matching text
+  if (searchText) {
+    const titleLower = match.title.toLowerCase();
+    const index = titleLower.indexOf(searchText);
+    if (index !== -1) {
+      const before = match.title.substring(0, index);
+      const highlighted = match.title.substring(index, index + searchText.length);
+      const after = match.title.substring(index + searchText.length);
+      
+      titleSpan.innerHTML = `${escapeHtml(before)}<mark style="background: #ffeb3b; color: #000; padding: 0 2px; border-radius: 2px;">${escapeHtml(highlighted)}</mark>${escapeHtml(after)}`;
+    } else {
+      titleSpan.textContent = match.title;
+    }
+  } else {
+    titleSpan.textContent = match.title;
+  }
+  
+  label.appendChild(titleSpan);
+  
+  // Add type badge
+  if (match.type !== 'flow') {
+    const badge = document.createElement("span");
+    badge.className = `type-badge type-${match.type}`;
+    badge.textContent = match.type.toUpperCase();
+    label.appendChild(badge);
+  }
+  
+  // Apply highlight class based on type
+  if (match.type !== 'flow') {
+    label.classList.add(`highlight-${match.type}`);
+  }
+  
+  wrapper.appendChild(label);
+  
+  // Click handler to load conversation
+  label.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    label.dispatchEvent(
+      new CustomEvent("convoLeafClick", {
+        detail: { convoId: match.convoId },
+        bubbles: true,
+      })
+    );
+  });
+  
+  return wrapper;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 async function populateActorDropdown() {
@@ -473,9 +677,171 @@ function updateActorFilterLabel() {
   }
 }
 
+// Setup conversation filter
+async function populateConversationDropdown() {
+  const conversations = DB.getAllConversations();
+  let filteredConversations = [...conversations];
+  
+  // Toggle dropdown
+  if (conversationFilterBtn) {
+    conversationFilterBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isVisible = conversationFilterDropdown.style.display !== "none";
+      conversationFilterDropdown.style.display = isVisible ? "none" : "block";
+    });
+  }
+  
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!conversationFilterDropdown.contains(e.target) && e.target !== conversationFilterBtn) {
+      conversationFilterDropdown.style.display = "none";
+    }
+  });
+  
+  // Prevent dropdown from closing when clicking inside
+  conversationFilterDropdown.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+  
+  // Search within conversation dropdown
+  if (conversationSearchInput) {
+    conversationSearchInput.addEventListener("input", () => {
+      const searchText = conversationSearchInput.value.toLowerCase().trim();
+      
+      if (!searchText) {
+        filteredConversations = [...conversations];
+      } else {
+        filteredConversations = conversations.filter(convo => {
+          return convo.title.toLowerCase().includes(searchText) || 
+                 convo.conversationid.toString().includes(searchText);
+        });
+      }
+      
+      renderConversationCheckboxes(filteredConversations);
+      updateConversationSelectAllState();
+    });
+  }
+  
+  // Select All checkbox
+  if (selectAllConversations) {
+    selectAllConversations.addEventListener("change", (e) => {
+      const isChecked = e.target.checked;
+      const checkboxes = conversationCheckboxList.querySelectorAll('input[type="checkbox"]');
+      
+      checkboxes.forEach(cb => {
+        const convoId = parseInt(cb.dataset.convoId);
+        cb.checked = isChecked;
+        
+        if (isChecked) {
+          selectedConvoIds.add(convoId);
+        } else {
+          selectedConvoIds.delete(convoId);
+        }
+      });
+      
+      updateConversationFilterLabel();
+      triggerSearch();
+    });
+  }
+  
+  // Add to Selection button
+  if (addConversationToSelectionBtn) {
+    addConversationToSelectionBtn.addEventListener("click", () => {
+      const checkboxes = conversationCheckboxList.querySelectorAll('input[type="checkbox"]:checked');
+      checkboxes.forEach(cb => {
+        selectedConvoIds.add(parseInt(cb.dataset.convoId));
+      });
+      
+      // Clear search and show all with current selection
+      conversationSearchInput.value = "";
+      const searchText = "";
+      filteredConversations = [...conversations];
+      renderConversationCheckboxes(filteredConversations);
+      updateConversationSelectAllState();
+      updateConversationFilterLabel();
+      triggerSearch();
+    });
+  }
+  
+  renderConversationCheckboxes(filteredConversations);
+}
+
+function renderConversationCheckboxes(conversations) {
+  conversationCheckboxList.innerHTML = "";
+  
+  conversations.forEach(convo => {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.dataset.convoId = convo.conversationid;
+    checkbox.checked = selectedConvoIds.has(convo.conversationid);
+    
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        selectedConvoIds.add(convo.conversationid);
+      } else {
+        selectedConvoIds.delete(convo.conversationid);
+      }
+      updateConversationSelectAllState();
+      updateConversationFilterLabel();
+      triggerSearch();
+    });
+    
+    const span = document.createElement("span");
+    span.textContent = convo.title;
+    
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    conversationCheckboxList.appendChild(label);
+  });
+  
+  updateConversationSelectAllState();
+}
+
+function updateConversationSelectAllState() {
+  if (!selectAllConversations) return;
+  
+  const visibleCheckboxes = conversationCheckboxList.querySelectorAll('input[type="checkbox"]');
+  const visibleConvoIds = Array.from(visibleCheckboxes).map(cb => parseInt(cb.dataset.convoId));
+  
+  const allSelected = visibleConvoIds.length > 0 && visibleConvoIds.every(id => selectedConvoIds.has(id));
+  const someSelected = visibleConvoIds.some(id => selectedConvoIds.has(id));
+  
+  selectAllConversations.checked = allSelected;
+  selectAllConversations.indeterminate = !allSelected && someSelected;
+}
+
+function updateConversationFilterLabel() {
+  if (!conversationFilterLabel) return;
+  
+  const allConversations = DB.getAllConversations();
+  
+  if (selectedConvoIds.size === 0 || selectedConvoIds.size === allConversations.length) {
+    conversationFilterLabel.textContent = "All Conversations";
+  } else if (selectedConvoIds.size === 1) {
+    const convoId = Array.from(selectedConvoIds)[0];
+    const convo = allConversations.find(c => c.conversationid === convoId);
+    conversationFilterLabel.textContent = convo ? convo.title : "1 Conversation";
+  } else {
+    conversationFilterLabel.textContent = `${selectedConvoIds.size} Conversations`;
+  }
+}
+
 function triggerSearch() {
   if (searchInput.value) {
-    searchDialogues(searchInput.value, minSearchLength, searchResultLimit);
+    // Always reset search when filters change to clear old results
+    // But only push history state if not already in search view
+    const isAlreadySearching = currentAppState === 'search';
+    if (isAlreadySearching) {
+      // Already in search view, manually reset and search without pushing history
+      currentSearchOffset = 0;
+      currentSearchFilteredCount = 0;
+      entryListEl.innerHTML = "";
+      searchDialogues(searchInput.value, false);
+    } else {
+      // First time searching, push history state
+      searchDialogues(searchInput.value, true);
+    }
   }
 }
 
@@ -571,51 +937,212 @@ function updateTypeFilterLabel() {
   }
 }
 
-// Setup conversation help tooltip
-function setupConversationHelpTooltip() {
-  const helpIcon = document.getElementById('conversationHelp');
-  const tooltip = document.getElementById('conversationHelpTooltip');
+// Setup tablet sidebars
+function setupTabletSidebars() {
+  if (!tabletConvoSidebar || !tabletHistorySidebar) return;
+
+  // Check if we're on tablet (between 768px and 1024px)
+  const isTablet = () => window.innerWidth <= 1024 && window.innerWidth > 768;
+
+  // Show/hide tablet elements based on viewport
+  const updateTabletVisibility = () => {
+    const tablet = isTablet();
+    if (tablet) {
+      // Show sidebar on tablet (open by default for conversations)
+      tabletConvoSidebar.style.display = 'flex';
+      tabletHistorySidebar.style.display = 'flex';
+      tabletConvoToggle.style.display = 'flex';
+      tabletHistoryToggle.style.display = 'flex';
+      
+      // Open conversation sidebar by default
+      tabletConvoSidebar.classList.add('open');
+    } else {
+      // Hide on desktop and mobile
+      tabletConvoSidebar.style.display = 'none';
+      tabletHistorySidebar.style.display = 'none';
+      tabletConvoToggle.style.display = 'none';
+      tabletHistoryToggle.style.display = 'none';
+    }
+  };
+
+  // Toggle conversation sidebar
+  if (tabletConvoToggle) {
+    tabletConvoToggle.addEventListener('click', () => {
+      tabletConvoSidebar.classList.toggle('open');
+    });
+  }
+
+  if (tabletConvoSidebarClose) {
+    tabletConvoSidebarClose.addEventListener('click', () => {
+      tabletConvoSidebar.classList.remove('open');
+    });
+  }
+
+  // Toggle history sidebar
+  if (tabletHistoryToggle) {
+    tabletHistoryToggle.addEventListener('click', () => {
+      tabletHistorySidebar.classList.toggle('open');
+    });
+  }
+
+  if (tabletHistorySidebarClose) {
+    tabletHistorySidebarClose.addEventListener('click', () => {
+      tabletHistorySidebar.classList.remove('open');
+    });
+  }
+
+  // Setup tablet conversation list - use same tree as desktop
+  if (tabletConvoList) {
+    // Delegate clicks to handle conversation selection
+    tabletConvoList.addEventListener("click", (e) => {
+      const leaf = e.target.closest(".leaf");
+      if (leaf) {
+        const convoId = parseInt(leaf.dataset.id);
+        loadEntriesForConversation(convoId, true);
+        highlightConversationInTree(convoId);
+        // Auto-close sidebar after selection
+        tabletConvoSidebar.classList.remove('open');
+      }
+    });
+
+    // Handle custom convoLeafClick events
+    tabletConvoList.addEventListener("convoLeafClick", (e) => {
+      const convoId = e.detail.convoId;
+      loadEntriesForConversation(convoId, true);
+      highlightConversationInTree(convoId);
+      // Auto-close sidebar after selection
+      tabletConvoSidebar.classList.remove('open');
+    });
+  }
+
+  // Setup tablet conversation filter
+  const tabletConvoSearchInput = UI.$("tabletConvoSearch");
+  const tabletConvoTypeFilterBtns = document.querySelectorAll("#tablet-convo-type-filter .type-filter-btn");
+  const tabletExpandAllBtn = UI.$("tabletExpandAllBtn");
+  const tabletCollapseAllBtn = UI.$("tabletCollapseAllBtn");
   
-  if (!helpIcon || !tooltip) {
-    console.warn('Tooltip elements not found:', { helpIcon, tooltip });
-    return;
+  if (tabletConvoSearchInput) {
+    console.log(`Adding event listener for tablet ${tabletConvoSearchInput.value}`)
+    tabletConvoSearchInput.addEventListener("input", function(event)  {
+      console.log(`Tablet Search Input: ${event.target.value}`)
+      filterConversationTree();
+    });
   }
   
-  let isTooltipOpen = false;
+  if (tabletConvoTypeFilterBtns.length > 0) {
+    tabletConvoTypeFilterBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        // Update active state for tablet buttons
+        tabletConvoTypeFilterBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        
+        // Also sync with desktop buttons
+        convoTypeFilterBtns.forEach(b => b.classList.remove("active"));
+        const desktopBtn = Array.from(convoTypeFilterBtns).find(b => b.dataset.type === btn.dataset.type);
+        if (desktopBtn) desktopBtn.classList.add("active");
+        
+        // Update active filter
+        activeTypeFilter = btn.dataset.type;
+        
+        // Apply filter
+        filterConversationTree();
+      });
+    });
+  }
   
-  // Toggle on click
-  helpIcon.addEventListener('click', (e) => {
-    e.stopPropagation();
-    isTooltipOpen = !isTooltipOpen;
-    if (isTooltipOpen) {
-      tooltip.classList.add('show');
-      helpIcon.classList.add('active');
-    } else {
-      tooltip.classList.remove('show');
-      helpIcon.classList.remove('active');
-    }
-  });
+  if (tabletExpandAllBtn) {
+    tabletExpandAllBtn.addEventListener("click", () => {
+      expandAllTreeNodes();
+      // Also expand tablet tree
+      const allNodes = tabletConvoList?.querySelectorAll('.node');
+      allNodes?.forEach(node => {
+        const toggle = node.querySelector('.toggle');
+        if (toggle && toggle.textContent && !node.classList.contains('expanded')) {
+          node.classList.add('expanded');
+          toggle.textContent = '▾';
+        }
+      });
+    });
+  }
   
-  // Show on hover
-  helpIcon.addEventListener('mouseenter', () => {
-    if (!isTooltipOpen) {
-      tooltip.classList.add('show');
-    }
-  });
+  if (tabletCollapseAllBtn) {
+    tabletCollapseAllBtn.addEventListener("click", () => {
+      collapseAllTreeNodes();
+      // Also collapse tablet tree
+      const allNodes = tabletConvoList?.querySelectorAll('.node');
+      allNodes?.forEach(node => {
+        if (node.classList.contains('expanded')) {
+          const toggle = node.querySelector('.toggle');
+          node.classList.remove('expanded');
+          if (toggle) {
+            toggle.textContent = '▸';
+          }
+        }
+      });
+    });
+  }
+
+  // Setup tablet back button
+  if (tabletBackBtn) {
+    tabletBackBtn.addEventListener("click", () => {
+      window.history.back();
+    });
+  }
+
+  // Setup tablet root button
+  if (tabletRootBtn) {
+    tabletRootBtn.addEventListener("click", () => {
+      if (currentConvoId !== null) {
+        loadEntriesForConversation(currentConvoId, true);
+      }
+    });
+  }
+
+  // Initial setup
+  updateTabletVisibility();
+
+  // Update on resize
+  window.addEventListener('resize', updateTabletVisibility);
+}
+
+// Setup clear filters button
+function setupClearFiltersButton() {
+  if (!clearFiltersBtn) return;
   
-  helpIcon.addEventListener('mouseleave', () => {
-    if (!isTooltipOpen) {
-      tooltip.classList.remove('show');
+  clearFiltersBtn.addEventListener("click", () => {
+    // Reset actor filters
+    selectedActorIds.clear();
+    const actorCheckboxes = actorCheckboxList?.querySelectorAll('input[type="checkbox"]');
+    if (actorCheckboxes) {
+      actorCheckboxes.forEach(cb => {
+        cb.checked = false;
+      });
     }
-  });
-  
-  // Close when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!helpIcon.contains(e.target) && !tooltip.contains(e.target)) {
-      isTooltipOpen = false;
-      tooltip.classList.remove('show');
-      helpIcon.classList.remove('active');
+    if (selectAllActors) {
+      selectAllActors.checked = false;
     }
+    updateActorFilterLabel();
+    
+    // Reset type filters - select all
+    selectedTypeIds.clear();
+    selectedTypeIds.add('flow');
+    selectedTypeIds.add('orb');
+    selectedTypeIds.add('task');
+    
+    const typeCheckboxes = typeCheckboxList?.querySelectorAll('input[type="checkbox"][data-type]');
+    if (typeCheckboxes) {
+      typeCheckboxes.forEach(cb => {
+        cb.checked = true;
+      });
+    }
+    if (selectAllTypes) {
+      selectAllTypes.checked = true;
+      selectAllTypes.indeterminate = false;
+    }
+    updateTypeFilterLabel();
+    
+    // Trigger search with cleared filters
+    triggerSearch();
   });
 }
 
@@ -656,6 +1183,17 @@ function highlightConversationInTree(convoId) {
 function loadEntriesForConversation(convoId, resetHistory = false) {
   convoId = UI.getParsedIntOrDefault(convoId);
   
+  // If we're coming from home (no current conversation), ensure home state exists
+  if (!isHandlingPopState && currentConvoId === null) {
+    // Replace current state with home before pushing conversation
+    window.history.replaceState({ view: 'home' }, '', window.location.pathname);
+  }
+  
+  // Push browser history state (unless we're handling a popstate event)
+  if (!isHandlingPopState) {
+    pushHistoryState('conversation', { convoId });
+  }
+  
   // Close mobile sidebar when conversation is selected
   closeMobileSidebar();
   
@@ -665,15 +1203,40 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     if (chatLogEl) {
       chatLogEl.innerHTML = "";
     }
+    if (tabletChatLog) {
+      tabletChatLog.innerHTML = "";
+    }
   } else if (resetHistory) {
     navigationHistory = [{ convoId, entryId: null }];
   }
   
   if (currentEntryContainerEl) currentEntryContainerEl.style.display = "flex";
   
+  // Hide homepage, show dialogue content
+  
+  const homePageContainer = document.getElementById('homePageContainer');
+  const dialogueContent = document.getElementById('dialogueContent');
+  
+  
+  
+  
+  if (homePageContainer) {
+    homePageContainer.style.display = 'none';
+    
+  }
+  if (dialogueContent) {
+    dialogueContent.style.display = 'flex';
+    
+  }
+  
   // Remove search mode styling
   const entryListContainer = entryListEl?.closest('.entry-list');
   if (entryListContainer) entryListContainer.classList.remove('full-height');
+  
+  // Reset search state to prevent infinite scroll from loading more search results
+  currentSearchOffset = 0;
+  currentSearchTotal = 0;
+  currentSearchFilteredCount = 0;
   
   // Update current state for conversation root
   currentConvoId = convoId;
@@ -683,6 +1246,9 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   if (rootBtn) {
     rootBtn.style.display = "none";
   }
+  if (tabletRootBtn) {
+    tabletRootBtn.style.display = "none";
+  }
   
   // Update mobile nav buttons (at root, so hide both)
   updateMobileNavButtons();
@@ -691,6 +1257,11 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   const conversation = DB.getConversationById(convoId);
   if (conversation) {
     UI.renderConversationOverview(entryOverviewEl, conversation);
+    
+    // Update mobile header title
+    if (mobileHeaderTitle) {
+      mobileHeaderTitle.textContent = conversation.title || `Conversation ${convoId}`;
+    }
   }
   
   // Make sure current entry container is visible
@@ -792,6 +1363,11 @@ function updateBackButtonState() {
 async function goBack() {
   if (navigationHistory.length <= 1) return;
   
+  // Remove the last item from the chat log
+  if (chatLogEl && chatLogEl.lastElementChild) {
+    chatLogEl.removeChild(chatLogEl.lastElementChild);
+  }
+  
   // Pop the current entry from history
   navigationHistory.pop();
   
@@ -835,6 +1411,140 @@ async function goBack() {
   updateBackButtonState();
 }
 
+// Browser History Management
+function setupBrowserHistory() {
+  // Set initial state
+  window.history.replaceState({ view: 'home' }, '', window.location.pathname);
+  currentAppState = 'home';
+  
+  // Handle browser back/forward buttons
+  window.addEventListener('popstate', async (event) => {
+    if (isHandlingPopState) return;
+    isHandlingPopState = true;
+    
+    const state = event.state;
+    
+    // Always close mobile search screen if it's open (when navigating via back button)
+    if (mobileSearchScreen && mobileSearchScreen.style.display === 'block') {
+      mobileSearchScreen.style.display = 'none';
+    }
+    
+    if (!state || state.view === 'home') {
+      // Go back to home view
+      goToHomeView();
+    } else if (state.view === 'conversation') {
+      if (state.convoId && state.entryId) {
+        // Going to a specific entry
+        // Determine if we're going backwards or forwards
+        const isGoingBack = navigationHistory.length > 0 && 
+                           navigationHistory[navigationHistory.length - 1] &&
+                           (navigationHistory[navigationHistory.length - 1].convoId !== state.convoId || 
+                            navigationHistory[navigationHistory.length - 1].entryId !== state.entryId);
+        
+        if (isGoingBack) {
+          // Going backwards - remove current entry (non-clickable) and the last clickable entry
+          if (chatLogEl && chatLogEl.lastElementChild) {
+            chatLogEl.removeChild(chatLogEl.lastElementChild); // Remove current
+          }
+          if (chatLogEl && chatLogEl.lastElementChild) {
+            chatLogEl.removeChild(chatLogEl.lastElementChild); // Remove last clickable
+          }
+          navigationHistory.pop();
+        }
+        
+        // Navigate to the entry
+        await navigateToEntry(state.convoId, state.entryId, !isGoingBack);
+      } else if (state.convoId) {
+        // Going to conversation root
+        const isGoingBack = navigationHistory.length > 1;
+        
+        if (isGoingBack) {
+          if (chatLogEl && chatLogEl.lastElementChild) {
+            chatLogEl.removeChild(chatLogEl.lastElementChild); // Remove current
+          }
+          if (chatLogEl && chatLogEl.lastElementChild) {
+            chatLogEl.removeChild(chatLogEl.lastElementChild); // Remove last clickable
+          }
+          navigationHistory.pop();
+        }
+        
+        loadEntriesForConversation(state.convoId, false);
+      }
+    } else if (state.view === 'search') {
+      // Going back to search should actually go to home since search is a "forward" action
+      goToHomeView();
+    }
+    
+    currentAppState = state?.view || 'home';
+    
+    // Update UI state
+    updateBackButtonState();
+    if (typeof updateMobileNavButtons === 'function') {
+      updateMobileNavButtons();
+    }
+    
+    setTimeout(() => {
+      isHandlingPopState = false;
+    }, 100);
+  });
+}
+
+function pushHistoryState(view, data = {}) {
+  if (isHandlingPopState) return;
+  
+  const state = { view, ...data };
+  currentAppState = view;
+  window.history.pushState(state, '', window.location.pathname);
+}
+
+function goToHomeView() {
+  // Clear current conversation
+  currentConvoId = null;
+  currentEntryId = null;
+  navigationHistory = [];
+  
+  // Clear chat log
+  if (chatLogEl) {
+    chatLogEl.innerHTML = "";
+  }
+  if (tabletChatLog) {
+    tabletChatLog.innerHTML = "";
+  }
+  
+  // Show homepage, hide dialogue content
+  const homePageContainer = document.getElementById('homePageContainer');
+  const dialogueContent = document.getElementById('dialogueContent');
+  
+  if (homePageContainer) {
+    homePageContainer.style.display = 'block';
+  }
+  if (dialogueContent) {
+    dialogueContent.style.display = 'none';
+  }
+  
+  // Reset entry list header
+  if (entryListHeaderEl) {
+    entryListHeaderEl.textContent = "Next Dialogue Options";
+  }
+  
+  // Clear tree selection
+  document.querySelectorAll('.tree-item.selected').forEach(item => {
+    item.classList.remove('selected');
+  });
+  
+  // Hide mobile back button if visible
+  if (mobileBackBtn) {
+    mobileBackBtn.style.display = "none";
+  }
+  
+  // Close mobile search if open
+  if (mobileSearchScreen) {
+    mobileSearchScreen.style.display = "none";
+  }
+  
+  updateBackButtonState();
+}
+
 async function updateUiToShowEntry() {
     // Update the UI
     const coreRow = DB.getEntry(currentConvoId, currentEntryId); // About 650 entries without titles
@@ -860,13 +1570,13 @@ async function updateUiToShowEntry() {
 async function jumpToHistoryPoint(targetIndex) {
   if (targetIndex < 0 || targetIndex >= navigationHistory.length) return;
   
-  // If clicking on the last item, do nothing (it's about to become current anyway)
+  // If clicking on the last item, do nothing (it's the current entry)
   if (targetIndex === navigationHistory.length - 1) return;
   
-  // Remove all chat log items after the target
+  // Remove all chat log items after the target (including current entry display)
   if (chatLogEl) {
     const historyItems = chatLogEl.querySelectorAll(".card-item");
-    const itemsToRemove = historyItems.length - targetIndex;
+    const itemsToRemove = historyItems.length - targetIndex - 1;
     for (let i = 0; i < itemsToRemove; i++) {
       if (historyItems[historyItems.length - 1 - i]) {
         historyItems[historyItems.length - 1 - i].remove();
@@ -897,6 +1607,19 @@ async function jumpToHistoryPoint(targetIndex) {
     const convoType = conversation?.type || 'flow';
     
     UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoType);
+    
+    // Add current entry to history log (non-clickable)
+    if (chatLogEl) {
+      const currentTitle = UI.parseSpeakerFromTitle(title) || "(no title)";
+      UI.appendHistoryItem(
+        chatLogEl,
+        `${currentTitle} — #${eid}`,
+        dialoguetext,
+        targetIndex,
+        null, // null means non-clickable
+        tabletChatLog
+      );
+    }
     
     // Load child options
     loadChildOptions(currentConvoId, currentEntryId);
@@ -934,6 +1657,11 @@ async function navigateToEntry(convoId, entryId, addToHistory = true, selectedAl
   // Ensure numeric Ids
   convoId = UI.getParsedIntOrDefault(convoId);
   entryId = UI.getParsedIntOrDefault(entryId);
+  
+  // Push browser history state (unless we're handling a popstate event)
+  if (!isHandlingPopState && addToHistory) {
+    pushHistoryState('conversation', { convoId, entryId });
+  }
 
   // Check if we're at the same entry AND same alternate view
   const sameEntry = currentConvoId === convoId && currentEntryId === entryId;
@@ -952,10 +1680,23 @@ async function navigateToEntry(convoId, entryId, addToHistory = true, selectedAl
     addToHistory = false;
   }
 
+  // Hide homepage, show dialogue content (important for mobile when coming from search)
+  const homePageContainer = document.getElementById('homePageContainer');
+  const dialogueContent = document.getElementById('dialogueContent');
+  
+  if (homePageContainer) {
+    homePageContainer.style.display = 'none';
+  }
+  if (dialogueContent) {
+    dialogueContent.style.display = 'flex';
+  }
+
   // Make visible
   if (currentEntryContainerEl) {
+    currentEntryContainerEl.style.overflowY = "auto";
+    currentEntryContainerEl.style.display = "flex";
     currentEntryContainerEl.style.visibility = "visible";
-    currentEntryContainerEl.style.display = "block";
+    currentEntryContainerEl.style.flex = "0 0 auto";
   }
   
   // Also restore entry list layout when navigating from search
@@ -963,6 +1704,11 @@ async function navigateToEntry(convoId, entryId, addToHistory = true, selectedAl
   if (entryListContainer) {
     entryListContainer.classList.remove('full-height');
   }
+  
+  // Reset search state to prevent infinite scroll from loading more search results
+  currentSearchOffset = 0;
+  currentSearchTotal = 0;
+  currentSearchFilteredCount = 0;
 
   // Clear the hint text if present
   if (chatLogEl) {
@@ -973,25 +1719,41 @@ async function navigateToEntry(convoId, entryId, addToHistory = true, selectedAl
     )
       chatLogEl.innerHTML = "";
   }
+  
+  if (tabletChatLog) {
+    if (
+      tabletChatLog.children.length === 1 &&
+      tabletChatLog.children[0].textContent &&
+      tabletChatLog.children[0].textContent.includes("(navigation log")
+    )
+      tabletChatLog.innerHTML = "";
+  }
 
-  // If we have a previous entry, add it to the log (if not already there)
-  if (addToHistory && currentConvoId !== null && currentEntryId !== null && chatLogEl) {
-    // Add the previous current entry to the log before moving to the new one
-    const prevHistoryIndex = navigationHistory.length;
-    const coreRow = DB.getEntry(currentConvoId, currentEntryId);
-    const title = coreRow ? UI.parseSpeakerFromTitle(coreRow.title) || "(no title)" : `(line ${currentConvoId}:${currentEntryId})`;
-    const dialoguetext = coreRow ? coreRow.dialoguetext : "";
-    
-    UI.appendHistoryItem(
-      chatLogEl,
-      `${title} — #${currentEntryId}`,
-      dialoguetext,
-      prevHistoryIndex - 1,
-      () => {
-        // Jump back to this history point
-        jumpToHistoryPoint(prevHistoryIndex - 1);
-      }
-    );
+  // Remove the previous "current entry" display if it exists (it will become clickable)
+  if (addToHistory && chatLogEl && chatLogEl.lastElementChild) {
+    const lastItem = chatLogEl.lastElementChild;
+    if (lastItem.classList.contains('current-entry')) {
+      // Make it clickable before adding new current entry
+      lastItem.classList.remove('current-entry');
+      lastItem.style.cursor = 'pointer';
+      const historyIndex = parseInt(lastItem.dataset.historyIndex);
+      lastItem.addEventListener('click', () => {
+        jumpToHistoryPoint(historyIndex);
+      });
+    }
+  }
+  
+  // Also handle tablet chat log
+  if (addToHistory && tabletChatLog && tabletChatLog.lastElementChild) {
+    const lastTabletItem = tabletChatLog.lastElementChild;
+    if (lastTabletItem.classList.contains('current-entry')) {
+      lastTabletItem.classList.remove('current-entry');
+      lastTabletItem.style.cursor = 'pointer';
+      const historyIndex = parseInt(lastTabletItem.dataset.historyIndex);
+      lastTabletItem.addEventListener('click', () => {
+        jumpToHistoryPoint(historyIndex);
+      });
+    }
   }
 
   if (addToHistory) navigationHistory.push({ convoId, entryId });
@@ -1014,6 +1776,19 @@ async function navigateToEntry(convoId, entryId, addToHistory = true, selectedAl
   currentAlternateCondition = selectedAlternateCondition;
   currentAlternateLine = selectedAlternateLine;
   
+  // Add current entry to history log (non-clickable)
+  if (addToHistory && chatLogEl) {
+    const currentTitle = UI.parseSpeakerFromTitle(title) || "(no title)";
+    UI.appendHistoryItem(
+      chatLogEl,
+      `${currentTitle} — #${entryId}`,
+      dialoguetext,
+      navigationHistory.length - 1,
+      null, // null means non-clickable
+      tabletChatLog
+    );
+  }
+  
   // Show More Details for actual entries (they have dentries)
   if (moreDetailsEl) {
     moreDetailsEl.style.display = "block";
@@ -1022,6 +1797,9 @@ async function navigateToEntry(convoId, entryId, addToHistory = true, selectedAl
   // Show/hide root button
   if (rootBtn) {
     rootBtn.style.display = currentEntryId !== null ? "inline-block" : "none";
+  }
+  if (tabletRootBtn) {
+    tabletRootBtn.style.display = currentEntryId !== null ? "inline-block" : "none";
   }
   
   // Update mobile nav buttons
@@ -1121,14 +1899,31 @@ function searchDialogues(q, resetSearch = true) {
   const trimmedQ = q.trim();
   
   if (resetSearch) {
+    // Push browser history state for search view
+    if (!isHandlingPopState) {
+      pushHistoryState('search', { query: trimmedQ });
+    }
+    
     // Starting a new search
     currentSearchQuery = trimmedQ;
     currentSearchActorIds = selectedActorIds.size === 0 || selectedActorIds.size === allActors.length 
       ? null 
       : Array.from(selectedActorIds);
+    
     currentSearchOffset = 0;
     
     if (searchLoader) searchLoader.style.display = "flex";
+    
+    // Hide homepage, show dialogue content for search
+    const homePageContainer = document.getElementById('homePageContainer');
+    const dialogueContent = document.getElementById('dialogueContent');
+    
+    if (homePageContainer) {
+      homePageContainer.style.display = 'none';
+    }
+    if (dialogueContent) {
+      dialogueContent.style.display = 'flex';
+    }
     
     // Hide current entry and make search take full space
     if (currentEntryContainerEl)
@@ -1142,7 +1937,7 @@ function searchDialogues(q, resetSearch = true) {
       entryListEl.classList.remove('compact');
     }
     
-    entryListEl.innerHTML = "";
+    entryListEl.innerHTML = ""; // This clears both innerHTML and textContent
   }
   
   if (isLoadingMore) return;
@@ -1155,7 +1950,9 @@ function searchDialogues(q, resetSearch = true) {
       searchResultLimit,
       currentSearchActorIds,
       true, // filterStartInput
-      currentSearchOffset
+      currentSearchOffset,
+      undefined, // conversationIds
+      wholeWordsCheckbox?.checked || false // wholeWords
     );
     
     const { results: res, total } = response;
@@ -1177,7 +1974,7 @@ function searchDialogues(q, resetSearch = true) {
       currentSearchFilteredCount = 0;
       
       if (!filteredResults.length) {
-        entryListEl.textContent = "(no matches)";
+        entryListEl.innerHTML = "<div>(no matches)</div>";
         entryListHeaderEl.textContent += ` (0)`;
         return;
       }
@@ -1197,8 +1994,13 @@ function searchDialogues(q, resetSearch = true) {
     
     // Add results to list
     filteredResults.forEach((r) => {
-      const highlightedTitle = UI.highlightTerms(r.title || "", currentSearchQuery);
-      const highlightedText = UI.highlightTerms(r.dialoguetext || "", currentSearchQuery);
+      // Check if query contains any quoted phrases
+      const hasQuotedPhrases = /"[^"]+"/g.test(currentSearchQuery);
+      
+      // For highlighting, if there are quoted phrases, we need special handling
+      // Otherwise use the normal query
+      const highlightedTitle = UI.highlightTerms(r.title || "", currentSearchQuery, hasQuotedPhrases);
+      const highlightedText = UI.highlightTerms(r.dialoguetext || "", currentSearchQuery, hasQuotedPhrases);
       
       // Get conversation type for badge
       const convo = DB.getConversationById(r.conversationid);
@@ -1287,13 +2089,13 @@ function setupSearchInfiniteScroll() {
 
 // Setup infinite scroll for mobile search results
 function setupMobileSearchInfiniteScroll() {
-  if (!mobileSearchScreen) return;
+  if (!mobileSearchResults) return;
   
-  mobileSearchScreen.addEventListener('scroll', () => {
+  mobileSearchResults.addEventListener('scroll', () => {
     // Check if we're near the bottom and have more results to load
-    const scrollTop = mobileSearchScreen.scrollTop;
-    const scrollHeight = mobileSearchScreen.scrollHeight;
-    const clientHeight = mobileSearchScreen.clientHeight;
+    const scrollTop = mobileSearchResults.scrollTop;
+    const scrollHeight = mobileSearchResults.scrollHeight;
+    const clientHeight = mobileSearchResults.clientHeight;
     
     const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 100;
     
@@ -1358,6 +2160,10 @@ function setupMobileSearch() {
   // Open mobile search screen
   if (mobileSearchTrigger) {
     mobileSearchTrigger.addEventListener("click", () => {
+      // Push browser history state for mobile search
+      if (!isHandlingPopState) {
+        pushHistoryState('search');
+      }
       mobileSearchScreen.style.display = "block";
       mobileSearchInput.focus();
     });
@@ -1366,7 +2172,8 @@ function setupMobileSearch() {
   // Close mobile search screen
   if (mobileSearchBack) {
     mobileSearchBack.addEventListener("click", () => {
-      mobileSearchScreen.style.display = "none";
+      // Use browser back to return to previous state
+      window.history.back();
     });
   }
   
@@ -1374,6 +2181,51 @@ function setupMobileSearch() {
   if (mobileSearchInput) {
     mobileSearchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") performMobileSearch();
+    });
+  }
+  
+  // Mobile search icon button
+  if (mobileSearchIconBtn) {
+    mobileSearchIconBtn.addEventListener("click", () => {
+      performMobileSearch();
+    });
+  }
+  
+  // Whole words toggle - trigger search when changed
+  if (mobileWholeWordsCheckbox) {
+    mobileWholeWordsCheckbox.addEventListener("change", () => {
+      // Only trigger search if there's an active query
+      if (mobileSearchQuery) {
+        performMobileSearch();
+      }
+    });
+  }
+  
+  // Clear filters button
+  if (mobileClearFilters) {
+    mobileClearFilters.addEventListener("click", () => {
+      // Clear conversation filter
+      mobileSelectedConvoIds.clear();
+      mobileConvoFilterValue.textContent = "All";
+      
+      // Clear type filter
+      mobileSelectedTypes.clear();
+      mobileSelectedTypes.add("all");
+      mobileTypeFilterValue.textContent = "All";
+      
+      // Clear actor filter
+      mobileSearchActorIds = null;
+      mobileActorFilterValue.textContent = "All";
+      
+      // Clear whole words
+      if (mobileWholeWordsCheckbox) {
+        mobileWholeWordsCheckbox.checked = false;
+      }
+      
+      // Re-run search if there's an active query
+      if (mobileSearchQuery) {
+        performMobileSearch();
+      }
     });
   }
   
@@ -1414,18 +2266,18 @@ function setupMobileSidebar() {
     mobileSidebarToggle.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log("Toggle clicked", conversationsSection);
+      
       if (conversationsSection) {
         conversationsSection.classList.add("open");
-        console.log("Added open class");
+        
       }
       if (mobileSidebarOverlay) {
         mobileSidebarOverlay.style.display = "block";
-        console.log("Showing overlay");
+        
       }
     });
   } else {
-    console.log("mobileSidebarToggle not found");
+    
   }
   
   // Close sidebar when clicking overlay
@@ -1438,8 +2290,8 @@ function setupMobileSidebar() {
   // Mobile back button
   if (mobileBackBtn) {
     mobileBackBtn.addEventListener("click", () => {
-      goBack();
-      updateMobileNavButtons();
+      // Use browser back button instead of manual history management
+      window.history.back();
     });
   }
   
@@ -1455,19 +2307,24 @@ function setupMobileSidebar() {
 }
 
 function updateMobileNavButtons() {
+  
   if (!mobileBackBtn || !mobileRootBtn) return;
   
-  // Show back button if we have navigation history
-  if (navigationHistory.length > 1) {
+  // Show back button if we have navigation history OR if we're not on home view
+  if (navigationHistory.length > 1 || currentConvoId !== null || currentAppState !== 'home') {
+    
     mobileBackBtn.style.display = "flex";
   } else {
+    
     mobileBackBtn.style.display = "none";
   }
   
   // Show root button if we're not at conversation root
   if (currentEntryId !== null) {
+    
     mobileRootBtn.style.display = "flex";
   } else {
+    
     mobileRootBtn.style.display = "none";
   }
 }
@@ -1506,7 +2363,9 @@ function performMobileSearch(resetSearch = true) {
       searchResultLimit,
       mobileSearchActorIds,
       true,
-      mobileSearchOffset
+      mobileSearchOffset,
+      undefined, // conversationIds
+      mobileWholeWordsCheckbox?.checked || false // wholeWords
     );
     const { results, total } = response;
     mobileSearchTotal = total;
@@ -1533,12 +2392,33 @@ function performMobileSearch(resetSearch = true) {
     
     if (resetSearch && filteredResults.length === 0) {
       mobileSearchResults.innerHTML = '<div class="mobile-search-prompt">No results found</div>';
+      if (mobileSearchCount) {
+        mobileSearchCount.style.display = "none";
+      }
       return;
     }
     
+    // Update filtered count
+    mobileSearchFilteredCount += filteredResults.length;
+    
+    // Update count display
+    if (mobileSearchCount) {
+      if (mobileSelectedConvoIds.size > 0 || !mobileSelectedTypes.has("all")) {
+        // Show filtered count when filters are active
+        mobileSearchCount.textContent = `${mobileSearchFilteredCount} results (filtered)`;
+      } else {
+        // Show total count when no filters
+        mobileSearchCount.textContent = `${mobileSearchFilteredCount} of ${total} results`;
+      }
+      mobileSearchCount.style.display = "block";
+    }
+    
     filteredResults.forEach(r => {
-      const highlightedTitle = UI.highlightTerms(r.title || "", mobileSearchQuery);
-      const highlightedText = UI.highlightTerms(r.dialoguetext || "", mobileSearchQuery);
+      // Check if query contains any quoted phrases
+      const hasQuotedPhrases = /"[^"]+"/g.test(mobileSearchQuery);
+      
+      const highlightedTitle = UI.highlightTerms(r.title || "", mobileSearchQuery, hasQuotedPhrases);
+      const highlightedText = UI.highlightTerms(r.dialoguetext || "", mobileSearchQuery, hasQuotedPhrases);
       
       // Get conversation type for badge
       const convo = DB.getConversationById(r.conversationid);
@@ -1553,10 +2433,12 @@ function performMobileSearch(resetSearch = true) {
         
         if (cid === eid) {
           // This is an orb or task - load the conversation root
+          
           loadEntriesForConversation(cid, true);
         } else {
           // This is a regular dialogue entry or alternate
           // If this is an alternate, pass the condition and alternate line
+          
           const alternateCondition = r.isAlternate ? r.alternatecondition : null;
           const alternateLine = r.isAlternate ? r.dialoguetext : null;
           navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
@@ -1603,10 +2485,23 @@ function performMobileSearch(resetSearch = true) {
 }
 
 function showMobileConvoFilter() {
+  
+  if (window.refreshMobileConvoList) {
+    window.refreshMobileConvoList();
+  }
   mobileConvoFilterScreen.style.display = "block";
 }
 
 function showMobileActorFilter() {
+  // Reset temporary selection to current selection when opening
+  tempSelectedActorIds = new Set(mobileSelectedActorIds);
+  
+  // Re-render the actor list with current selection
+  const listContainer = UI.$("mobileActorFilterList");
+  if (listContainer) {
+    renderActorListForMobile(allActors);
+  }
+  
   mobileActorFilterScreen.style.display = "block";
 }
 
@@ -1622,7 +2517,10 @@ function setupMobileConvoFilter() {
   const selectAllCheckbox = UI.$("mobileConvoSelectAll");
   const addToSelectionBtn = UI.$("mobileConvoAddToSelection");
   
-  if (!backBtn || !searchInput || !listContainer) return;
+  if (!backBtn || !searchInput || !listContainer) {
+    console.error("Mobile convo filter elements missing:", { backBtn, searchInput, listContainer });
+    return;
+  }
   
   let tempSelectedConvoIds = new Set(mobileSelectedConvoIds);
   let allConvos = [];
@@ -1640,7 +2538,10 @@ function setupMobileConvoFilter() {
       mobileSelectedConvoIds = new Set(tempSelectedConvoIds);
       updateMobileConvoFilterLabel();
       mobileConvoFilterScreen.style.display = "none";
-      if (mobileSearchInput.value) performMobileSearch();
+      // Trigger new search with updated filter
+      if (mobileSearchInput.value.trim()) {
+        performMobileSearch();
+      }
     });
   }
   
@@ -1660,6 +2561,7 @@ function setupMobileConvoFilter() {
   
   // Render conversation list
   function renderConvoList(conversations) {
+    
     listContainer.innerHTML = "";
     filteredConvos = conversations;
     
@@ -1709,6 +2611,16 @@ function setupMobileConvoFilter() {
   allConvos = DB.getAllConversations();
   renderConvoList(allConvos);
   
+  // Expose refresh function
+  window.refreshMobileConvoList = () => {
+    
+    allConvos = DB.getAllConversations();
+    
+    tempSelectedConvoIds = new Set(mobileSelectedConvoIds);
+    searchInput.value = "";
+    renderConvoList(allConvos);
+  };
+  
   // Search filter
   searchInput.addEventListener("input", () => {
     const query = searchInput.value.toLowerCase().trim();
@@ -1738,17 +2650,68 @@ function updateMobileConvoFilterLabel() {
   }
 }
 
+// Render mobile actor list (used by setupMobileActorFilter and showMobileActorFilter)
+function renderActorListForMobile(actors) {
+  const listContainer = UI.$("mobileActorFilterList");
+  const selectAllCheckbox = UI.$("mobileActorSelectAll");
+  
+  if (!listContainer) return;
+  
+  listContainer.innerHTML = "";
+  filteredActorsForMobile = actors;
+  
+  // Update Select All checkbox state
+  if (selectAllCheckbox) {
+    const allSelected = actors.length > 0 && actors.every(a => tempSelectedActorIds.has(a.id));
+    const someSelected = actors.some(a => tempSelectedActorIds.has(a.id));
+    selectAllCheckbox.checked = allSelected;
+    selectAllCheckbox.indeterminate = someSelected && !allSelected;
+  }
+  
+  // Add actor items
+  actors.forEach(actor => {
+    const item = document.createElement("div");
+    item.className = "mobile-filter-item";
+    const isChecked = tempSelectedActorIds.has(actor.id);
+    item.innerHTML = `
+      <input type="checkbox" ${isChecked ? 'checked' : ''} />
+      <span>${actor.name}</span>
+    `;
+    item.addEventListener("click", (e) => {
+      if (e.target.tagName !== 'INPUT') {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        checkbox.checked = !checkbox.checked;
+      }
+      
+      const checkbox = item.querySelector('input[type="checkbox"]');
+      if (checkbox.checked) {
+        tempSelectedActorIds.add(actor.id);
+      } else {
+        tempSelectedActorIds.delete(actor.id);
+      }
+      
+      // Update Select All checkbox
+      if (selectAllCheckbox) {
+        const allSelected = filteredActorsForMobile.every(a => tempSelectedActorIds.has(a.id));
+        const someSelected = filteredActorsForMobile.some(a => tempSelectedActorIds.has(a.id));
+        selectAllCheckbox.checked = allSelected;
+        selectAllCheckbox.indeterminate = someSelected && !allSelected;
+      }
+    });
+    listContainer.appendChild(item);
+  });
+}
+
 function setupMobileActorFilter() {
   const backBtn = UI.$("mobileActorFilterBack");
   const searchInput = UI.$("mobileActorFilterSearch");
-  const listContainer = UI.$("mobileActorFilterList");
   const selectAllCheckbox = UI.$("mobileActorSelectAll");
   const addToSelectionBtn = UI.$("mobileActorAddToSelection");
   
-  if (!backBtn || !searchInput || !listContainer) return;
+  if (!backBtn || !searchInput) return;
   
-  let tempSelectedActorIds = new Set(mobileSelectedActorIds);
-  let filteredActors = [];
+  // Initialize temp selection
+  tempSelectedActorIds = new Set(mobileSelectedActorIds);
   
   // Back button - don't apply changes
   backBtn.addEventListener("click", () => {
@@ -1762,7 +2725,10 @@ function setupMobileActorFilter() {
       mobileSelectedActorIds = new Set(tempSelectedActorIds);
       updateMobileActorFilterLabel();
       mobileActorFilterScreen.style.display = "none";
-      if (mobileSearchInput.value) performMobileSearch();
+      // Trigger new search with updated filter
+      if (mobileSearchInput.value.trim()) {
+        performMobileSearch(true);
+      }
     });
   }
   
@@ -1771,70 +2737,23 @@ function setupMobileActorFilter() {
     selectAllCheckbox.addEventListener("change", () => {
       if (selectAllCheckbox.checked) {
         // Select all filtered actors
-        filteredActors.forEach(a => tempSelectedActorIds.add(a.id));
+        filteredActorsForMobile.forEach(a => tempSelectedActorIds.add(a.id));
       } else {
         // Deselect all filtered actors
-        filteredActors.forEach(a => tempSelectedActorIds.delete(a.id));
+        filteredActorsForMobile.forEach(a => tempSelectedActorIds.delete(a.id));
       }
-      renderActorList(filteredActors);
-    });
-  }
-  
-  // Render actor list
-  function renderActorList(actors) {
-    listContainer.innerHTML = "";
-    filteredActors = actors;
-    
-    // Update Select All checkbox state
-    if (selectAllCheckbox) {
-      const allSelected = actors.length > 0 && actors.every(a => tempSelectedActorIds.has(a.id));
-      const someSelected = actors.some(a => tempSelectedActorIds.has(a.id));
-      selectAllCheckbox.checked = allSelected;
-      selectAllCheckbox.indeterminate = someSelected && !allSelected;
-    }
-    
-    // Add actor items
-    actors.forEach(actor => {
-      const item = document.createElement("div");
-      item.className = "mobile-filter-item";
-      const isChecked = tempSelectedActorIds.has(actor.id);
-      item.innerHTML = `
-        <input type="checkbox" ${isChecked ? 'checked' : ''} />
-        <span>${actor.name}</span>
-      `;
-      item.addEventListener("click", (e) => {
-        if (e.target.tagName !== 'INPUT') {
-          const checkbox = item.querySelector('input[type="checkbox"]');
-          checkbox.checked = !checkbox.checked;
-        }
-        
-        const checkbox = item.querySelector('input[type="checkbox"]');
-        if (checkbox.checked) {
-          tempSelectedActorIds.add(actor.id);
-        } else {
-          tempSelectedActorIds.delete(actor.id);
-        }
-        
-        // Update Select All checkbox
-        if (selectAllCheckbox) {
-          const allSelected = filteredActors.every(a => tempSelectedActorIds.has(a.id));
-          const someSelected = filteredActors.some(a => tempSelectedActorIds.has(a.id));
-          selectAllCheckbox.checked = allSelected;
-          selectAllCheckbox.indeterminate = someSelected && !allSelected;
-        }
-      });
-      listContainer.appendChild(item);
+      renderActorListForMobile(filteredActorsForMobile);
     });
   }
   
   // Initial render
-  renderActorList(allActors);
+  renderActorListForMobile(allActors);
   
   // Search filter
   searchInput.addEventListener("input", () => {
     const query = searchInput.value.toLowerCase().trim();
     if (!query) {
-      renderActorList(allActors);
+      renderActorListForMobile(allActors);
       return;
     }
     
@@ -1842,7 +2761,7 @@ function setupMobileActorFilter() {
       return a.name.toLowerCase().includes(query) || 
              a.id.toString().includes(query);
     });
-    renderActorList(filtered);
+    renderActorListForMobile(filtered);
   });
 }
 
@@ -1855,6 +2774,17 @@ function updateMobileActorFilterLabel() {
     mobileActorFilterValue.textContent = actor ? actor.name : "1 Actor";
   } else {
     mobileActorFilterValue.textContent = `${mobileSelectedActorIds.size} Actors`;
+  }
+}
+
+function updateMobileTypeFilterLabel() {
+  if (mobileSelectedTypes.has("all") || mobileSelectedTypes.size === 0) {
+    mobileTypeFilterValue.textContent = "All";
+  } else if (mobileSelectedTypes.size === 1) {
+    const type = Array.from(mobileSelectedTypes)[0];
+    mobileTypeFilterValue.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+  } else {
+    mobileTypeFilterValue.textContent = `${mobileSelectedTypes.size} Types`;
   }
 }
 
@@ -1913,21 +2843,14 @@ function setupMobileTypeFilter() {
     });
     
     // Update label
-    if (mobileSelectedTypes.has("all") || mobileSelectedTypes.size === 0) {
-      mobileTypeFilterValue.textContent = "All";
-    } else if (mobileSelectedTypes.size === 1) {
-      const type = Array.from(mobileSelectedTypes)[0];
-      mobileTypeFilterValue.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-    } else {
-      mobileTypeFilterValue.textContent = `${mobileSelectedTypes.size} Types`;
-    }
+    updateMobileTypeFilterLabel();
     
     // Close sheet
     mobileTypeFilterSheet.style.display = "none";
     mobileTypeFilterSheet.classList.remove("active");
     
     // Perform search if there's a query
-    if (mobileSearchInput.value) performMobileSearch();
+    if (mobileSearchInput.value.trim()) performMobileSearch();
   });
 }
 

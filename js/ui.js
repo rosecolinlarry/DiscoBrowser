@@ -5,6 +5,19 @@ export function $(sel) {
   return document.getElementById(sel);
 }
 
+// Make external links open in new tabs
+function processExternalLinks(element) {
+  const links = element.querySelectorAll('a[href]');
+  links.forEach(link => {
+    const href = link.getAttribute('href');
+    // Check if it's an external link (starts with http/https and not #)
+    if (href && (href.startsWith('http://') || href.startsWith('https://')) && !href.startsWith('#')) {
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+}
+
 export function createCardItem(titleText, convoId, entryId, contentText, allowHtml = false, convoType = null) {
   convoId = getParsedIntOrDefault(convoId, null)
   entryId = getParsedIntOrDefault(entryId, null)
@@ -36,8 +49,12 @@ export function createCardItem(titleText, convoId, entryId, contentText, allowHt
 
   const text = document.createElement("div");
   text.className = "card-text";
-  if (allowHtml) text.innerHTML = contentText;
-  else text.textContent = contentText;
+  if (allowHtml) {
+    text.innerHTML = contentText;
+    processExternalLinks(text);
+  } else {
+    text.textContent = contentText;
+  }
 
   el.appendChild(title);
   el.appendChild(text);
@@ -59,16 +76,25 @@ export function appendHistoryItem(
   title,
   text,
   historyIndex,
-  onClick
+  onClick,
+  tabletChatLogEl = null
 ) {
   const item = document.createElement("div");
   item.className = "card-item history-item";
-  item.style.cursor = onClick ? "pointer" : "default";
+  
+  // If no onClick handler, this is the current (non-clickable) entry
+  if (!onClick) {
+    item.classList.add("current-entry");
+    item.style.cursor = "default";
+  } else {
+    item.style.cursor = "pointer";
+  }
+  
   item.dataset.historyIndex = historyIndex;
 
   const titleDiv = document.createElement("div");
   titleDiv.className = "card-title";
-  titleDiv.textContent = title;
+  titleDiv.innerHTML = `<span>${title}</span>`;
 
   const textDiv = document.createElement("div");
   textDiv.className = "card-text";
@@ -80,6 +106,15 @@ export function appendHistoryItem(
   if (onClick) item.addEventListener("click", onClick);
   chatLogEl.appendChild(item);
   chatLogEl.scrollTop = chatLogEl.scrollHeight;
+  
+  // Also add to tablet chat log if provided
+  if (tabletChatLogEl) {
+    const tabletItem = item.cloneNode(true);
+    if (onClick) tabletItem.addEventListener("click", onClick);
+    tabletChatLogEl.appendChild(tabletItem);
+    tabletChatLogEl.scrollTop = tabletChatLogEl.scrollHeight;
+  }
+  
   return item;
 }
 
@@ -95,6 +130,7 @@ export function renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoTy
   entryOverviewEl.className = "entry-item current-item";
   entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${title}</strong>${typeBadge}</div>
     <div class="dialogue-text">${dialoguetext}</div>`;
+  processExternalLinks(entryOverviewEl);
 }
 
 
@@ -119,6 +155,7 @@ export function renderConversationOverview(entryOverviewEl, conversation) {
         <strong>Title:</strong> ${title}</div>
       <div class="dialogue-text">${description}</div>
     </div>`;
+  processExternalLinks(entryOverviewEl);
 }
 
 export function parseSpeakerFromTitle(title) {
@@ -405,13 +442,56 @@ export function escapeHtml(s) {
   );
 }
 
-export function highlightTerms(text, query) {
+export function highlightTerms(text, query, hasQuotedPhrases = false) {
   if (!text || !query) return escapeHtml(text || "");
 
-  const terms = query
-    .trim()
+  const trimmedQuery = query.trim();
+  
+  // If query has quoted phrases, extract them and remaining words
+  if (hasQuotedPhrases) {
+    // Extract all quoted phrases
+    const quotedPhrases = [];
+    const quotedPhrasesRegex = /"([^"]+)"/g;
+    let match;
+    while ((match = quotedPhrasesRegex.exec(trimmedQuery)) !== null) {
+      quotedPhrases.push(match[1]);
+    }
+    
+    // Remove quoted phrases from query to get remaining words
+    const remainingText = trimmedQuery.replace(/"[^"]+"/g, '').trim();
+    const words = remainingText ? remainingText.split(/\s+/).filter(w => w.length >= 3) : [];
+    
+    // Combine phrases and words for highlighting
+    const allTerms = [...quotedPhrases, ...words];
+    
+    if (allTerms.length === 0) return escapeHtml(text);
+    
+    // Escape terms for regex - sort by length (longest first) to match longer phrases first
+    const escaped = allTerms
+      .sort((a, b) => b.length - a.length)
+      .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    
+    // Create regex to match any term
+    const re = new RegExp("(" + escaped.join("|") + ")", "gi");
+    
+    // Split text by matches
+    const parts = text.split(re);
+    
+    // Escape HTML and wrap matches in <strong> tags
+    return parts.map(part => {
+      // Check if this part matches any of the terms (case-insensitive)
+      const isMatch = allTerms.some(term => part.toLowerCase() === term.toLowerCase());
+      if (isMatch) {
+        return "<strong class='highlighted_term'>" + escapeHtml(part) + "</strong>";
+      }
+      return escapeHtml(part);
+    }).join("");
+  }
+
+  // For multi-word searches without quotes, split and highlight each word individually
+  const terms = trimmedQuery
     .split(/\s+/)
-    .filter((t) => t.length > 0);
+    .filter((t) => t.length >= 3); // Match the minLength filter from search
 
   if (!terms.length) return escapeHtml(text);
 
@@ -421,8 +501,16 @@ export function highlightTerms(text, query) {
   // Regex: match any term (case-insensitive)
   const re = new RegExp("(" + escaped.join("|") + ")", "gi");
 
-  return escapeHtml(text).replace(
-    re,
-    "<strong class='highlighted_term'>$1</strong>"
-  );
+  // Split text by matches to preserve both matched and unmatched parts
+  const parts = text.split(re);
+  
+  // Escape HTML and wrap matches in <strong> tags
+  return parts.map((part, i) => {
+    // Check if this part matches any of the search terms (case-insensitive)
+    const isMatch = terms.some(term => part.toLowerCase() === term.toLowerCase());
+    if (isMatch) {
+      return "<strong class='highlighted_term'>" + escapeHtml(part) + "</strong>";
+    }
+    return escapeHtml(part);
+  }).join("");
 }

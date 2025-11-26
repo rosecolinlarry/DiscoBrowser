@@ -1,235 +1,373 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23C0C0C0'/%3E%3Ccircle cx='35' cy='30' r='8' fill='%23FFD700'/%3E%3Ccircle cx='65' cy='35' r='6' fill='%2387CEEB'/%3E%3Ccircle cx='30' cy='55' r='7' fill='%23FF69B4'/%3E%3Ccircle cx='70' cy='60' r='9' fill='%2398FB98'/%3E%3Ccircle cx='50' cy='70' r='6' fill='%23DDA0DD'/%3E%3Ccircle cx='55' cy='45' r='5' fill='%23FFA500'/%3E%3C/svg%3E"
-    />
-    <title>Disco Browser</title>
-    <link rel="stylesheet" href="css/styles.css" />
-  </head>
-  <body>
-    <!-- Mobile Search Screen -->
-    <div id="mobileSearchScreen" class="mobile-search-screen" style="display: none;">
-      <div class="mobile-search-header">
-        <button id="mobileSearchBack" class="mobile-back-btn">←</button>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23C0C0C0'/%3E%3Ccircle cx='35' cy='30' r='8' fill='%23FFD700'/%3E%3Ccircle cx='65' cy='35' r='6' fill='%2387CEEB'/%3E%3Ccircle cx='30' cy='55' r='7' fill='%23FF69B4'/%3E%3Ccircle cx='70' cy='60' r='9' fill='%2398FB98'/%3E%3Ccircle cx='50' cy='70' r='6' fill='%23DDA0DD'/%3E%3Ccircle cx='55' cy='45' r='5' fill='%23FFA500'/%3E%3C/svg%3E" />
+  <title>Disco Browser</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+  <!-- Mobile Search Screen -->
+  <div id="mobileSearchScreen" class="mobile-search-screen" style="display: none;">
+    <div class="mobile-search-header">
+      <button id="mobileSearchBack" class="mobile-back-btn">←</button>
+      <div class="mobile-search-input-wrapper">
         <input id="mobileSearchInput" type="text" placeholder="Search dialogues..." />
-      </div>
-      
-      <div class="mobile-search-filters">
-        <button class="mobile-filter-chip" id="mobileConvoFilter">
-          <span>Conversation</span>
-          <span class="filter-value" id="mobileConvoFilterValue">All</span>
-          <span class="dropdown-icon">›</span>
-        </button>
-        <button class="mobile-filter-chip" id="mobileTypeFilter">
-          <span>Type</span>
-          <span class="filter-value" id="mobileTypeFilterValue">All</span>
-          <span class="dropdown-icon">›</span>
-        </button>
-        <button class="mobile-filter-chip" id="mobileActorFilter">
-          <span>Actors</span>
-          <span class="filter-value" id="mobileActorFilterValue">All</span>
-          <span class="dropdown-icon">›</span>
+        <button id="mobileSearchIconBtn" class="mobile-search-icon-btn">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+          </svg>
         </button>
       </div>
-      
-      <div class="mobile-search-loader" id="mobileSearchLoader" style="display: none;">
+    </div>
+
+    <div class="mobile-search-filters">
+      <button class="mobile-filter-chip" id="mobileConvoFilter">
+        <span>Conversation</span>
+        <span class="filter-value" id="mobileConvoFilterValue">All</span>
+        <span class="dropdown-icon">›</span>
+      </button>
+      <button class="mobile-filter-chip" id="mobileTypeFilter">
+        <span>Type</span>
+        <span class="filter-value" id="mobileTypeFilterValue">All</span>
+        <span class="dropdown-icon">›</span>
+      </button>
+      <button class="mobile-filter-chip" id="mobileActorFilter">
+        <span>Actors</span>
+        <span class="filter-value" id="mobileActorFilterValue">All</span>
+        <span class="dropdown-icon">›</span>
+      </button>
+      <button class="mobile-filter-clear" id="mobileClearFilters">
+        <span>Clear Filters</span>
+      </button>
+    </div>
+
+    <div class="mobile-search-options">
+      <label class="mobile-option-toggle">
+        <input type="checkbox" id="mobileWholeWordsCheckbox" />
+        <span class="toggle-slider"></span>
+        <span class="toggle-label">Whole Words</span>
+      </label>
+    </div>
+
+    <div id="mobileSearchCount" class="mobile-search-count" style="display: none;"></div>
+
+    <div class="mobile-search-loader" id="mobileSearchLoader" style="display: none;">
+      <span class="spinner"></span>
+      <span>Searching...</span>
+    </div>
+
+    <div id="mobileSearchResults" class="mobile-search-results">
+      <div class="mobile-search-prompt">Enter a search term to find dialogues</div>
+    </div>
+  </div>
+
+  <!-- Mobile Conversation Filter Screen -->
+  <div id="mobileConvoFilterScreen" class="mobile-filter-screen" style="display: none;">
+    <div class="mobile-filter-header">
+      <button class="mobile-back-btn" id="mobileConvoFilterBack">←</button>
+      <h3>Filter by Conversation</h3>
+    </div>
+    <input type="text" class="mobile-filter-search" id="mobileConvoFilterSearch"
+      placeholder="Search conversations..." />
+    <div class="mobile-filter-actions">
+      <label class="mobile-checkbox-item">
+        <input type="checkbox" id="mobileConvoSelectAll" />
+        <span>Select All</span>
+      </label>
+      <button id="mobileConvoAddToSelection" class="mobile-action-btn">Add to Selection</button>
+    </div>
+    <div id="mobileConvoFilterList" class="mobile-filter-list"></div>
+  </div>
+
+  <!-- Mobile Actor Filter Screen -->
+  <div id="mobileActorFilterScreen" class="mobile-filter-screen" style="display: none;">
+    <div class="mobile-filter-header">
+      <button class="mobile-back-btn" id="mobileActorFilterBack">←</button>
+      <h3>Filter by Actors</h3>
+    </div>
+    <input type="text" class="mobile-filter-search" id="mobileActorFilterSearch" placeholder="Search actors..." />
+    <div class="mobile-filter-actions">
+      <label class="mobile-checkbox-item">
+        <input type="checkbox" id="mobileActorSelectAll" />
+        <span>Select All</span>
+      </label>
+      <button id="mobileActorAddToSelection" class="mobile-action-btn">Add to Selection</button>
+    </div>
+    <div id="mobileActorFilterList" class="mobile-filter-list"></div>
+    <div class="mobile-filter-disclaimer">
+      Note: Orbs and tasks with no assigned actor are always included in searches.
+    </div>
+  </div>
+
+  <!-- Mobile Type Filter Bottom Sheet -->
+  <div id="mobileTypeFilterSheet" class="mobile-bottom-sheet" style="display: none;">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+      <h4>Filter by Type</h4>
+      <div class="mobile-type-options">
+        <label class="mobile-checkbox-item">
+          <input type="checkbox" data-type="all" checked />
+          <span>All</span>
+        </label>
+        <label class="mobile-checkbox-item type-flow">
+          <input type="checkbox" data-type="flow" />
+          <span>Flow</span>
+        </label>
+        <label class="mobile-checkbox-item type-orb">
+          <input type="checkbox" data-type="orb" />
+          <span>Orb</span>
+        </label>
+        <label class="mobile-checkbox-item type-task">
+          <input type="checkbox" data-type="task" />
+          <span>Task</span>
+        </label>
+      </div>
+      <button class="mobile-apply-btn" id="mobileTypeApply">Apply</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- Tablet Conversation Sidebar -->
+    <div id="tabletConvoSidebar" class="tablet-sidebar tablet-sidebar-left" style="display: none;">
+      <div class="tablet-sidebar-header">
+        <h3>Conversations</h3>
+        <button id="tabletConvoSidebarClose" class="tablet-sidebar-close" title="Close sidebar">✕</button>
+      </div>
+      <div id="tablet-convo-filter">
+        <input id="tabletConvoSearch" type="text" placeholder="Filter by title or ID..." />
+        <div id="tablet-convo-type-filter">
+          <button class="type-filter-btn active" data-type="all">All</button>
+          <button class="type-filter-btn" data-type="flow">Flow</button>
+          <button class="type-filter-btn" data-type="orb">Orb</button>
+          <button class="type-filter-btn" data-type="task">Task</button>
+        </div>
+      </div>
+      <div id="tablet-tree-controls">
+        <button id="tabletExpandAllBtn" class="tree-control-btn" title="Expand all conversations">Expand All</button>
+        <button id="tabletCollapseAllBtn" class="tree-control-btn" title="Collapse all conversations">Collapse All</button>
+      </div>
+      <div id="tabletConvoList" class="scrolling-card tree">(loading...)</div>
+    </div>
+
+    <!-- Tablet History Sidebar -->
+    <div id="tabletHistorySidebar" class="tablet-sidebar tablet-sidebar-right" style="display: none;">
+      <div class="tablet-sidebar-header">
+        <h3>History</h3>
+        <button id="tabletHistorySidebarClose" class="tablet-sidebar-close" title="Close sidebar">✕</button>
+      </div>
+      <div id="tabletChatLog" class="scrolling-card" title="Click an entry to jump back to that point">
+        (navigation log)
+      </div>
+      <div id="tabletBackButtonContainer">
+        <button id="tabletBackBtn" title="Go back to previous entry">
+          ← Back
+        </button>
+        <button id="tabletRootBtn" title="Return to conversation root" style="display: none;">
+          ↑ Root
+        </button>
+      </div>
+    </div>
+
+    <!-- Tablet Sidebar Toggle Buttons -->
+    <button id="tabletConvoToggle" class="tablet-toggle-btn tablet-toggle-left" style="display: none;" title="Toggle conversations sidebar">
+      <span class="toggle-icon">☰</span>
+      <span class="toggle-label">Conversations</span>
+    </button>
+    <button id="tabletHistoryToggle" class="tablet-toggle-btn tablet-toggle-right" style="display: none;" title="Toggle history sidebar">
+      <span class="toggle-label">History</span>
+      <span class="toggle-icon">☰</span>
+    </button>
+
+    <!-- Mobile Header Bar -->
+    <div id="mobileHeader" class="mobile-header">
+      <button id="mobileSidebarToggle" class="mobile-menu-btn">☰</button>
+      <h3 id="mobileHeaderTitle" class="mobile-header-title">Disco Browser</h3>
+      <div class="mobile-search-trigger-wrapper">
+        <input id="mobileSearchTrigger" class="mobile-search-trigger" type="text" placeholder="Search dialogues..."
+          readonly />
+        <span class="mobile-search-trigger-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+          </svg>
+        </span>
+      </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" style="display: none;"></div>
+
+    <div class="header-container">
+      <div>
+        <h1>Disco Browser</h1>
+      </div>
+      <div><a href="https://github.com/rosecolinlarry/DiscoBrowser" target="_blank" rel="noopener noreferrer"
+          class="github-link" title="View on GitHub">
+          <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+          </svg>
+        </a></div>
+    </div>
+
+    <section id="controls">
+      <div id="search-bar">
+        <label class="mobile-hide" for="search">Search lines:</label>
+        <div class="search-input-wrapper">
+          <input id="search" class="desktop-search" placeholder="search text..." />
+          <button id="searchBtn" class="search-icon-btn mobile-hide" title="Search">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+            </svg>
+          </button>
+        </div>
+        <label class="search-option-toggle mobile-hide">
+          <input type="checkbox" id="wholeWordsCheckbox" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Whole Words</span>
+        </label>
+        <div id="actor-filter-wrapper">
+          <button id="actorFilterBtn" type="button">
+            <span id="actorFilterLabel">All Actors</span>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          <div id="actorFilterDropdown" class="filter-dropdown" style="display: none;">
+            <input id="actorSearch" type="text" placeholder="Search actors..." />
+            <div class="filter-actions">
+              <label class="checkbox-item select-all">
+                <input type="checkbox" id="selectAllActors" />
+                <span>Select All</span>
+              </label>
+              <button id="addToSelection" type="button" class="action-btn">Add to Selection</button>
+            </div>
+            <div id="actorCheckboxList" class="checkbox-list"></div>
+            <div class="filter-disclaimer">
+              Note: Orbs and tasks with no assigned actor are always included in searches.
+            </div>
+          </div>
+        </div>
+        <div id="type-filter-wrapper">
+          <button id="typeFilterBtn" type="button">
+            <span id="typeFilterLabel">All Types</span>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          <div id="typeFilterDropdown" class="filter-dropdown" style="display: none;">
+            <div class="filter-actions">
+              <label class="checkbox-item select-all">
+                <input type="checkbox" id="selectAllTypes" checked />
+                <span>Select All</span>
+              </label>
+            </div>
+            <div id="typeCheckboxList" class="checkbox-list">
+              <label class="checkbox-item type-flow">
+                <input type="checkbox" data-type="flow" checked />
+                <span>Flow</span>
+              </label>
+              <label class="checkbox-item type-orb">
+                <input type="checkbox" data-type="orb" checked />
+                <span>Orb</span>
+              </label>
+              <label class="checkbox-item type-task">
+                <input type="checkbox" data-type="task" checked />
+                <span>Task</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <button id="clearFiltersBtn" type="button" class="clear-filters-btn" title="Clear all filters">
+          Clear Filters
+        </button>
+        </label>
+      </div>
+      </div>
+      </div>
+      <div id="searchLoader" class="search-loader" style="display: none">
         <span class="spinner"></span>
         <span>Searching...</span>
       </div>
-      
-      <div id="mobileSearchResults" class="mobile-search-results">
-        <div class="mobile-search-prompt">Enter a search term to find dialogues</div>
       </div>
-    </div>
-    
-    <!-- Mobile Conversation Filter Screen -->
-    <div id="mobileConvoFilterScreen" class="mobile-filter-screen" style="display: none;">
-      <div class="mobile-filter-header">
-        <button class="mobile-back-btn" id="mobileConvoFilterBack">←</button>
-        <h3>Filter by Conversation</h3>
+      <div class="muted-text mobile-hide">
+        Inspired by
+        <a href="https://fayde.co.uk/" target="_blank" rel="noopener noreferrer">FAYDE Playback Experiment: On-Air</a>
       </div>
-      <input type="text" class="mobile-filter-search" id="mobileConvoFilterSearch" placeholder="Search conversations..." />
-      <div class="mobile-filter-actions">
-        <label class="mobile-checkbox-item">
-          <input type="checkbox" id="mobileConvoSelectAll" />
-          <span>Select All</span>
-        </label>
-        <button id="mobileConvoAddToSelection" class="mobile-action-btn">Add to Selection</button>
-      </div>
-      <div id="mobileConvoFilterList" class="mobile-filter-list"></div>
-    </div>
-    
-    <!-- Mobile Actor Filter Screen -->
-    <div id="mobileActorFilterScreen" class="mobile-filter-screen" style="display: none;">
-      <div class="mobile-filter-header">
-        <button class="mobile-back-btn" id="mobileActorFilterBack">←</button>
-        <h3>Filter by Actors</h3>
-      </div>
-      <input type="text" class="mobile-filter-search" id="mobileActorFilterSearch" placeholder="Search actors..." />
-      <div class="mobile-filter-actions">
-        <label class="mobile-checkbox-item">
-          <input type="checkbox" id="mobileActorSelectAll" />
-          <span>Select All</span>
-        </label>
-        <button id="mobileActorAddToSelection" class="mobile-action-btn">Add to Selection</button>
-      </div>
-      <div id="mobileActorFilterList" class="mobile-filter-list"></div>
-      <div class="mobile-filter-disclaimer">
-        Note: Orbs and tasks with no assigned actor are always included in searches.
-      </div>
-    </div>
-    
-    <!-- Mobile Type Filter Bottom Sheet -->
-    <div id="mobileTypeFilterSheet" class="mobile-bottom-sheet" style="display: none;">
-      <div class="bottom-sheet-handle"></div>
-      <div class="bottom-sheet-content">
-        <h4>Filter by Type</h4>
-        <div class="mobile-type-options">
-          <label class="mobile-checkbox-item">
-            <input type="checkbox" data-type="all" checked />
-            <span>All</span>
-          </label>
-          <label class="mobile-checkbox-item type-flow">
-            <input type="checkbox" data-type="flow" />
-            <span>Flow</span>
-          </label>
-          <label class="mobile-checkbox-item type-orb">
-            <input type="checkbox" data-type="orb" />
-            <span>Orb</span>
-          </label>
-          <label class="mobile-checkbox-item type-task">
-            <input type="checkbox" data-type="task" />
-            <span>Task</span>
-          </label>
-        </div>
-        <button class="mobile-apply-btn" id="mobileTypeApply">Apply</button>
-      </div>
-    </div>
-    
-    <main>
-      <!-- Mobile Header Bar -->
-      <div id="mobileHeader" class="mobile-header">
-        <button id="mobileSidebarToggle" class="mobile-menu-btn">☰</button>
-        <h3 id="mobileHeaderTitle" class="mobile-header-title">Disco Browser</h3>
-        <input id="mobileSearchTrigger" class="mobile-search-trigger" type="text" placeholder="Search dialogues..." readonly />
-      </div>
-      
-      <!-- Mobile Sidebar Overlay -->
-      <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" style="display: none;"></div>
-      
-      <div class="header-container">
-        <h1>Disco Browser</h1>
-        <a href="https://github.com/rosecolinlarry/DiscoBrowser" target="_blank" rel="noopener noreferrer" class="github-link" title="View on GitHub">
-          <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-          </svg>
-        </a>
-      </div>
+    </section>
 
-      <section id="controls">
-        <div id="search-bar">
-          <label class="mobile-hide" for="search">Search lines:</label>
-          <input id="search" class="desktop-search" placeholder="search text..." />
-          <button id="searchBtn" class="mobile-hide">Search</button>
-          <div id="actor-filter-wrapper">
-            <button id="actorFilterBtn" type="button">
-              <span id="actorFilterLabel">All Actors</span>
-              <span class="dropdown-arrow">▼</span>
-            </button>
-            <div id="actorFilterDropdown" class="filter-dropdown" style="display: none;">
-              <input id="actorSearch" type="text" placeholder="Search actors..." />
-              <div class="filter-actions">
-                <label class="checkbox-item select-all">
-                  <input type="checkbox" id="selectAllActors" />
-                  <span>Select All</span>
-                </label>
-                <button id="addToSelection" type="button" class="action-btn">Add to Selection</button>
-              </div>
-              <div id="actorCheckboxList" class="checkbox-list"></div>
-              <div class="filter-disclaimer">
-                Note: Orbs and tasks with no assigned actor are always included in searches.
-              </div>
-            </div>
-          </div>
-          <div id="type-filter-wrapper">
-            <button id="typeFilterBtn" type="button">
-              <span id="typeFilterLabel">All Types</span>
-              <span class="dropdown-arrow">▼</span>
-            </button>
-            <div id="typeFilterDropdown" class="filter-dropdown" style="display: none;">
-              <div class="filter-actions">
-                <label class="checkbox-item select-all">
-                  <input type="checkbox" id="selectAllTypes" checked />
-                  <span>Select All</span>
-                </label>
-              </div>
-              <div id="typeCheckboxList" class="checkbox-list">
-                <label class="checkbox-item type-flow">
-                  <input type="checkbox" data-type="flow" checked />
-                  <span>Flow</span>
-                </label>
-                <label class="checkbox-item type-orb">
-                  <input type="checkbox" data-type="orb" checked />
-                  <span>Orb</span>
-                </label>
-                <label class="checkbox-item type-task">
-                  <input type="checkbox" data-type="task" checked />
-                  <span>Task</span>
-                </label>
-              </div>
-            </div>
-          </div>
-          <div id="searchLoader" class="search-loader" style="display: none">
-            <span class="spinner"></span>
-            <span>Searching...</span>
+    <div id="browser">
+      <section id="conversations-section" class="section">
+        <h3 class="mobile-hide">
+          Conversations
+          <span class="help-icon"
+            title="Conversation Types:&#10;• FLOW - Conversations with NPCs&#10;• ORB - Thoughts from interacting with the environment&#10;• TASK - Player's quest log">?</span>
+        </h3>
+        <div id="convo-filter">
+          <input id="convoSearch" type="text" placeholder="Filter by title or ID..." />
+          <div id="convo-type-filter">
+            <button class="type-filter-btn active" data-type="all">All</button>
+            <button class="type-filter-btn" data-type="flow">Flow</button>
+            <button class="type-filter-btn" data-type="orb">Orb</button>
+            <button class="type-filter-btn" data-type="task">Task</button>
           </div>
         </div>
-        <div class="muted-text mobile-hide">
-          Inspired by
-          <a href="https://fayde.co.uk/">FAYDE Playback Experiment: On-Air</a>
+        <div id="tree-controls">
+          <button id="expandAllBtn" class="tree-control-btn" title="Expand all conversations">Expand All</button>
+          <button id="collapseAllBtn" class="tree-control-btn" title="Collapse all conversations">Collapse All</button>
         </div>
+        <div id="convoList" class="scrolling-card tree">(loading...)</div>
       </section>
+      <section id="entries-section" class="section">
+        <div class="mobile-nav-bar">
+          <button id="mobileBackBtn" class="mobile-nav-btn" style="display: none;">
+            <span>←</span>
+            <span>Back</span>
+          </button>
+          <button id="mobileRootBtn" class="mobile-nav-btn" style="display: none;">
+            <span>↑</span>
+            <span>Root</span>
+          </button>
+        </div>
 
-      <div id="browser">
-        <section id="conversations-section" class="section">
-          <h3 class="mobile-hide">
-            Conversations
-            <span class="help-icon" id="conversationHelp">?</span>
-            <div class="help-tooltip" id="conversationHelpTooltip">
-              <strong>Conversation Types:</strong>
-              <ul>
-                <li><span class="type-badge type-flow">flow</span> Conversations with NPCs</li>
-                <li><span class="type-badge type-orb">orb</span> Thoughts from interacting with the environment</li>
-                <li><span class="type-badge type-task">task</span> Player's quest log</li>
-              </ul>
-            </div>
-          </h3>
-          <div id="convo-filter">
-            <input id="convoSearch" type="text" placeholder="Filter by title or ID..." />
-            <div id="convo-type-filter">
-              <button class="type-filter-btn active" data-type="all">All</button>
-              <button class="type-filter-btn" data-type="flow">Flow</button>
-              <button class="type-filter-btn" data-type="orb">Orb</button>
-              <button class="type-filter-btn" data-type="task">Task</button>
-            </div>
-          </div>
-          <div id="convoList" class="scrolling-card tree">(loading...)</div>
-        </section>
-        <section id="entries-section" class="section">
-          <div class="mobile-nav-bar">
-            <button id="mobileBackBtn" class="mobile-nav-btn" style="display: none;">
-              <span>←</span>
-              <span>Back</span>
-            </button>
-            <button id="mobileRootBtn" class="mobile-nav-btn" style="display: none;">
-              <span>↑</span>
-              <span>Root</span>
-            </button>
-          </div>
+        <!-- Homepage (shown by default) -->
+        <div id="homePageContainer" class="card home-page-card">
+          <h2>Welcome to Disco Browser</h2>
+          <p>This is an interactive browser for <em>Disco Elysium</em> dialogue trees. Explore conversations, track
+            dialogue paths, and search through the game's rich narrative.</p>
+
+          <h3>Getting Started</h3>
+          <ul>
+            <li><strong>Browse Conversations:</strong> Select a conversation from the tree on the left to view its
+              dialogue options</li>
+            <li><strong>Navigate Dialogue:</strong> Click on dialogue options to explore branching paths</li>
+            <li><strong>View History:</strong> Your navigation path appears in the history panel - click any entry to
+              jump back</li>
+            <li><strong>Go Back:</strong> Use the Back button or browser back button to undo your last step</li>
+          </ul>
+
+          <h3>Conversation Types</h3>
+          <ul>
+            <li><span class="type-badge type-flow">FLOW</span> Standard NPC conversations with branching dialogue</li>
+            <li><span class="type-badge type-orb">ORB</span> Environmental interactions and observations</li>
+            <li><span class="type-badge type-task">TASK</span> Quest log entries and objectives</li>
+          </ul>
+
+          <h3>Search Features</h3>
+          <ul>
+            <li><strong>Multi-Word Search:</strong> Type multiple words separated by spaces - the search finds entries containing all words (e.g., "kim jacket" finds entries with both "kim" and "jacket" anywhere in the text)</li>
+            <li><strong>Exact Phrase Search:</strong> Put your query in "quotes" to match the exact phrase in order (e.g., "you don't" only matches that specific phrase)</li>
+            <li><strong>Whole Words:</strong> Check the "Whole Words" option to match complete words only (e.g., "you" won't match "yourself" or "youth")</li>
+            <li><strong>Filter by Actors:</strong> Search within specific characters' dialogue using the actor dropdown</li>
+            <li><strong>Filter by Type:</strong> Show only flows, orbs, or tasks in search results</li>
+            <li><strong>Filter by Conversation:</strong> On mobile, use the conversation filter to search within specific conversations</li>
+          </ul>
+
+          <p class="hint-text">Select a conversation from the left sidebar to begin exploring!</p>
+        </div>
+
+        <!-- Dialogue content (hidden by default) -->
+        <div id="dialogueContent" style="display: none;">
           <h3>Dialogue</h3>
           <div id="currentEntryContainer" class="card">
             <div id="entryOverview">(select an entry)</div>
@@ -244,28 +382,26 @@
               (select a conversation)
             </div>
           </div>
-        </section>
-        <section id="history-section" class="section">
-          <h4>History</h4>
-          <div
-            id="chatLog"
-            class="scrolling-card"
-            title="Click an entry to jump back to that point"
-          >
-            (navigation log)
-          </div>
-          <div id="backButtonContainer">
-            <button id="backBtn" title="Go back to previous entry">
-              ← Back
-            </button>
-            <button id="rootBtn" title="Return to conversation root" style="display: none;">
-              ↑ Root
-            </button>
-            <span id="backStatus" class="muted-text"></span>
-          </div>
-        </section>
-      </div>
-    </main>
-    <script type="module" src="js/main.js"></script>
-  </body>
+        </div>
+      </section>
+      <section id="history-section" class="section">
+        <h4>History</h4>
+        <div id="chatLog" class="scrolling-card" title="Click an entry to jump back to that point">
+          (navigation log)
+        </div>
+        <div id="backButtonContainer">
+          <button id="backBtn" title="Go back to previous entry">
+            ← Back
+          </button>
+          <button id="rootBtn" title="Return to conversation root" style="display: none;">
+            ↑ Root
+          </button>
+          <span id="backStatus" class="muted-text"></span>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+
 </html>

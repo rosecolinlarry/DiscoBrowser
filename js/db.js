@@ -188,16 +188,67 @@ export function getEntriesBulk(pairs = []) {
 }
 
 /** Search entry dialogues and conversation dialogues (orbs/tasks) */
-export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null, filterStartInput = true, offset = 0) {
+export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null, filterStartInput = true, offset = 0, conversationIds = null, wholeWords = false) {
   const raw = (q || "").trim();
   
-  // Make a SQL-safe single-quoted literal (basic)
-  const safe = raw.replace(/'/g, "''");
-
+  // Parse query for quoted phrases and regular words
+  const quotedPhrases = [];
+  const quotedPhrasesRegex = /"([^"]+)"/g;
+  let match;
+  while ((match = quotedPhrasesRegex.exec(raw)) !== null) {
+    quotedPhrases.push(match[1]);
+  }
+  
+  // Remove quoted phrases from query to get remaining words
+  const remainingText = raw.replace(/"[^"]+"/g, '').trim();
+  const words = remainingText ? remainingText.split(/\s+/).filter(w => w.length >= minLength) : [];
+  
   // Build WHERE clause - only include text search if query is provided
   let where = "";
-  if (raw) {
-    where = `(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`;
+  
+  if (quotedPhrases.length > 0 || words.length > 0) {
+    const conditions = [];
+    
+    // Add conditions for each quoted phrase (exact phrase matching)
+    quotedPhrases.forEach(phrase => {
+      const safe = phrase.replace(/'/g, "''");
+      conditions.push(`(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`);
+    });
+    
+    // Add conditions for each word
+    words.forEach(word => {
+      const safe = word.replace(/'/g, "''");
+      if (wholeWords) {
+        // Use word boundaries: space, punctuation, or start/end of string
+        conditions.push(`(
+          dialoguetext LIKE '% ${safe} %' OR 
+          dialoguetext LIKE '${safe} %' OR 
+          dialoguetext LIKE '% ${safe}' OR 
+          dialoguetext LIKE '${safe}' OR
+          dialoguetext LIKE '%,${safe},%' OR 
+          dialoguetext LIKE '%,${safe} %' OR 
+          dialoguetext LIKE '% ${safe},%' OR
+          dialoguetext LIKE '%,${safe}' OR
+          dialoguetext LIKE '${safe},%' OR
+          dialoguetext LIKE '%[${safe}]%' OR
+          dialoguetext LIKE '%"${safe}"%' OR
+          dialoguetext LIKE '%.${safe}.%' OR
+          dialoguetext LIKE '%!${safe}!%' OR
+          dialoguetext LIKE '%?${safe}?%' OR
+          title LIKE '% ${safe} %' OR 
+          title LIKE '${safe} %' OR 
+          title LIKE '% ${safe}' OR 
+          title LIKE '${safe}'
+        )`);
+      } else {
+        conditions.push(`(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`);
+      }
+    });
+    
+    // All phrases and words must be present (AND logic)
+    if (conditions.length > 0) {
+      where = conditions.join(' AND ');
+    }
   }
   
   // Handle multiple actor IDs
@@ -210,6 +261,15 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
       // Legacy support for single actor ID
       const actorFilter = `actor='${actorIds}'`;
       where = where ? `${where} AND ${actorFilter}` : actorFilter;
+    }
+  }
+  
+  // Handle multiple conversation IDs
+  if (conversationIds) {
+    if (Array.isArray(conversationIds) && conversationIds.length > 0) {
+      const convoList = conversationIds.map(id => `'${id}'`).join(',');
+      const convoFilter = `conversationid IN (${convoList})`;
+      where = where ? `${where} AND ${convoFilter}` : convoFilter;
     }
   }
   
@@ -243,8 +303,40 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
   
   // Also search dialogues table for orbs and tasks (they use description as dialogue text)
   let dialoguesWhere = "";
-  if (raw) {
-    dialoguesWhere = `(description LIKE '%${safe}%' OR title LIKE '%${safe}%') AND type IN ('orb', 'task')`;
+  
+  if (quotedPhrases.length > 0 || words.length > 0) {
+    const dialoguesConditions = [];
+    
+    // Add conditions for each quoted phrase
+    quotedPhrases.forEach(phrase => {
+      const safe = phrase.replace(/'/g, "''");
+      dialoguesConditions.push(`(description LIKE '%${safe}%' OR title LIKE '%${safe}%')`);
+    });
+    
+    // Add conditions for each word
+    words.forEach(word => {
+      const safe = word.replace(/'/g, "''");
+      if (wholeWords) {
+        dialoguesConditions.push(`(
+          description LIKE '% ${safe} %' OR 
+          description LIKE '${safe} %' OR 
+          description LIKE '% ${safe}' OR 
+          description LIKE '${safe}' OR
+          description LIKE '%,${safe},%' OR 
+          description LIKE '%,${safe} %' OR 
+          description LIKE '% ${safe},%' OR
+          title LIKE '% ${safe} %' OR 
+          title LIKE '${safe} %' OR 
+          title LIKE '% ${safe}' OR 
+          title LIKE '${safe}'
+        )`);
+      } else {
+        dialoguesConditions.push(`(description LIKE '%${safe}%' OR title LIKE '%${safe}%')`);
+      }
+    });
+    
+    // All phrases and words must be present (AND logic) and must be orb or task
+    dialoguesWhere = `${dialoguesConditions.join(' AND ')} AND type IN ('orb', 'task')`;
   } else {
     dialoguesWhere = `type IN ('orb', 'task')`;
   }
@@ -261,6 +353,12 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
     }
   }
   
+  // Handle conversation IDs for dialogues (orbs/tasks use id as conversationid)
+  if (conversationIds && Array.isArray(conversationIds) && conversationIds.length > 0) {
+    const convoList = conversationIds.map(id => `'${id}'`).join(',');
+    dialoguesWhere += ` AND id IN (${convoList})`;
+  }
+  
   // Get count for dialogues
   const dialoguesCountSQL = `SELECT COUNT(*) as count FROM dialogues WHERE ${dialoguesWhere};`;
   const dialoguesCount = execRowsFirstOrDefault(dialoguesCountSQL)?.count || 0;
@@ -275,8 +373,36 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
   
   // Also search alternates table for alternate dialogue lines
   let alternatesWhere = "";
-  if (raw) {
-    alternatesWhere = `alternateline LIKE '%${safe}%'`;
+  
+  if (quotedPhrases.length > 0 || words.length > 0) {
+    const alternatesConditions = [];
+    
+    // Add conditions for each quoted phrase
+    quotedPhrases.forEach(phrase => {
+      const safe = phrase.replace(/'/g, "''");
+      alternatesConditions.push(`alternateline LIKE '%${safe}%'`);
+    });
+    
+    // Add conditions for each word
+    words.forEach(word => {
+      const safe = word.replace(/'/g, "''");
+      if (wholeWords) {
+        alternatesConditions.push(`(
+          alternateline LIKE '% ${safe} %' OR 
+          alternateline LIKE '${safe} %' OR 
+          alternateline LIKE '% ${safe}' OR 
+          alternateline LIKE '${safe}' OR
+          alternateline LIKE '%,${safe},%' OR 
+          alternateline LIKE '%,${safe} %' OR 
+          alternateline LIKE '% ${safe},%'
+        )`);
+      } else {
+        alternatesConditions.push(`alternateline LIKE '%${safe}%'`);
+      }
+    });
+    
+    // All phrases and words must be present (AND logic)
+    alternatesWhere = alternatesConditions.join(' AND ');
   }
   
   // Handle multiple actor IDs for alternates (join with dentries to get actor)
@@ -289,6 +415,13 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
       const actorFilter = `d.actor='${actorIds}'`;
       alternatesWhere = alternatesWhere ? `${alternatesWhere} AND ${actorFilter}` : actorFilter;
     }
+  }
+  
+  // Handle conversation IDs for alternates
+  if (conversationIds && Array.isArray(conversationIds) && conversationIds.length > 0) {
+    const convoList = conversationIds.map(id => `'${id}'`).join(',');
+    const convoFilter = `a.conversationid IN (${convoList})`;
+    alternatesWhere = alternatesWhere ? `${alternatesWhere} AND ${convoFilter}` : convoFilter;
   }
   
   if (filterStartInput && alternatesWhere) {
