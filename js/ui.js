@@ -71,12 +71,17 @@ export function appendHistoryItem(
   return item;
 }
 
-export function renderCurrentEntry(entryOverviewEl, title, dialoguetext) {
+export function renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoType = 'flow') {
   dialoguetext = getStringOrDefault(dialoguetext, "<i>No dialogue.</i>");
   title = getStringOrDefault(parseSpeakerFromTitle(title), "<i>No title.</i>");
+  
+  const typeBadge = convoType !== 'flow' 
+    ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>` 
+    : '';
+  
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
-  entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${title}</strong></div>
+  entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${title}</strong>${typeBadge}</div>
     <div class="dialogue-text">${dialoguetext}</div>`;
 }
 
@@ -90,15 +95,18 @@ export function renderConversationOverview(entryOverviewEl, conversation) {
     conversation.description,
     "<i>No conversation description.</i>"
   );
+  const convoType = conversation.type || 'flow';
+  const typeBadge = convoType !== 'flow' 
+    ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>` 
+    : '';
 
   entryOverviewEl.innerHTML = `
     <div class="current-item">
-      <strong class="speaker">Conversation #${conversation.id}</strong>
+      <strong class="speaker">Conversation #${conversation.id}</strong>${typeBadge}
       <div>
         <strong>Title:</strong> ${title}</div>
       <div class="dialogue-text">${description}</div>
-    </div>
-  `;
+    </div>`;
 }
 
 export function parseSpeakerFromTitle(title) {

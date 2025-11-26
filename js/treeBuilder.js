@@ -3,10 +3,12 @@
 export function buildTitleTree(rows) {
   const root = { children: new Map(), convoIds: [] };
   const convoTitleById = Object.create(null);
+  const convoTypeById = Object.create(null);
   rows.forEach((r) => {
     const id = r.id;
     const raw = (r.title || `(id ${id})`).trim();
     convoTitleById[id] = raw;
+    convoTypeById[id] = r.type || 'flow';
     const parts = raw.split("/").map((p) => p.trim());
     if (!parts.length) parts.push(raw);
     let node = root;
@@ -21,7 +23,7 @@ export function buildTitleTree(rows) {
   // compute sizes iteratively using a stack
   collapseTree(root);
   computeSizesIterative(root);
-  return { root, convoTitleById };
+  return { root, convoTitleById, convoTypeById };
 }
 
 // Top-level wrapper that passes correct parent keys
@@ -104,12 +106,44 @@ function computeSizesIterative(root) {
 export function renderTree(container, rootObj, opts = {}) {
   container.innerHTML = "";
   container.classList.add("tree");
-  const { root, convoTitleById } = rootObj;
+  const { root, convoTitleById, convoTypeById } = rootObj;
 
   // Store the tree structure globally so other parts of the app can use it
   window._treeRoot = root;
   window._convoTitleById = convoTitleById;
+  window._convoTypeById = convoTypeById;
   window._treeContainer = container;
+
+  // Helper function to collect all types in a subtree
+  function collectTypesInSubtree(nodeObj) {
+    const types = new Set();
+    
+    // Add types from direct convoIds
+    if (nodeObj.convoIds && nodeObj.convoIds.length > 0) {
+      nodeObj.convoIds.forEach(id => {
+        const type = convoTypeById[id] || 'flow';
+        types.add(type);
+      });
+    }
+    
+    // Recursively collect from children
+    if (nodeObj.children && nodeObj.children.size > 0) {
+      for (const childNode of nodeObj.children.values()) {
+        const childTypes = collectTypesInSubtree(childNode);
+        childTypes.forEach(t => types.add(t));
+      }
+    }
+    
+    return types;
+  }
+
+  // Helper function to get the dominant/primary type for highlighting
+  function getDominantType(typesSet) {
+    // Priority order: orb > task > flow
+    if (typesSet.has('orb')) return 'orb';
+    if (typesSet.has('task')) return 'task';
+    return 'flow';
+  }
 
   function makeNodeElement(name, nodeObj) {
     const wrapper = document.createElement("div");
@@ -130,6 +164,48 @@ export function renderTree(container, rootObj, opts = {}) {
     const titleSpan = document.createElement("span");
     titleSpan.textContent = name;
     label.appendChild(titleSpan);
+
+    // Determine the type(s) for this node and apply highlighting
+    let dominantType = 'flow';
+    
+    // Add type badges
+    if (hasCollapsedLeaf && nodeObj.convoIds.length === 1) {
+      // For collapsed leaf nodes, show the single conversation type
+      const convoId = nodeObj.convoIds[0];
+      const convoType = convoTypeById[convoId] || 'flow';
+      dominantType = convoType;
+      
+      if (convoType !== 'flow') {
+        const badge = document.createElement("span");
+        badge.className = `type-badge type-${convoType}`;
+        badge.textContent = convoType.toUpperCase();
+        label.appendChild(badge);
+      }
+    } else if (nodeObj.children.size > 0 || nodeObj.convoIds.length > 1) {
+      // For parent nodes or nodes with multiple convoIds, show all types in subtree
+      const typesInSubtree = collectTypesInSubtree(nodeObj);
+      dominantType = getDominantType(typesInSubtree);
+      
+      // Sort types for consistent display: orb, task, flow
+      const typeOrder = ['orb', 'task', 'flow'];
+      const sortedTypes = Array.from(typesInSubtree).sort((a, b) => 
+        typeOrder.indexOf(a) - typeOrder.indexOf(b)
+      );
+      
+      sortedTypes.forEach(convoType => {
+        if (convoType !== 'flow') {
+          const badge = document.createElement("span");
+          badge.className = `type-badge type-${convoType}`;
+          badge.textContent = convoType.toUpperCase();
+          label.appendChild(badge);
+        }
+      });
+    }
+    
+    // Apply highlight class to label based on dominant type
+    if (dominantType !== 'flow') {
+      label.classList.add(`highlight-${dominantType}`);
+    }
 
     wrapper.appendChild(label);
 
@@ -217,6 +293,19 @@ export function renderTree(container, rootObj, opts = {}) {
         const fullTitle = titleMap[cid] || `(id ${cid})`;
         const finalSegment = getLastSegment(fullTitle);
         leafLabel.textContent = finalSegment;
+        
+        // Add type badge and highlight for conversation leaves
+        const convoType = convoTypeById[cid] || 'flow';
+        if (convoType !== 'flow') {
+          const badge = document.createElement("span");
+          badge.className = `type-badge type-${convoType}`;
+          badge.textContent = convoType.toUpperCase();
+          leafLabel.appendChild(badge);
+          
+          // Add highlight class
+          leafLabel.classList.add(`highlight-${convoType}`);
+        }
+        
         leaf.appendChild(leafLabel);
         frag.appendChild(leaf);
       }

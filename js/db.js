@@ -68,7 +68,7 @@ export function prepareAndAll(stmtSql, params = []) {
 
 /* Conversations list */
 export function getAllConversations() {
-  return execRows(`SELECT id, title FROM dialogues ORDER BY title;`);
+  return execRows(`SELECT id, title, type FROM dialogues WHERE isHidden == 0 ORDER BY title;`);
 }
 
 /* Actors */
@@ -91,26 +91,11 @@ export function getActorNameById(actorId) {
 export function getConversationById(convoId) {
   if(convoId) {
     return execRowsFirstOrDefault(
-      `SELECT id, title, description, actor, conversant 
+      `SELECT id, title, description, actor, conversant, type 
         FROM dialogues 
         WHERE id='${convoId}';`
     )
   }
-}
-
-/* Check for dead-end conversation quickly */
-export function isDeadEndConversation(convoId) {
-  // Check quickly via count and checking titles
-  const rows = execRows(
-    `SELECT title FROM dentries WHERE conversationid='${convoId}' ORDER BY id;`
-  );
-  if (rows.length === 2) {
-    const t0 = (rows[0].title || "").toLowerCase();
-    const t1 = (rows[1].title || "").toLowerCase();
-    const arr = [t0, t1].sort();
-    return arr[0] === "input" && arr[1] === "start";
-  }
-  return false;
 }
 
 /* Load dentries for a conversation (summary listing) */
@@ -202,8 +187,8 @@ export function getEntriesBulk(pairs = []) {
   return results;
 }
 
-/** Search entry dialogues */
-export function searchDialogues(q, minLength = 3, limit = 1000, actorId = null) {
+/** Search entry dialogues and conversation dialogues (orbs/tasks) */
+export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null, filterStartInput = true) {
   const raw = (q || "").trim();
   if (!raw) {
     // No query -> return empty array (caller will handle limits)
@@ -214,15 +199,53 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorId = null) 
   const safe = raw.replace(/'/g, "''");
 
   let where = `(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`;
-  if (actorId) where += ` AND actor='${actorId}'`;
+  
+  // Handle multiple actor IDs
+  if (actorIds) {
+    if (Array.isArray(actorIds) && actorIds.length > 0) {
+      const actorList = actorIds.map(id => `'${id}'`).join(',');
+      where += ` AND actor IN (${actorList})`;
+    } else if (typeof actorIds === 'string' || typeof actorIds === 'number') {
+      // Legacy support for single actor ID
+      where += ` AND actor='${actorIds}'`;
+    }
+  }
+  
+  if (filterStartInput) where += ` AND id NOT IN (0, 1)`;
   const limitClause = raw.length <= minLength ? ` LIMIT ${limit}` : "";
-  const sql = `
+  
+  // Search dentries for flow conversations
+  const dentriesSQL = `
     SELECT conversationid, id, dialoguetext, title, actor 
       FROM dentries 
       WHERE ${where} 
       ORDER BY conversationid, id 
       ${limitClause};`;
-  return execRows(sql);
+  const dentriesResults = execRows(dentriesSQL);
+  
+  // Also search dialogues table for orbs and tasks (they use description as dialogue text)
+  let dialoguesWhere = `(description LIKE '%${safe}%' OR title LIKE '%${safe}%') AND type IN ('orb', 'task')`;
+  
+  // Handle multiple actor IDs for dialogues
+  if (actorIds) {
+    if (Array.isArray(actorIds) && actorIds.length > 0) {
+      const actorList = actorIds.map(id => `'${id}'`).join(',');
+      dialoguesWhere += ` AND actor IN (${actorList})`;
+    } else if (typeof actorIds === 'string' || typeof actorIds === 'number') {
+      dialoguesWhere += ` AND actor='${actorIds}'`;
+    }
+  }
+  
+  const dialoguesSQL = `
+    SELECT id as conversationid, id, description as dialoguetext, title, actor 
+      FROM dialogues 
+      WHERE ${dialoguesWhere} 
+      ORDER BY id 
+      ${limitClause};`;
+  const dialoguesResults = execRows(dialoguesSQL);
+  
+  // Combine results
+  return [...dentriesResults, ...dialoguesResults];
 }
 
 /* Cache helpers */

@@ -19,9 +19,23 @@
           <label class="mobile-hide" for="search">Search lines:</label>
           <input id="search" placeholder="search text..." />
           <button id="searchBtn">Search</button>
-          <select id="actorFilter">
-            <option value="">All Actors</option>
-          </select>
+          <div id="actor-filter-wrapper">
+            <button id="actorFilterBtn" type="button">
+              <span id="actorFilterLabel">All Actors</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+            <div id="actorFilterDropdown" class="filter-dropdown" style="display: none;">
+              <input id="actorSearch" type="text" placeholder="Search actors..." />
+              <div class="filter-actions">
+                <label class="checkbox-item select-all">
+                  <input type="checkbox" id="selectAllActors" />
+                  <span>Select All</span>
+                </label>
+                <button id="addToSelection" type="button" class="action-btn">Add to Selection</button>
+              </div>
+              <div id="actorCheckboxList" class="checkbox-list"></div>
+            </div>
+          </div>
           <div id="searchLoader" class="search-loader" style="display: none">
             <span class="spinner"></span>
             <span>Searching...</span>
@@ -36,6 +50,15 @@
       <div id="browser">
         <section id="conversations-section" class="section">
           <h3 class="mobile-hide">Conversations</h3>
+          <div id="convo-filter">
+            <input id="convoSearch" type="text" placeholder="Filter by title or ID..." />
+            <div id="convo-type-filter">
+              <button class="type-filter-btn active" data-type="all">All</button>
+              <button class="type-filter-btn" data-type="flow">Flow</button>
+              <button class="type-filter-btn" data-type="orb">Orb</button>
+              <button class="type-filter-btn" data-type="task">Task</button>
+            </div>
+          </div>
           <div id="convoList" class="scrolling-card tree">(loading...)</div>
         </section>
         <section id="entries-section" class="section">
