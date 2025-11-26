@@ -5,7 +5,7 @@ export function $(sel) {
   return document.getElementById(sel);
 }
 
-export function createCardItem(titleText, convoId, entryId, contentText, allowHtml = false) {
+export function createCardItem(titleText, convoId, entryId, contentText, allowHtml = false, convoType = null) {
   convoId = getParsedIntOrDefault(convoId, null)
   entryId = getParsedIntOrDefault(entryId, null)
   const titleId = `${convoId || ""}:${entryId || ""}`
@@ -19,8 +19,20 @@ export function createCardItem(titleText, convoId, entryId, contentText, allowHt
 
   const title = document.createElement("div");
   title.className = "card-title";
-  if (allowHtml) title.innerHTML = titleText;
-  else title.textContent = titleText;
+  
+  // Create title text span
+  const titleSpan = document.createElement("span");
+  if (allowHtml) titleSpan.innerHTML = titleText;
+  else titleSpan.textContent = titleText;
+  title.appendChild(titleSpan);
+  
+  // Add type badge if provided (right-aligned)
+  if (convoType && convoType !== 'flow') {
+    const badge = document.createElement("span");
+    badge.className = `type-badge type-${convoType}`;
+    badge.textContent = convoType;
+    title.appendChild(badge);
+  }
 
   const text = document.createElement("div");
   text.className = "card-text";
@@ -127,16 +139,23 @@ export function renderEntryDetails(containerEl, data) {
 
   wrapper.appendChild(createEntryTable(data));
   if (data?.checks?.length) wrapper.appendChild(createChecksList(data.checks));
-  if (data?.parents?.length) wrapper.appendChild(createParentsList(data.parents));
-  if (data?.children.length) wrapper.appendChild(createChildrenList(data.children));
+  if (data?.parents?.length) wrapper.appendChild(createParentsList(data.parents, data));
+  if (data?.children.length) wrapper.appendChild(createChildrenList(data.children, data));
   wrapper.appendChild(createConvoTable(data));
-  if (data?.alternates.length) wrapper.appendChild(createAlternatesList(data.alternates));
+  
+  // If viewing an alternate, show original line; otherwise show alternates list
+  if (data.selectedAlternateCondition && data.originalDialogueText) {
+    wrapper.appendChild(createOriginalLineSection(data));
+  } else if (data?.alternates.length) {
+    wrapper.appendChild(createAlternatesList(data.alternates, data));
+  }
+  
   wrapper.appendChild(createMetaTable(data));
 
   containerEl.appendChild(wrapper);
 }
 
-function createAlternatesList(alternates) {
+function createAlternatesList(alternates, data) {
   const section = createDetailsSectionHeader("Alternates");
   const list = document.createElement("div");
   list.className = "details-list";
@@ -144,7 +163,23 @@ function createAlternatesList(alternates) {
     alternates.forEach((a) => {
       const item = document.createElement("div");
       item.className = "details-item";
-      item.innerHTML = `${a.alternateline} <span>(condition: ${a.condition})</span>`;
+      
+      // Create clickable link for the alternate
+      const link = document.createElement("a");
+      link.href = "#";
+      link.textContent = a.alternateline;
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (data.onNavigate) {
+          // Don't add to history when switching to alternate view
+          data.onNavigate(a.conversationid, a.dialogueid, false, a.condition, a.alternateline);
+        }
+      });
+      
+      item.appendChild(link);
+      const conditionSpan = document.createElement("span");
+      conditionSpan.textContent = ` (condition: ${a.condition})`;
+      item.appendChild(conditionSpan);
       list.appendChild(item);
     });
     section.appendChild(list);
@@ -152,6 +187,33 @@ function createAlternatesList(alternates) {
     section.append(createPlaceholderItem());
   }
 
+  return section;
+}
+
+function createOriginalLineSection(data) {
+  const section = createDetailsSectionHeader("Original Line");
+  const list = document.createElement("div");
+  list.className = "details-list";
+  
+  const item = document.createElement("div");
+  item.className = "details-item";
+  
+  // Create clickable link to view the original
+  const link = document.createElement("a");
+  link.href = "#";
+  link.textContent = data.originalDialogueText;
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (data.onNavigate) {
+      // Don't add to history when switching back to original view
+      data.onNavigate(data.convoId, data.entryId, false, null, null);
+    }
+  });
+  
+  item.appendChild(link);
+  list.appendChild(item);
+  section.appendChild(list);
+  
   return section;
 }
 
@@ -174,7 +236,7 @@ function createChecksList(checks) {
   return section;
 }
 
-function createParentsList(parents) {
+function createParentsList(parents, data) {
   // Parents
   const section = createDetailsSectionHeader("Parents");
   const list = document.createElement("div");
@@ -205,7 +267,7 @@ function createParentsList(parents) {
   return section;
 }
 
-function createChildrenList(children) {
+function createChildrenList(children, data) {
   const section = createDetailsSectionHeader("Children");
   const list = document.createElement("div");
   list.className = "details-list";
@@ -266,13 +328,26 @@ function createConvoTable(data) {
 
 function createMetaTable(data) {
   const section = createDetailsSectionHeader("Meta");
+  
+  // Combine entry condition and alternate condition if both exist
+  let combinedCondition = data.conditionstring || "";
+  if (data.selectedAlternateCondition) {
+    if (combinedCondition) {
+      combinedCondition = `${combinedCondition} AND ${data.selectedAlternateCondition}`;
+    } else {
+      combinedCondition = data.selectedAlternateCondition;
+    }
+  }
+  
   const rows = [
     ["Sequence", data.sequence],
-    ["Condition", data.conditionstring],
+    ["Condition", combinedCondition],
     ["Userscript", data.userscript],
     ["Difficulty", data.difficultypass],
   ];
+  
   section.appendChild(buildTable(rows));
+  
   return section;
 }
 

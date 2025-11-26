@@ -13,6 +13,11 @@ const actorSearchInput = UI.$("actorSearch");
 const actorCheckboxList = UI.$("actorCheckboxList");
 const selectAllActors = UI.$("selectAllActors");
 const addToSelectionBtn = UI.$("addToSelection");
+const typeFilterBtn = UI.$("typeFilterBtn");
+const typeFilterLabel = UI.$("typeFilterLabel");
+const typeFilterDropdown = UI.$("typeFilterDropdown");
+const typeCheckboxList = UI.$("typeCheckboxList");
+const selectAllTypes = UI.$("selectAllTypes");
 const searchLoader = UI.$("searchLoader");
 const convoListEl = UI.$("convoList");
 const convoSearchInput = UI.$("convoSearch");
@@ -28,17 +33,69 @@ const backStatus = UI.$("backStatus");
 const rootBtn = UI.$("rootBtn");
 const moreDetailsEl = UI.$("moreDetails");
 
+// Mobile search elements
+const mobileSearchTrigger = UI.$("mobileSearchTrigger");
+const mobileSearchScreen = UI.$("mobileSearchScreen");
+const mobileSearchInput = UI.$("mobileSearchInput");
+const mobileSearchBtn = UI.$("mobileSearchBtn");
+const mobileSearchBack = UI.$("mobileSearchBack");
+const mobileSearchResults = UI.$("mobileSearchResults");
+const mobileSearchLoader = UI.$("mobileSearchLoader");
+const mobileConvoFilter = UI.$("mobileConvoFilter");
+const mobileTypeFilter = UI.$("mobileTypeFilter");
+const mobileActorFilter = UI.$("mobileActorFilter");
+const mobileConvoFilterValue = UI.$("mobileConvoFilterValue");
+const mobileTypeFilterValue = UI.$("mobileTypeFilterValue");
+const mobileActorFilterValue = UI.$("mobileActorFilterValue");
+const mobileConvoFilterScreen = UI.$("mobileConvoFilterScreen");
+const mobileActorFilterScreen = UI.$("mobileActorFilterScreen");
+const mobileTypeFilterSheet = UI.$("mobileTypeFilterSheet");
+
+// Mobile sidebar elements
+const mobileSidebarToggle = UI.$("mobileSidebarToggle");
+const mobileSidebarOverlay = UI.$("mobileSidebarOverlay");
+const conversationsSection = UI.$("conversations-section");
+const mobileHeader = UI.$("mobileHeader");
+const mobileHeaderTitle = UI.$("mobileHeaderTitle");
+const mobileBackBtn = UI.$("mobileBackBtn");
+const mobileRootBtn = UI.$("mobileRootBtn");
+
 const minSearchLength = 3;
-const searchResultLimit = 1000;
+const searchResultLimit = 50;
 
 let navigationHistory = [];
 let currentConvoId = null;
 let currentEntryId = null;
+let currentAlternateCondition = null;
+let currentAlternateLine = null;
 let conversationTree = null;
 let activeTypeFilter = "all";
 let allActors = [];
 let selectedActorIds = new Set();
+let selectedTypeIds = new Set(["flow", "orb", "task"]); // All types selected by default
 let filteredActors = [];
+
+// Search pagination state
+let currentSearchQuery = "";
+let currentSearchActorIds = null;
+let currentSearchOffset = 0;
+let currentSearchTotal = 0;
+let currentSearchFilteredCount = 0; // Count after type filtering
+let isLoadingMore = false;
+
+// Mobile search state
+let mobileSelectedConvoId = null;
+let mobileSelectedConvoIds = new Set();
+let mobileSelectedTypes = new Set(["all"]);
+let mobileSelectedActorIds = new Set();
+
+// Mobile search pagination state
+let mobileSearchQuery = "";
+let mobileSearchActorIds = null;
+let mobileSearchOffset = 0;
+let mobileSearchTotal = 0;
+let mobileSearchFilteredCount = 0;
+let isMobileLoadingMore = false;
 
 async function boot() {
   const SQL = await loadSqlJs();
@@ -86,15 +143,18 @@ async function boot() {
 
   // actor dropdown
   populateActorDropdown();
+  
+  // type filter dropdown
+  setupTypeFilter();
 
   // wire search
   if (searchBtn && searchInput) {
     searchBtn.addEventListener("click", () =>
-      searchDialogues(searchInput.value, minSearchLength, searchResultLimit)
+      searchDialogues(searchInput.value)
     );
     searchInput.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter")
-        searchDialogues(searchInput.value, minSearchLength, searchResultLimit);
+        searchDialogues(searchInput.value);
     });
   }
 
@@ -118,10 +178,44 @@ async function boot() {
   if (moreDetailsEl) {
     moreDetailsEl.addEventListener("toggle", async function () {
       if (moreDetailsEl.open && currentConvoId && currentEntryId) {
-        await showEntryDetails(currentConvoId, currentEntryId);
+        await showEntryDetails(currentConvoId, currentEntryId, currentAlternateCondition, currentAlternateLine);
+        // Make dialogue options compact when More Details is expanded
+        const entryListContainer = entryListEl?.closest('.entry-list');
+        if (entryListContainer && !entryListContainer.classList.contains('compact')) {
+          entryListContainer.setAttribute('data-was-expanded', 'true');
+          entryListContainer.classList.add('compact');
+        }
+        if (currentEntryContainerEl && !currentEntryContainerEl.classList.contains('expanded')) {
+          currentEntryContainerEl.setAttribute('data-was-expanded', 'true');
+          currentEntryContainerEl.classList.add('expanded');
+        }
+      } else {
+        // Restore original state when More Details is collapsed
+        const entryListContainer = entryListEl?.closest('.entry-list');
+        if (entryListContainer && entryListContainer.getAttribute('data-was-expanded') === 'true') {
+          entryListContainer.classList.remove('compact');
+          entryListContainer.removeAttribute('data-was-expanded');
+        }
+        if (currentEntryContainerEl && currentEntryContainerEl.getAttribute('data-was-expanded') === 'true') {
+          currentEntryContainerEl.classList.remove('expanded');
+          currentEntryContainerEl.removeAttribute('data-was-expanded');
+        }
       }
     });
   }
+  
+  // Setup infinite scroll for search
+  setupSearchInfiniteScroll();
+  setupMobileSearchInfiniteScroll();
+  
+  // Setup conversation help tooltip
+  setupConversationHelpTooltip();
+  
+  // Setup mobile sidebar
+  setupMobileSidebar();
+  
+  // Setup mobile search
+  setupMobileSearch();
 }
 
 function setupConversationFilter() {
@@ -385,6 +479,146 @@ function triggerSearch() {
   }
 }
 
+// Setup type filter
+function setupTypeFilter() {
+  if (!typeFilterBtn || !typeFilterDropdown) return;
+  
+  // Toggle dropdown
+  typeFilterBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isVisible = typeFilterDropdown.style.display !== "none";
+    typeFilterDropdown.style.display = isVisible ? "none" : "block";
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!typeFilterDropdown.contains(e.target) && e.target !== typeFilterBtn) {
+      typeFilterDropdown.style.display = "none";
+    }
+  });
+  
+  // Prevent dropdown from closing when clicking inside
+  typeFilterDropdown.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+  
+  // Select All checkbox
+  if (selectAllTypes) {
+    selectAllTypes.addEventListener("change", (e) => {
+      const isChecked = e.target.checked;
+      const checkboxes = typeCheckboxList.querySelectorAll('input[type="checkbox"][data-type]');
+      
+      checkboxes.forEach(cb => {
+        const type = cb.dataset.type;
+        cb.checked = isChecked;
+        
+        if (isChecked) {
+          selectedTypeIds.add(type);
+        } else {
+          selectedTypeIds.delete(type);
+        }
+      });
+      
+      updateTypeFilterLabel();
+      triggerSearch();
+    });
+  }
+  
+  // Individual type checkboxes
+  const typeCheckboxes = typeCheckboxList.querySelectorAll('input[type="checkbox"][data-type]');
+  typeCheckboxes.forEach(cb => {
+    cb.addEventListener("change", () => {
+      const type = cb.dataset.type;
+      
+      if (cb.checked) {
+        selectedTypeIds.add(type);
+      } else {
+        selectedTypeIds.delete(type);
+      }
+      
+      updateTypeSelectAllState();
+      updateTypeFilterLabel();
+      triggerSearch();
+    });
+  });
+  
+  updateTypeFilterLabel();
+}
+
+function updateTypeSelectAllState() {
+  if (!selectAllTypes) return;
+  
+  const typeCheckboxes = typeCheckboxList.querySelectorAll('input[type="checkbox"][data-type]');
+  const allTypes = Array.from(typeCheckboxes).map(cb => cb.dataset.type);
+  
+  const allSelected = allTypes.length > 0 && allTypes.every(type => selectedTypeIds.has(type));
+  const someSelected = allTypes.some(type => selectedTypeIds.has(type));
+  
+  selectAllTypes.checked = allSelected;
+  selectAllTypes.indeterminate = !allSelected && someSelected;
+}
+
+function updateTypeFilterLabel() {
+  if (!typeFilterLabel) return;
+  
+  if (selectedTypeIds.size === 0 || selectedTypeIds.size === 3) {
+    typeFilterLabel.textContent = "All Types";
+  } else if (selectedTypeIds.size === 1) {
+    const type = Array.from(selectedTypeIds)[0];
+    typeFilterLabel.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+  } else {
+    typeFilterLabel.textContent = `${selectedTypeIds.size} Types`;
+  }
+}
+
+// Setup conversation help tooltip
+function setupConversationHelpTooltip() {
+  const helpIcon = document.getElementById('conversationHelp');
+  const tooltip = document.getElementById('conversationHelpTooltip');
+  
+  if (!helpIcon || !tooltip) {
+    console.warn('Tooltip elements not found:', { helpIcon, tooltip });
+    return;
+  }
+  
+  let isTooltipOpen = false;
+  
+  // Toggle on click
+  helpIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isTooltipOpen = !isTooltipOpen;
+    if (isTooltipOpen) {
+      tooltip.classList.add('show');
+      helpIcon.classList.add('active');
+    } else {
+      tooltip.classList.remove('show');
+      helpIcon.classList.remove('active');
+    }
+  });
+  
+  // Show on hover
+  helpIcon.addEventListener('mouseenter', () => {
+    if (!isTooltipOpen) {
+      tooltip.classList.add('show');
+    }
+  });
+  
+  helpIcon.addEventListener('mouseleave', () => {
+    if (!isTooltipOpen) {
+      tooltip.classList.remove('show');
+    }
+  });
+  
+  // Close when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!helpIcon.contains(e.target) && !tooltip.contains(e.target)) {
+      isTooltipOpen = false;
+      tooltip.classList.remove('show');
+      helpIcon.classList.remove('active');
+    }
+  });
+}
+
 // Expand and highlight conversation in the conversation tree
 function highlightConversationInTree(convoId) {
   // Remove highlight from all labels (both leaf and node labels)
@@ -422,6 +656,9 @@ function highlightConversationInTree(convoId) {
 function loadEntriesForConversation(convoId, resetHistory = false) {
   convoId = UI.getParsedIntOrDefault(convoId);
   
+  // Close mobile sidebar when conversation is selected
+  closeMobileSidebar();
+  
   // If switching conversations or resetting, clear the chat log
   if (resetHistory || (currentConvoId !== null && currentConvoId !== convoId)) {
     navigationHistory = [{ convoId, entryId: null }];
@@ -434,6 +671,10 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   
   if (currentEntryContainerEl) currentEntryContainerEl.style.display = "flex";
   
+  // Remove search mode styling
+  const entryListContainer = entryListEl?.closest('.entry-list');
+  if (entryListContainer) entryListContainer.classList.remove('full-height');
+  
   // Update current state for conversation root
   currentConvoId = convoId;
   currentEntryId = null;
@@ -442,6 +683,9 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   if (rootBtn) {
     rootBtn.style.display = "none";
   }
+  
+  // Update mobile nav buttons (at root, so hide both)
+  updateMobileNavButtons();
   
   // Show conversation metadata instead of entry details
   const conversation = DB.getConversationById(convoId);
@@ -459,6 +703,11 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     entryDetailsEl.innerHTML = "<div class='hint-text'>(no details)</div>";
   }
   
+  // Hide More Details for conversation overviews (no dentries)
+  if (moreDetailsEl) {
+    moreDetailsEl.style.display = "none";
+  }
+  
   // Check conversation type - orbs and tasks don't have meaningful entries
   const convoType = conversation?.type || 'flow';
   
@@ -466,7 +715,12 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   entryListEl.innerHTML = "";
   
   if (convoType === 'orb' || convoType === 'task') {
-    // Orbs and tasks don't have dialogue options
+    // Orbs and tasks don't have dialogue options - make the section compact
+    entryListEl.classList.add('compact');
+    // Expand the current entry container to use more space
+    if (currentEntryContainerEl) {
+      currentEntryContainerEl.classList.add('expanded');
+    }
     const message = document.createElement("div");
     message.className = "hint-text";
     message.style.fontStyle = "italic";
@@ -476,14 +730,41 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     return;
   }
   
+  // For flows, remove compact class and expanded class
+  entryListEl.classList.remove('compact');
+  if (currentEntryContainerEl) {
+    currentEntryContainerEl.classList.remove('expanded');
+  }
+  
   const rows = DB.getEntriesForConversation(convoId);
   const filtered = rows.filter(
     (r) => (r.title || "").toLowerCase() !== "start"
   );
   if (!filtered.length) {
-    entryListEl.textContent = "(no meaningful entries)";
+    // No entries - make compact like orbs/tasks
+    entryListEl.classList.add('compact');
+    const entryList = entryListEl.closest('.entry-list');
+    if (entryList) entryList.classList.add('compact');
+    if (currentEntryContainerEl) {
+      currentEntryContainerEl.classList.add('expanded');
+    }
+    const message = document.createElement("div");
+    message.className = "hint-text";
+    message.style.fontStyle = "italic";
+    message.style.padding = "12px";
+    message.textContent = "(no meaningful entries)";
+    entryListEl.appendChild(message);
     return;
   }
+  
+  // Has entries - remove compact classes
+  entryListEl.classList.remove('compact');
+  const entryList = entryListEl.closest('.entry-list');
+  if (entryList) entryList.classList.remove('compact');
+  if (currentEntryContainerEl) {
+    currentEntryContainerEl.classList.remove('expanded');
+  }
+  
   filtered.forEach((r) => {
     const entryId = UI.getParsedIntOrDefault(r.id);
     const title = UI.getStringOrDefault(r.title, "(no title)");
@@ -649,21 +930,39 @@ function jumpToConversationRoot() {
 }
 
 /* navigateToEntry simplified */
-async function navigateToEntry(convoId, entryId, addToHistory = true) {
+async function navigateToEntry(convoId, entryId, addToHistory = true, selectedAlternateCondition = null, selectedAlternateLine = null) {
   // Ensure numeric Ids
   convoId = UI.getParsedIntOrDefault(convoId);
   entryId = UI.getParsedIntOrDefault(entryId);
 
-  // Check if we're already at this entry - if so, do nothing
-  // BUT allow if we're not adding to history (going back)
-  // BUG: When searching, I cannot click on a result if it is the current entry
-  if (currentConvoId === convoId && currentEntryId === entryId && addToHistory) {
+  // Check if we're at the same entry AND same alternate view
+  const sameEntry = currentConvoId === convoId && currentEntryId === entryId;
+  const sameAlternate = currentAlternateCondition === selectedAlternateCondition && 
+                        currentAlternateLine === selectedAlternateLine;
+  
+  // If at same entry AND same alternate, only block if trying to add to history
+  // This prevents duplicate history entries when clicking the same thing twice
+  if (sameEntry && sameAlternate && addToHistory) {
     return;
+  }
+  
+  // If we're at the same entry (regardless of alternate), don't add to history
+  // This allows switching between alternates without cluttering history
+  if (sameEntry) {
+    addToHistory = false;
   }
 
   // Make visible
-  if (currentEntryContainerEl)
+  if (currentEntryContainerEl) {
     currentEntryContainerEl.style.visibility = "visible";
+    currentEntryContainerEl.style.display = "block";
+  }
+  
+  // Also restore entry list layout when navigating from search
+  const entryListContainer = entryListEl?.closest('.entry-list');
+  if (entryListContainer) {
+    entryListContainer.classList.remove('full-height');
+  }
 
   // Clear the hint text if present
   if (chatLogEl) {
@@ -701,7 +1000,8 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
   // Render current entry in the overview section
   const coreRow = DB.getEntry(convoId, entryId);
   const title = coreRow ? coreRow.title : `(line ${convoId}:${entryId})`;
-  const dialoguetext = coreRow ? coreRow.dialoguetext : "";
+  // Use alternate line if provided, otherwise use the original dialogue text
+  const dialoguetext = selectedAlternateLine || (coreRow ? coreRow.dialoguetext : "");
   
   // Get conversation type
   const conversation = DB.getConversationById(convoId);
@@ -711,33 +1011,52 @@ async function navigateToEntry(convoId, entryId, addToHistory = true) {
 
   currentConvoId = convoId;
   currentEntryId = entryId;
+  currentAlternateCondition = selectedAlternateCondition;
+  currentAlternateLine = selectedAlternateLine;
+  
+  // Show More Details for actual entries (they have dentries)
+  if (moreDetailsEl) {
+    moreDetailsEl.style.display = "block";
+  }
   
   // Show/hide root button
   if (rootBtn) {
     rootBtn.style.display = currentEntryId !== null ? "inline-block" : "none";
   }
+  
+  // Update mobile nav buttons
+  updateMobileNavButtons();
 
   // Load child options
   loadChildOptions(convoId, entryId);
 
   // Show details lazily only when expanded
   if (moreDetailsEl && moreDetailsEl.open) {
-    await showEntryDetails(convoId, entryId);
+    // Clear cache to force reload when switching between alternate views
+    if (sameEntry) {
+      DB.clearCacheForEntry(convoId, entryId);
+    }
+    await showEntryDetails(convoId, entryId, selectedAlternateCondition, selectedAlternateLine);
   }
 }
 
 /* Show entry details (optimized) */
-async function showEntryDetails(convoId, entryId) {
+async function showEntryDetails(convoId, entryId, selectedAlternateCondition = null, selectedAlternateLine = null) {
   if (!DB || !entryDetailsEl) return;
 
-  // Check cache
-  const cached = DB.getCachedEntry(convoId, entryId);
-  if (cached) {
-    UI.renderEntryDetails(entryDetailsEl, {
-      ...cached,
-      onNavigate: navigateToEntry,
-    });
-    return;
+  // Check cache only if viewing the original (no alternate selected)
+  if (!selectedAlternateCondition && !selectedAlternateLine) {
+    const cached = DB.getCachedEntry(convoId, entryId);
+    if (cached) {
+      UI.renderEntryDetails(entryDetailsEl, {
+        ...cached,
+        selectedAlternateCondition: null,
+        selectedAlternateLine: null,
+        originalDialogueText: cached.originalDialogueText || entry?.dialoguetext,
+        onNavigate: navigateToEntry,
+      });
+      return;
+    }
   }
 
   // core row
@@ -779,57 +1098,113 @@ async function showEntryDetails(convoId, entryId) {
     conditionstring: entry.conditionstring,
     userscript: entry.userscript,
     difficultypass: entry.difficultypass,
+    selectedAlternateCondition: selectedAlternateCondition,
+    selectedAlternateLine: selectedAlternateLine,
+    originalDialogueText: entry.dialoguetext,
     onNavigate: navigateToEntry,
   };
 
-  // Cache it
-  DB.cacheEntry(convoId, entryId, payload);
+  // Only cache the base data without alternate-specific info
+  // This prevents stale alternate data from being served from cache
+  if (!selectedAlternateCondition && !selectedAlternateLine) {
+    const basePayload = { ...payload };
+    delete basePayload.selectedAlternateCondition;
+    delete basePayload.selectedAlternateLine;
+    DB.cacheEntry(convoId, entryId, basePayload);
+  }
 
   UI.renderEntryDetails(entryDetailsEl, payload);
 }
 
 /* Search */
-function searchDialogues(q) {
+function searchDialogues(q, resetSearch = true) {
   const trimmedQ = q.trim();
-  if (searchLoader) searchLoader.style.display = "flex";
-  try {
-    // Get selected actor IDs (null means all actors)
-    const actorIds = selectedActorIds.size === 0 || selectedActorIds.size === allActors.length 
+  
+  if (resetSearch) {
+    // Starting a new search
+    currentSearchQuery = trimmedQ;
+    currentSearchActorIds = selectedActorIds.size === 0 || selectedActorIds.size === allActors.length 
       ? null 
       : Array.from(selectedActorIds);
-
-    // Check if search query is empty
-    if (!trimmedQ) {
+    currentSearchOffset = 0;
+    
+    if (searchLoader) searchLoader.style.display = "flex";
+    
+    // Hide current entry and make search take full space
+    if (currentEntryContainerEl)
+      currentEntryContainerEl.style.display = "none";
+    const entryListContainer = entryListEl.closest('.entry-list');
+    if (entryListContainer) {
+      entryListContainer.classList.add('full-height');
+      entryListContainer.classList.remove('compact');
+    }
+    if (entryListEl) {
+      entryListEl.classList.remove('compact');
+    }
+    
+    entryListEl.innerHTML = "";
+  }
+  
+  if (isLoadingMore) return;
+  isLoadingMore = true;
+  
+  try {
+    const response = DB.searchDialogues(
+      currentSearchQuery,
+      3, // minLength (no longer used but kept for compatibility)
+      searchResultLimit,
+      currentSearchActorIds,
+      true, // filterStartInput
+      currentSearchOffset
+    );
+    
+    const { results: res, total } = response;
+    currentSearchTotal = total;
+    
+    // Filter by conversation type if not all types selected
+    let filteredResults = res;
+    if (selectedTypeIds.size > 0 && selectedTypeIds.size < 3) {
+      filteredResults = res.filter(r => {
+        const convo = DB.getConversationById(r.conversationid);
+        const type = convo ? (convo.type || 'flow') : 'flow';
+        return selectedTypeIds.has(type);
+      });
+    }
+    
+    if (resetSearch) {
       entryListHeaderEl.textContent = "Search Results";
       entryListEl.innerHTML = "";
-      entryListEl.textContent =
-        "(Please enter a search term to find dialogues)";
-      entryListHeaderEl.textContent += " (0)";
-      if (currentEntryContainerEl)
-        currentEntryContainerEl.style.visibility = "collapse";
-      return;
+      currentSearchFilteredCount = 0;
+      
+      if (!filteredResults.length) {
+        entryListEl.textContent = "(no matches)";
+        entryListHeaderEl.textContent += ` (0)`;
+        return;
+      }
     }
-
-    const res = DB.searchDialogues(
-      trimmedQ,
-      minSearchLength,
-      searchResultLimit,
-      actorIds
-    );
-    entryListHeaderEl.textContent = "Search Results";
-    entryListEl.innerHTML = "";
-    if (!res.length) {
-      entryListEl.textContent = "(no matches)";
-      entryListHeaderEl.textContent += " (0)";
-      if (currentEntryContainerEl)
-        currentEntryContainerEl.style.visibility = "collapse";
-      return;
+    
+    // Update filtered count
+    currentSearchFilteredCount += filteredResults.length;
+    
+    // Update header with current count
+    if (selectedTypeIds.size > 0 && selectedTypeIds.size < 3) {
+      // Show filtered count when type filter is active
+      entryListHeaderEl.textContent = `Search Results (${currentSearchFilteredCount} filtered)`;
+    } else {
+      // Show total count when all types selected
+      entryListHeaderEl.textContent = `Search Results (${currentSearchFilteredCount} of ${total})`;
     }
-    entryListHeaderEl.textContent += ` (${res.length})`;
-    res.forEach((r) => {
-      const highlightedTitle = UI.highlightTerms(r.title || "", trimmedQ);
-      const highlightedText = UI.highlightTerms(r.dialoguetext || "", trimmedQ);
-      const div = UI.createCardItem(highlightedTitle, UI.getParsedIntOrDefault(r.conversationid), r.id, highlightedText, true);
+    
+    // Add results to list
+    filteredResults.forEach((r) => {
+      const highlightedTitle = UI.highlightTerms(r.title || "", currentSearchQuery);
+      const highlightedText = UI.highlightTerms(r.dialoguetext || "", currentSearchQuery);
+      
+      // Get conversation type for badge
+      const convo = DB.getConversationById(r.conversationid);
+      const convoType = convo ? (convo.type || 'flow') : 'flow';
+      
+      const div = UI.createCardItem(highlightedTitle, UI.getParsedIntOrDefault(r.conversationid), r.id, highlightedText, true, convoType);
 
       div.addEventListener("click", () => {
         const cid = UI.getParsedIntOrDefault(r.conversationid);
@@ -841,9 +1216,12 @@ function searchDialogues(q) {
           loadEntriesForConversation(cid, true);
           highlightConversationInTree(cid);
         } else {
-          // This is a regular flow entry
+          // This is a regular flow entry or alternate
           navigationHistory = [{ convoId: cid, entryId: null }];
-          navigateToEntry(cid, eid);
+          // If this is an alternate, pass the condition and alternate line
+          const alternateCondition = r.isAlternate ? r.alternatecondition : null;
+          const alternateLine = r.isAlternate ? r.dialoguetext : null;
+          navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
           highlightConversationInTree(cid);
         }
         
@@ -851,14 +1229,83 @@ function searchDialogues(q) {
       });
       entryListEl.appendChild(div);
     });
-    if (currentEntryContainerEl)
-      currentEntryContainerEl.style.visibility = "collapse";
+    
+    // Update offset for next load (based on database results, not filtered)
+    currentSearchOffset += res.length;
+    
+    // Remove any existing loading indicator
+    const oldLoadingIndicator = entryListEl.querySelector('.search-loading-indicator');
+    if (oldLoadingIndicator) {
+      oldLoadingIndicator.remove();
+    }
+    
+    // Add loading indicator if there are more results in the database and we got results this time
+    if (res.length > 0 && currentSearchOffset < currentSearchTotal) {
+      const loadingIndicator = document.createElement("div");
+      loadingIndicator.className = "search-loading-indicator";
+      loadingIndicator.textContent = "Loading more...";
+      loadingIndicator.style.padding = "12px";
+      loadingIndicator.style.textAlign = "center";
+      loadingIndicator.style.fontStyle = "italic";
+      loadingIndicator.style.color = "#666";
+      entryListEl.appendChild(loadingIndicator);
+    }
+    
   } catch (e) {
     console.error("Search error", e);
-    entryListEl.textContent = "Search error";
+    if (resetSearch) {
+      entryListEl.textContent = "Search error";
+    }
   } finally {
+    isLoadingMore = false;
     if (searchLoader) searchLoader.style.display = "none";
   }
+}
+
+// Setup infinite scroll for search results
+function setupSearchInfiniteScroll() {
+  if (!entryListEl) return;
+  
+  entryListEl.addEventListener('scroll', () => {
+    // Check if we're near the bottom and have more results to load
+    const scrollTop = entryListEl.scrollTop;
+    const scrollHeight = entryListEl.scrollHeight;
+    const clientHeight = entryListEl.clientHeight;
+    
+    const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 100;
+    
+    if (scrolledToBottom && !isLoadingMore && currentSearchOffset < currentSearchTotal) {
+      // Remove loading indicator
+      const loadingIndicator = entryListEl.querySelector('.search-loading-indicator');
+      if (loadingIndicator) loadingIndicator.remove();
+      
+      // Load more results
+      searchDialogues(currentSearchQuery, false);
+    }
+  });
+}
+
+// Setup infinite scroll for mobile search results
+function setupMobileSearchInfiniteScroll() {
+  if (!mobileSearchScreen) return;
+  
+  mobileSearchScreen.addEventListener('scroll', () => {
+    // Check if we're near the bottom and have more results to load
+    const scrollTop = mobileSearchScreen.scrollTop;
+    const scrollHeight = mobileSearchScreen.scrollHeight;
+    const clientHeight = mobileSearchScreen.clientHeight;
+    
+    const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 100;
+    
+    if (scrolledToBottom && !isMobileLoadingMore && mobileSearchOffset < mobileSearchTotal) {
+      // Remove loading indicator
+      const loadingIndicator = mobileSearchResults.querySelector('.mobile-search-loading-indicator');
+      if (loadingIndicator) loadingIndicator.remove();
+      
+      // Load more results
+      performMobileSearch(false);
+    }
+  });
 }
 
 function loadChildOptions(convoId, entryId) {
@@ -885,12 +1332,603 @@ function loadChildOptions(convoId, entryId) {
       entryListEl.appendChild(el);
     }
 
-    if (entryListEl.children.length === 0)
-      entryListEl.textContent = "(no further options)";
+    if (entryListEl.children.length === 0) {
+      // No further options - make compact like orbs/tasks
+      entryListEl.classList.add('compact');
+      const entryList = entryListEl.closest('.entry-list');
+      if (entryList) entryList.classList.add('compact');
+      if (currentEntryContainerEl) {
+        currentEntryContainerEl.classList.add('expanded');
+      }
+      const message = document.createElement("div");
+      message.className = "hint-text";
+      message.style.fontStyle = "italic";
+      message.style.padding = "12px";
+      message.textContent = "(no further options)";
+      entryListEl.appendChild(message);
+    }
   } catch (e) {
     console.error("Error loading child links", e);
     entryListEl.textContent = "(error loading next options)";
   }
+}
+
+/* Mobile Search Functions */
+function setupMobileSearch() {
+  // Open mobile search screen
+  if (mobileSearchTrigger) {
+    mobileSearchTrigger.addEventListener("click", () => {
+      mobileSearchScreen.style.display = "block";
+      mobileSearchInput.focus();
+    });
+  }
+  
+  // Close mobile search screen
+  if (mobileSearchBack) {
+    mobileSearchBack.addEventListener("click", () => {
+      mobileSearchScreen.style.display = "none";
+    });
+  }
+  
+  // Mobile search - Enter key triggers search
+  if (mobileSearchInput) {
+    mobileSearchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") performMobileSearch();
+    });
+  }
+  
+  // Conversation filter
+  if (mobileConvoFilter) {
+    mobileConvoFilter.addEventListener("click", () => {
+      showMobileConvoFilter();
+    });
+  }
+  
+  // Type filter
+  if (mobileTypeFilter) {
+    mobileTypeFilter.addEventListener("click", () => {
+      showMobileTypeFilter();
+    });
+  }
+  
+  // Actor filter
+  if (mobileActorFilter) {
+    mobileActorFilter.addEventListener("click", () => {
+      showMobileActorFilter();
+    });
+  }
+  
+  // Setup conversation filter screen
+  setupMobileConvoFilter();
+  
+  // Setup actor filter screen
+  setupMobileActorFilter();
+  
+  // Setup type filter sheet
+  setupMobileTypeFilter();
+}
+
+function setupMobileSidebar() {
+  // Open sidebar
+  if (mobileSidebarToggle) {
+    mobileSidebarToggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Toggle clicked", conversationsSection);
+      if (conversationsSection) {
+        conversationsSection.classList.add("open");
+        console.log("Added open class");
+      }
+      if (mobileSidebarOverlay) {
+        mobileSidebarOverlay.style.display = "block";
+        console.log("Showing overlay");
+      }
+    });
+  } else {
+    console.log("mobileSidebarToggle not found");
+  }
+  
+  // Close sidebar when clicking overlay
+  if (mobileSidebarOverlay) {
+    mobileSidebarOverlay.addEventListener("click", () => {
+      closeMobileSidebar();
+    });
+  }
+  
+  // Mobile back button
+  if (mobileBackBtn) {
+    mobileBackBtn.addEventListener("click", () => {
+      goBack();
+      updateMobileNavButtons();
+    });
+  }
+  
+  // Mobile root button
+  if (mobileRootBtn) {
+    mobileRootBtn.addEventListener("click", () => {
+      if (currentConvoId !== null) {
+        loadEntriesForConversation(currentConvoId, false);
+        updateMobileNavButtons();
+      }
+    });
+  }
+}
+
+function updateMobileNavButtons() {
+  if (!mobileBackBtn || !mobileRootBtn) return;
+  
+  // Show back button if we have navigation history
+  if (navigationHistory.length > 1) {
+    mobileBackBtn.style.display = "flex";
+  } else {
+    mobileBackBtn.style.display = "none";
+  }
+  
+  // Show root button if we're not at conversation root
+  if (currentEntryId !== null) {
+    mobileRootBtn.style.display = "flex";
+  } else {
+    mobileRootBtn.style.display = "none";
+  }
+}
+
+function closeMobileSidebar() {
+  if (conversationsSection) {
+    conversationsSection.classList.remove("open");
+  }
+  if (mobileSidebarOverlay) {
+    mobileSidebarOverlay.style.display = "none";
+  }
+}
+
+function performMobileSearch(resetSearch = true) {
+  const query = mobileSearchInput.value.trim();
+  
+  if (resetSearch) {
+    // Starting a new search
+    mobileSearchQuery = query;
+    mobileSearchActorIds = mobileSelectedActorIds.size === 0 || mobileSelectedActorIds.size === allActors.length
+      ? null
+      : Array.from(mobileSelectedActorIds);
+    mobileSearchOffset = 0;
+    
+    mobileSearchLoader.style.display = "flex";
+    mobileSearchResults.innerHTML = "";
+  }
+  
+  if (isMobileLoadingMore) return;
+  isMobileLoadingMore = true;
+  
+  try {
+    const response = DB.searchDialogues(
+      mobileSearchQuery,
+      3,
+      searchResultLimit,
+      mobileSearchActorIds,
+      true,
+      mobileSearchOffset
+    );
+    const { results, total } = response;
+    mobileSearchTotal = total;
+    
+    // Filter by conversations if selected
+    let filteredResults = results;
+    if (mobileSelectedConvoIds.size > 0) {
+      filteredResults = results.filter(r => mobileSelectedConvoIds.has(r.conversationid));
+    }
+    
+    // Filter by type if not "all"
+    if (!mobileSelectedTypes.has("all")) {
+      filteredResults = filteredResults.filter(r => {
+        const convo = DB.getConversationById(r.conversationid);
+        return convo && mobileSelectedTypes.has(convo.type || 'flow');
+      });
+    }
+    
+    mobileSearchLoader.style.display = "none";
+    
+    if (resetSearch) {
+      mobileSearchFilteredCount = 0;
+    }
+    
+    if (resetSearch && filteredResults.length === 0) {
+      mobileSearchResults.innerHTML = '<div class="mobile-search-prompt">No results found</div>';
+      return;
+    }
+    
+    filteredResults.forEach(r => {
+      const highlightedTitle = UI.highlightTerms(r.title || "", mobileSearchQuery);
+      const highlightedText = UI.highlightTerms(r.dialoguetext || "", mobileSearchQuery);
+      
+      // Get conversation type for badge
+      const convo = DB.getConversationById(r.conversationid);
+      const convoType = convo ? (convo.type || 'flow') : 'flow';
+      
+      const div = UI.createCardItem(highlightedTitle, UI.getParsedIntOrDefault(r.conversationid), r.id, highlightedText, true, convoType);
+      
+      div.addEventListener("click", () => {
+        // Check if this is an orb/task (cid === eid means conversation root for orbs/tasks)
+        const cid = UI.getParsedIntOrDefault(r.conversationid);
+        const eid = r.id;
+        
+        if (cid === eid) {
+          // This is an orb or task - load the conversation root
+          loadEntriesForConversation(cid, true);
+        } else {
+          // This is a regular dialogue entry or alternate
+          // If this is an alternate, pass the condition and alternate line
+          const alternateCondition = r.isAlternate ? r.alternatecondition : null;
+          const alternateLine = r.isAlternate ? r.dialoguetext : null;
+          navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+        }
+        
+        // Close mobile search and return to main view
+        mobileSearchScreen.style.display = "none";
+      });
+      
+      mobileSearchResults.appendChild(div);
+    });
+    
+    // Update offset for next load (based on database results, not filtered)
+    mobileSearchOffset += results.length;
+    
+    // Remove any existing loading indicator
+    const oldLoadingIndicator = mobileSearchResults.querySelector('.mobile-search-loading-indicator');
+    if (oldLoadingIndicator) {
+      oldLoadingIndicator.remove();
+    }
+    
+    // Add loading indicator if there are more results in the database and we got results this time
+    if (results.length > 0 && mobileSearchOffset < mobileSearchTotal) {
+      const loadingIndicator = document.createElement("div");
+      loadingIndicator.className = "mobile-search-loading-indicator";
+      loadingIndicator.textContent = "Loading more...";
+      loadingIndicator.style.padding = "12px";
+      loadingIndicator.style.textAlign = "center";
+      loadingIndicator.style.fontStyle = "italic";
+      loadingIndicator.style.color = "#666";
+      mobileSearchResults.appendChild(loadingIndicator);
+    }
+    
+  } catch (e) {
+    console.error("Mobile search error:", e);
+    mobileSearchLoader.style.display = "none";
+    if (resetSearch) {
+      mobileSearchResults.innerHTML = '<div class="mobile-search-prompt">Error performing search</div>';
+    }
+  } finally {
+    isMobileLoadingMore = false;
+    mobileSearchLoader.style.display = "none";
+  }
+}
+
+function showMobileConvoFilter() {
+  mobileConvoFilterScreen.style.display = "block";
+}
+
+function showMobileActorFilter() {
+  mobileActorFilterScreen.style.display = "block";
+}
+
+function showMobileTypeFilter() {
+  mobileTypeFilterSheet.style.display = "block";
+  mobileTypeFilterSheet.classList.add("active");
+}
+
+function setupMobileConvoFilter() {
+  const backBtn = UI.$("mobileConvoFilterBack");
+  const searchInput = UI.$("mobileConvoFilterSearch");
+  const listContainer = UI.$("mobileConvoFilterList");
+  const selectAllCheckbox = UI.$("mobileConvoSelectAll");
+  const addToSelectionBtn = UI.$("mobileConvoAddToSelection");
+  
+  if (!backBtn || !searchInput || !listContainer) return;
+  
+  let tempSelectedConvoIds = new Set(mobileSelectedConvoIds);
+  let allConvos = [];
+  let filteredConvos = [];
+  
+  // Back button - don't apply changes
+  backBtn.addEventListener("click", () => {
+    mobileConvoFilterScreen.style.display = "none";
+    tempSelectedConvoIds = new Set(mobileSelectedConvoIds);
+  });
+  
+  // Add to Selection button - apply changes
+  if (addToSelectionBtn) {
+    addToSelectionBtn.addEventListener("click", () => {
+      mobileSelectedConvoIds = new Set(tempSelectedConvoIds);
+      updateMobileConvoFilterLabel();
+      mobileConvoFilterScreen.style.display = "none";
+      if (mobileSearchInput.value) performMobileSearch();
+    });
+  }
+  
+  // Select All checkbox
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener("change", () => {
+      if (selectAllCheckbox.checked) {
+        // Select all filtered convos
+        filteredConvos.forEach(c => tempSelectedConvoIds.add(c.id));
+      } else {
+        // Deselect all filtered convos
+        filteredConvos.forEach(c => tempSelectedConvoIds.delete(c.id));
+      }
+      renderConvoList(filteredConvos);
+    });
+  }
+  
+  // Render conversation list
+  function renderConvoList(conversations) {
+    listContainer.innerHTML = "";
+    filteredConvos = conversations;
+    
+    // Update Select All checkbox state
+    if (selectAllCheckbox) {
+      const allSelected = conversations.length > 0 && conversations.every(c => tempSelectedConvoIds.has(c.id));
+      const someSelected = conversations.some(c => tempSelectedConvoIds.has(c.id));
+      selectAllCheckbox.checked = allSelected;
+      selectAllCheckbox.indeterminate = someSelected && !allSelected;
+    }
+    
+    // Add conversation items
+    conversations.forEach(convo => {
+      const item = document.createElement("div");
+      item.className = "mobile-filter-item";
+      const isChecked = tempSelectedConvoIds.has(convo.id);
+      item.innerHTML = `
+        <input type="checkbox" ${isChecked ? 'checked' : ''} />
+        <span>${convo.title || `Conversation ${convo.id}`}</span>
+      `;
+      item.addEventListener("click", (e) => {
+        if (e.target.tagName !== 'INPUT') {
+          const checkbox = item.querySelector('input[type="checkbox"]');
+          checkbox.checked = !checkbox.checked;
+        }
+        
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox.checked) {
+          tempSelectedConvoIds.add(convo.id);
+        } else {
+          tempSelectedConvoIds.delete(convo.id);
+        }
+        
+        // Update Select All checkbox
+        if (selectAllCheckbox) {
+          const allSelected = filteredConvos.every(c => tempSelectedConvoIds.has(c.id));
+          const someSelected = filteredConvos.some(c => tempSelectedConvoIds.has(c.id));
+          selectAllCheckbox.checked = allSelected;
+          selectAllCheckbox.indeterminate = someSelected && !allSelected;
+        }
+      });
+      listContainer.appendChild(item);
+    });
+  }
+  
+  // Initial render
+  allConvos = DB.getAllConversations();
+  renderConvoList(allConvos);
+  
+  // Search filter
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.toLowerCase().trim();
+    if (!query) {
+      renderConvoList(allConvos);
+      return;
+    }
+    
+    const filtered = allConvos.filter(c => {
+      return (c.title || "").toLowerCase().includes(query) || 
+             c.id.toString().includes(query);
+    });
+    renderConvoList(filtered);
+  });
+}
+
+function updateMobileConvoFilterLabel() {
+  if (mobileSelectedConvoIds.size === 0) {
+    mobileConvoFilterValue.textContent = "All";
+  } else if (mobileSelectedConvoIds.size === 1) {
+    const convoId = Array.from(mobileSelectedConvoIds)[0];
+    const allConvos = DB.getAllConversations();
+    const convo = allConvos.find(c => c.id === convoId);
+    mobileConvoFilterValue.textContent = convo ? (convo.title || `#${convo.id}`) : "1 Convo";
+  } else {
+    mobileConvoFilterValue.textContent = `${mobileSelectedConvoIds.size} Convos`;
+  }
+}
+
+function setupMobileActorFilter() {
+  const backBtn = UI.$("mobileActorFilterBack");
+  const searchInput = UI.$("mobileActorFilterSearch");
+  const listContainer = UI.$("mobileActorFilterList");
+  const selectAllCheckbox = UI.$("mobileActorSelectAll");
+  const addToSelectionBtn = UI.$("mobileActorAddToSelection");
+  
+  if (!backBtn || !searchInput || !listContainer) return;
+  
+  let tempSelectedActorIds = new Set(mobileSelectedActorIds);
+  let filteredActors = [];
+  
+  // Back button - don't apply changes
+  backBtn.addEventListener("click", () => {
+    mobileActorFilterScreen.style.display = "none";
+    tempSelectedActorIds = new Set(mobileSelectedActorIds);
+  });
+  
+  // Add to Selection button - apply changes
+  if (addToSelectionBtn) {
+    addToSelectionBtn.addEventListener("click", () => {
+      mobileSelectedActorIds = new Set(tempSelectedActorIds);
+      updateMobileActorFilterLabel();
+      mobileActorFilterScreen.style.display = "none";
+      if (mobileSearchInput.value) performMobileSearch();
+    });
+  }
+  
+  // Select All checkbox
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener("change", () => {
+      if (selectAllCheckbox.checked) {
+        // Select all filtered actors
+        filteredActors.forEach(a => tempSelectedActorIds.add(a.id));
+      } else {
+        // Deselect all filtered actors
+        filteredActors.forEach(a => tempSelectedActorIds.delete(a.id));
+      }
+      renderActorList(filteredActors);
+    });
+  }
+  
+  // Render actor list
+  function renderActorList(actors) {
+    listContainer.innerHTML = "";
+    filteredActors = actors;
+    
+    // Update Select All checkbox state
+    if (selectAllCheckbox) {
+      const allSelected = actors.length > 0 && actors.every(a => tempSelectedActorIds.has(a.id));
+      const someSelected = actors.some(a => tempSelectedActorIds.has(a.id));
+      selectAllCheckbox.checked = allSelected;
+      selectAllCheckbox.indeterminate = someSelected && !allSelected;
+    }
+    
+    // Add actor items
+    actors.forEach(actor => {
+      const item = document.createElement("div");
+      item.className = "mobile-filter-item";
+      const isChecked = tempSelectedActorIds.has(actor.id);
+      item.innerHTML = `
+        <input type="checkbox" ${isChecked ? 'checked' : ''} />
+        <span>${actor.name}</span>
+      `;
+      item.addEventListener("click", (e) => {
+        if (e.target.tagName !== 'INPUT') {
+          const checkbox = item.querySelector('input[type="checkbox"]');
+          checkbox.checked = !checkbox.checked;
+        }
+        
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox.checked) {
+          tempSelectedActorIds.add(actor.id);
+        } else {
+          tempSelectedActorIds.delete(actor.id);
+        }
+        
+        // Update Select All checkbox
+        if (selectAllCheckbox) {
+          const allSelected = filteredActors.every(a => tempSelectedActorIds.has(a.id));
+          const someSelected = filteredActors.some(a => tempSelectedActorIds.has(a.id));
+          selectAllCheckbox.checked = allSelected;
+          selectAllCheckbox.indeterminate = someSelected && !allSelected;
+        }
+      });
+      listContainer.appendChild(item);
+    });
+  }
+  
+  // Initial render
+  renderActorList(allActors);
+  
+  // Search filter
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.toLowerCase().trim();
+    if (!query) {
+      renderActorList(allActors);
+      return;
+    }
+    
+    const filtered = allActors.filter(a => {
+      return a.name.toLowerCase().includes(query) || 
+             a.id.toString().includes(query);
+    });
+    renderActorList(filtered);
+  });
+}
+
+function updateMobileActorFilterLabel() {
+  if (mobileSelectedActorIds.size === 0) {
+    mobileActorFilterValue.textContent = "All";
+  } else if (mobileSelectedActorIds.size === 1) {
+    const actorId = Array.from(mobileSelectedActorIds)[0];
+    const actor = allActors.find(a => a.id === actorId);
+    mobileActorFilterValue.textContent = actor ? actor.name : "1 Actor";
+  } else {
+    mobileActorFilterValue.textContent = `${mobileSelectedActorIds.size} Actors`;
+  }
+}
+
+function setupMobileTypeFilter() {
+  const applyBtn = UI.$("mobileTypeApply");
+  const checkboxes = mobileTypeFilterSheet.querySelectorAll('input[type="checkbox"]');
+  
+  if (!applyBtn) return;
+  
+  // Close sheet when clicking outside content
+  mobileTypeFilterSheet.addEventListener("click", (e) => {
+    if (e.target === mobileTypeFilterSheet) {
+      mobileTypeFilterSheet.style.display = "none";
+      mobileTypeFilterSheet.classList.remove("active");
+    }
+  });
+  
+  // Handle "All" checkbox behavior
+  checkboxes.forEach(cb => {
+    cb.addEventListener("change", () => {
+      const type = cb.dataset.type;
+      
+      if (type === "all" && cb.checked) {
+        // Check all others when "All" is checked
+        checkboxes.forEach(otherCb => {
+          otherCb.checked = true;
+        });
+      } else if (type === "all" && !cb.checked) {
+        // Uncheck all others when "All" is unchecked
+        checkboxes.forEach(otherCb => {
+          otherCb.checked = false;
+        });
+      } else if (type !== "all") {
+        // If a specific type is checked/unchecked, update "All" checkbox
+        const allCheckbox = mobileTypeFilterSheet.querySelector('input[data-type="all"]');
+        const specificCheckboxes = Array.from(checkboxes).filter(cb => cb.dataset.type !== "all");
+        const allSpecificChecked = specificCheckboxes.every(cb => cb.checked);
+        const anySpecificChecked = specificCheckboxes.some(cb => cb.checked);
+        
+        if (allCheckbox) {
+          allCheckbox.checked = allSpecificChecked;
+          allCheckbox.indeterminate = anySpecificChecked && !allSpecificChecked;
+        }
+      }
+    });
+  });
+  
+  // Apply button
+  applyBtn.addEventListener("click", () => {
+    mobileSelectedTypes.clear();
+    
+    checkboxes.forEach(cb => {
+      if (cb.checked) {
+        mobileSelectedTypes.add(cb.dataset.type);
+      }
+    });
+    
+    // Update label
+    if (mobileSelectedTypes.has("all") || mobileSelectedTypes.size === 0) {
+      mobileTypeFilterValue.textContent = "All";
+    } else if (mobileSelectedTypes.size === 1) {
+      const type = Array.from(mobileSelectedTypes)[0];
+      mobileTypeFilterValue.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    } else {
+      mobileTypeFilterValue.textContent = `${mobileSelectedTypes.size} Types`;
+    }
+    
+    // Close sheet
+    mobileTypeFilterSheet.style.display = "none";
+    mobileTypeFilterSheet.classList.remove("active");
+    
+    // Perform search if there's a query
+    if (mobileSearchInput.value) performMobileSearch();
+  });
 }
 
 /* Initialize boot sequence */

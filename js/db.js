@@ -121,7 +121,7 @@ export function getEntry(convoId, entryId) {
 /* Fetch alternates for an entry */
 export function getAlternates(convoId, entryId) {
   return execRows(
-    `SELECT alternateline, condition 
+    `SELECT conversationid, dialogueid, alternateline, condition 
       FROM alternates 
       WHERE conversationid=${convoId} 
       AND dialogueid=${entryId};`
@@ -188,31 +188,49 @@ export function getEntriesBulk(pairs = []) {
 }
 
 /** Search entry dialogues and conversation dialogues (orbs/tasks) */
-export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null, filterStartInput = true) {
+export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null, filterStartInput = true, offset = 0) {
   const raw = (q || "").trim();
-  if (!raw) {
-    // No query -> return empty array (caller will handle limits)
-    return [];
-  }
-
+  
   // Make a SQL-safe single-quoted literal (basic)
   const safe = raw.replace(/'/g, "''");
 
-  let where = `(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`;
+  // Build WHERE clause - only include text search if query is provided
+  let where = "";
+  if (raw) {
+    where = `(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`;
+  }
   
   // Handle multiple actor IDs
   if (actorIds) {
     if (Array.isArray(actorIds) && actorIds.length > 0) {
       const actorList = actorIds.map(id => `'${id}'`).join(',');
-      where += ` AND actor IN (${actorList})`;
+      const actorFilter = `actor IN (${actorList})`;
+      where = where ? `${where} AND ${actorFilter}` : actorFilter;
     } else if (typeof actorIds === 'string' || typeof actorIds === 'number') {
       // Legacy support for single actor ID
-      where += ` AND actor='${actorIds}'`;
+      const actorFilter = `actor='${actorIds}'`;
+      where = where ? `${where} AND ${actorFilter}` : actorFilter;
     }
   }
   
-  if (filterStartInput) where += ` AND id NOT IN (0, 1)`;
-  const limitClause = raw.length <= minLength ? ` LIMIT ${limit}` : "";
+  // Build filter for start input if needed
+  const startFilter = filterStartInput ? `id NOT IN (0, 1)` : '';
+  
+  // Combine WHERE clause
+  if (startFilter) {
+    where = where ? `${where} AND ${startFilter}` : startFilter;
+  }
+  
+  // If still no where clause, default to all (except start input if filtered)
+  if (!where) {
+    where = '1=1';
+  }
+  
+  const limitClause = ` LIMIT ${limit} OFFSET ${offset}`;
+  
+  // Get total counts first (without limit/offset)
+  const dentriesCountSQL = `SELECT COUNT(*) as count FROM dentries WHERE ${where};`;
+  const dentriesCount = execRowsFirstOrDefault(dentriesCountSQL)?.count || 0;
   
   // Search dentries for flow conversations
   const dentriesSQL = `
@@ -224,17 +242,28 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
   const dentriesResults = execRows(dentriesSQL);
   
   // Also search dialogues table for orbs and tasks (they use description as dialogue text)
-  let dialoguesWhere = `(description LIKE '%${safe}%' OR title LIKE '%${safe}%') AND type IN ('orb', 'task')`;
+  let dialoguesWhere = "";
+  if (raw) {
+    dialoguesWhere = `(description LIKE '%${safe}%' OR title LIKE '%${safe}%') AND type IN ('orb', 'task')`;
+  } else {
+    dialoguesWhere = `type IN ('orb', 'task')`;
+  }
   
   // Handle multiple actor IDs for dialogues
   if (actorIds) {
     if (Array.isArray(actorIds) && actorIds.length > 0) {
       const actorList = actorIds.map(id => `'${id}'`).join(',');
-      dialoguesWhere += ` AND actor IN (${actorList})`;
+      // For orbs and tasks, check both actor and conversant fields
+      // Always include actor/conversant = 0 (unassigned orbs/tasks)
+      dialoguesWhere += ` AND (actor IN (${actorList}, '0') OR conversant IN (${actorList}, '0'))`;
     } else if (typeof actorIds === 'string' || typeof actorIds === 'number') {
-      dialoguesWhere += ` AND actor='${actorIds}'`;
+      dialoguesWhere += ` AND (actor='${actorIds}' OR conversant='${actorIds}' OR actor='0' OR conversant='0')`;
     }
   }
+  
+  // Get count for dialogues
+  const dialoguesCountSQL = `SELECT COUNT(*) as count FROM dialogues WHERE ${dialoguesWhere};`;
+  const dialoguesCount = execRowsFirstOrDefault(dialoguesCountSQL)?.count || 0;
   
   const dialoguesSQL = `
     SELECT id as conversationid, id, description as dialoguetext, title, actor 
@@ -244,8 +273,59 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
       ${limitClause};`;
   const dialoguesResults = execRows(dialoguesSQL);
   
+  // Also search alternates table for alternate dialogue lines
+  let alternatesWhere = "";
+  if (raw) {
+    alternatesWhere = `alternateline LIKE '%${safe}%'`;
+  }
+  
+  // Handle multiple actor IDs for alternates (join with dentries to get actor)
+  if (actorIds) {
+    if (Array.isArray(actorIds) && actorIds.length > 0) {
+      const actorList = actorIds.map(id => `'${id}'`).join(',');
+      const actorFilter = `d.actor IN (${actorList})`;
+      alternatesWhere = alternatesWhere ? `${alternatesWhere} AND ${actorFilter}` : actorFilter;
+    } else if (typeof actorIds === 'string' || typeof actorIds === 'number') {
+      const actorFilter = `d.actor='${actorIds}'`;
+      alternatesWhere = alternatesWhere ? `${alternatesWhere} AND ${actorFilter}` : actorFilter;
+    }
+  }
+  
+  if (filterStartInput && alternatesWhere) {
+    alternatesWhere += ` AND a.dialogueid NOT IN (0, 1)`;
+  } else if (filterStartInput) {
+    alternatesWhere = `a.dialogueid NOT IN (0, 1)`;
+  }
+  
+  // Only query alternates if we have search criteria
+  let alternatesResults = [];
+  let alternatesCount = 0;
+  if (alternatesWhere) {
+    // Get count for alternates
+    const alternatesCountSQL = `
+      SELECT COUNT(*) as count FROM alternates a
+      JOIN dentries d ON a.conversationid = d.conversationid AND a.dialogueid = d.id
+      WHERE ${alternatesWhere};`;
+    alternatesCount = execRowsFirstOrDefault(alternatesCountSQL)?.count || 0;
+    
+    const alternatesSQL = `
+      SELECT a.conversationid, a.dialogueid as id, a.alternateline as dialoguetext, d.title, d.actor, a.condition as alternatecondition
+        FROM alternates a
+        JOIN dentries d ON a.conversationid = d.conversationid AND a.dialogueid = d.id
+        WHERE ${alternatesWhere} 
+        ORDER BY a.conversationid, a.dialogueid 
+        ${limitClause};`;
+    alternatesResults = execRows(alternatesSQL).map(r => ({ ...r, isAlternate: true }));
+  }
+  
+  // Calculate total count
+  const totalCount = dentriesCount + dialoguesCount + alternatesCount;
+  
   // Combine results
-  return [...dentriesResults, ...dialoguesResults];
+  return {
+    results: [...dentriesResults, ...dialoguesResults, ...alternatesResults],
+    total: totalCount
+  };
 }
 
 /* Cache helpers */
@@ -255,7 +335,9 @@ export function cacheEntry(convoId, entryId, payload) {
 export function getCachedEntry(convoId, entryId) {
   return entryCache.get(`${convoId}:${entryId}`);
 }
-
+export function clearCacheForEntry(convoId, entryId) {
+  entryCache.delete(`${convoId}:${entryId}`);
+}
 
 export function clearCaches() {
   entryCache.clear();

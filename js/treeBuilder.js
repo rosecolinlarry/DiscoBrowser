@@ -168,7 +168,7 @@ export function renderTree(container, rootObj, opts = {}) {
     // Determine the type(s) for this node and apply highlighting
     let dominantType = 'flow';
     
-    // Add type badges
+    // Add type badge only for collapsed leaf nodes (actual conversations)
     if (hasCollapsedLeaf && nodeObj.convoIds.length === 1) {
       // For collapsed leaf nodes, show the single conversation type
       const convoId = nodeObj.convoIds[0];
@@ -182,24 +182,9 @@ export function renderTree(container, rootObj, opts = {}) {
         label.appendChild(badge);
       }
     } else if (nodeObj.children.size > 0 || nodeObj.convoIds.length > 1) {
-      // For parent nodes or nodes with multiple convoIds, show all types in subtree
+      // For parent nodes, determine dominant type for highlighting but don't show badges
       const typesInSubtree = collectTypesInSubtree(nodeObj);
       dominantType = getDominantType(typesInSubtree);
-      
-      // Sort types for consistent display: orb, task, flow
-      const typeOrder = ['orb', 'task', 'flow'];
-      const sortedTypes = Array.from(typesInSubtree).sort((a, b) => 
-        typeOrder.indexOf(a) - typeOrder.indexOf(b)
-      );
-      
-      sortedTypes.forEach(convoType => {
-        if (convoType !== 'flow') {
-          const badge = document.createElement("span");
-          badge.className = `type-badge type-${convoType}`;
-          badge.textContent = convoType.toUpperCase();
-          label.appendChild(badge);
-        }
-      });
     }
     
     // Apply highlight class to label based on dominant type
