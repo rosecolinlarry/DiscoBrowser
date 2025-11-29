@@ -1305,6 +1305,9 @@ a:hover {
 .mobile-hide {
   display: block;
 }
+.mobile-only {
+  display: none;
+}
 
 .history-divider {
   text-align: center;
@@ -1603,6 +1606,7 @@ a:hover {
 }
 
 /* Responsive: Mobile (768px and below) */
+
 @media (max-width: 768px) {
   main {
     padding: 12px;
@@ -1872,10 +1876,6 @@ a:hover {
 }
 
 /* Mobile Search Interface */
-.mobile-only {
-  display: none;
-}
-
 .mobile-header {
   display: none;
 }
@@ -2633,11 +2633,16 @@ a:hover {
   }
 
   .mobile-nav-bar {
-    display: flex;
+    /* display: flex; */
+    display: none;
     gap: 8px;
     padding: 12px 16px;
     background: var(--card-bg);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .home-page-card {
+    border-radius: 0;
   }
 
   .mobile-nav-btn {
@@ -2684,10 +2689,6 @@ a:hover {
 
   #entryListHeader {
     margin: 2px 0 4px 0;
-  }
-
-  #history-section {
-    display: none;
   }
 }
 
