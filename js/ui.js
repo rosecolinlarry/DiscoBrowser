@@ -138,7 +138,7 @@ export function renderConversationOverview(entryOverviewEl, conversation) {
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
 
-  const title = getStringOrDefault(conversation.title, "(no title)");
+  const displayTitle = getStringOrDefault(conversation.displayTitle, "(no title)");
   const description = getStringOrDefault(
     conversation.description,
     "<i>No conversation description.</i>"
@@ -152,7 +152,7 @@ export function renderConversationOverview(entryOverviewEl, conversation) {
     <div class="current-item">
       <strong class="speaker">Conversation #${conversation.id}</strong>${typeBadge}
       <div>
-        <strong>Title:</strong> ${title}</div>
+        <strong>Title:</strong> ${displayTitle}</div>
       <div class="dialogue-text">${description}</div>
     </div>`;
   processExternalLinks(entryOverviewEl);
@@ -491,7 +491,6 @@ export function highlightTerms(text, query, hasQuotedPhrases = false) {
   // For multi-word searches without quotes, split and highlight each word individually
   const terms = trimmedQuery
     .split(/\s+/)
-    .filter((t) => t.length >= 3); // Match the minLength filter from search
 
   if (!terms.length) return escapeHtml(text);
 

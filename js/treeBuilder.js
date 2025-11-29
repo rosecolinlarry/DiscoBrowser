@@ -6,7 +6,7 @@ export function buildTitleTree(rows) {
   const convoTypeById = Object.create(null);
   rows.forEach((r) => {
     const id = r.id;
-    const raw = (r.title || `(id ${id})`).trim();
+    const raw = (r.displayTitle || `(id ${id})`).trim();
     convoTitleById[id] = raw;
     convoTypeById[id] = r.type || 'flow';
     const parts = raw.split("/").map((p) => p.trim());
