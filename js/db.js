@@ -5,7 +5,28 @@ let _db = null;
 let SQL = null;
 
 const entryCache = new Map();
-
+const allowedWordBarriers = [
+  "'",
+  '"',
+  "\\",
+  "//",
+  " ",
+  ".",
+  "!",
+  "?",
+  "$",
+  "#",
+  ">",
+  "*",
+  ":",
+  "_",
+  "(",
+  ")",
+  "[",
+  "]",
+  "--",
+  "",
+];
 export async function initDatabase(sqlFactory, path = "db/discobase.sqlite3") {
   SQL = sqlFactory;
   try {
@@ -38,12 +59,12 @@ export function execRows(sql) {
 
 export function execRowsFirstOrDefault(sql) {
   // Remove last character if semicolon
-  if(sql?.at(-1) === ";") {
-    sql = sql.slice(0, -1) 
+  if (sql?.at(-1) === ";") {
+    sql = sql.slice(0, -1);
   }
-  sql += ' LIMIT 1;'
+  sql += " LIMIT 1;";
   const values = execRows(sql);
-  if(values && values.length > 0) {
+  if (values && values.length > 0) {
     return values[0];
   }
   return null;
@@ -68,12 +89,16 @@ export function prepareAndAll(stmtSql, params = []) {
 
 /* Conversations list */
 export function getAllConversations() {
-  return execRows(`SELECT id, title, type FROM dialogues WHERE isHidden == 0 ORDER BY title;`);
+  return execRows(
+    `SELECT id, displayTitle, type FROM dialogues WHERE isHidden == 0 ORDER BY displayTitle;`
+  );
 }
 
 /* Actors */
 export function getDistinctActors() {
-  return execRows(`SELECT DISTINCT id, name FROM actors WHERE name IS NOT NULL AND name != '' ORDER BY name;`);
+  return execRows(
+    `SELECT DISTINCT id, name FROM actors WHERE name IS NOT NULL AND name != '' ORDER BY name;`
+  );
 }
 
 export function getActorNameById(actorId) {
@@ -89,12 +114,12 @@ export function getActorNameById(actorId) {
 }
 
 export function getConversationById(convoId) {
-  if(convoId) {
+  if (convoId) {
     return execRowsFirstOrDefault(
-      `SELECT id, title, description, actor, conversant, type 
+      `SELECT id, displayTitle, description, actor, conversant, type 
         FROM dialogues 
         WHERE id='${convoId}';`
-    )
+    );
   }
 }
 
@@ -178,7 +203,7 @@ export function getEntriesBulk(pairs = []) {
       results.push({
         convo: convoId,
         id: r.id,
-        title: r.title,
+        title: r.title, // Populates Next Dialogue Options title
         dialoguetext: r.dialoguetext,
         actor: r.actor,
       });
@@ -188,9 +213,17 @@ export function getEntriesBulk(pairs = []) {
 }
 
 /** Search entry dialogues and conversation dialogues (orbs/tasks) */
-export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null, filterStartInput = true, offset = 0, conversationIds = null, wholeWords = false) {
+export function searchDialogues(
+  q,
+  limit = 1000,
+  actorIds = null,
+  filterStartInput = true,
+  offset = 0,
+  conversationIds = null,
+  wholeWords = false
+) {
   const raw = (q || "").trim();
-  
+
   // Parse query for quoted phrases and regular words
   const quotedPhrases = [];
   const quotedPhrasesRegex = /"([^"]+)"/g;
@@ -198,100 +231,98 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
   while ((match = quotedPhrasesRegex.exec(raw)) !== null) {
     quotedPhrases.push(match[1]);
   }
-  
+
   // Remove quoted phrases from query to get remaining words
-  const remainingText = raw.replace(/"[^"]+"/g, '').trim();
-  const words = remainingText ? remainingText.split(/\s+/).filter(w => w.length >= minLength) : [];
-  
+  const remainingText = raw.replace(/"[^"]+"/g, "").trim();
+  const words = remainingText ? remainingText.split(/\s+/) : [];
+
   // Build WHERE clause - only include text search if query is provided
   let where = "";
-  
+
   if (quotedPhrases.length > 0 || words.length > 0) {
     const conditions = [];
-    
+
     // Add conditions for each quoted phrase (exact phrase matching)
-    quotedPhrases.forEach(phrase => {
+    quotedPhrases.forEach((phrase) => {
       const safe = phrase.replace(/'/g, "''");
-      conditions.push(`(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`);
+      conditions.push(
+        `(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`
+      );
     });
-    
+
     // Add conditions for each word
-    words.forEach(word => {
+    words.forEach((word) => {
       const safe = word.replace(/'/g, "''");
       if (wholeWords) {
         // Use word boundaries: space, punctuation, or start/end of string
-        conditions.push(`(
+        allowedWordBarriers.forEach((c) => {
+          conditions.push(`(
           dialoguetext LIKE '% ${safe} %' OR 
-          dialoguetext LIKE '${safe} %' OR 
-          dialoguetext LIKE '% ${safe}' OR 
-          dialoguetext LIKE '${safe}' OR
-          dialoguetext LIKE '%,${safe},%' OR 
-          dialoguetext LIKE '%,${safe} %' OR 
-          dialoguetext LIKE '% ${safe},%' OR
-          dialoguetext LIKE '%,${safe}' OR
-          dialoguetext LIKE '${safe},%' OR
-          dialoguetext LIKE '%[${safe}]%' OR
-          dialoguetext LIKE '%"${safe}"%' OR
-          dialoguetext LIKE '%.${safe}.%' OR
-          dialoguetext LIKE '%!${safe}!%' OR
-          dialoguetext LIKE '%?${safe}?%' OR
+          dialoguetext LIKE '${c}${safe} %' OR 
+          dialoguetext LIKE '% ${safe}${c}' OR 
+          dialoguetext LIKE '${c}${safe}${c}' OR 
+          dialoguetext LIKE '${safe}' OR 
           title LIKE '% ${safe} %' OR 
-          title LIKE '${safe} %' OR 
-          title LIKE '% ${safe}' OR 
+          title LIKE '${c}${safe} %' OR 
+          title LIKE '% ${safe}${c}' OR 
+          title LIKE '${c}${safe}${c}' OR 
           title LIKE '${safe}'
         )`);
+        });
       } else {
-        conditions.push(`(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`);
+        conditions.push(
+          `(dialoguetext LIKE '%${safe}%' OR title LIKE '%${safe}%')`
+        );
       }
     });
-    
+
     // All phrases and words must be present (AND logic)
     if (conditions.length > 0) {
-      where = conditions.join(' AND ');
+      where = conditions.join(" AND ");
     }
   }
-  
+
   // Handle multiple actor IDs
   if (actorIds) {
     if (Array.isArray(actorIds) && actorIds.length > 0) {
-      const actorList = actorIds.map(id => `'${id}'`).join(',');
+      const actorList = actorIds.map((id) => `'${id}'`).join(",");
       const actorFilter = `actor IN (${actorList})`;
       where = where ? `${where} AND ${actorFilter}` : actorFilter;
-    } else if (typeof actorIds === 'string' || typeof actorIds === 'number') {
+    } else if (typeof actorIds === "string" || typeof actorIds === "number") {
       // Legacy support for single actor ID
       const actorFilter = `actor='${actorIds}'`;
       where = where ? `${where} AND ${actorFilter}` : actorFilter;
     }
   }
-  
+
   // Handle multiple conversation IDs
   if (conversationIds) {
     if (Array.isArray(conversationIds) && conversationIds.length > 0) {
-      const convoList = conversationIds.map(id => `'${id}'`).join(',');
+      const convoList = conversationIds.map((id) => `'${id}'`).join(",");
       const convoFilter = `conversationid IN (${convoList})`;
       where = where ? `${where} AND ${convoFilter}` : convoFilter;
     }
   }
-  
+
   // Build filter for start input if needed
-  const startFilter = filterStartInput ? `id NOT IN (0, 1)` : '';
-  
+  const startFilter = filterStartInput ? `id NOT IN (0, 1)` : "";
+
   // Combine WHERE clause
   if (startFilter) {
     where = where ? `${where} AND ${startFilter}` : startFilter;
   }
-  
+
   // If still no where clause, default to all (except start input if filtered)
   if (!where) {
-    where = '1=1';
+    where = "1=1";
   }
-  
+
   const limitClause = ` LIMIT ${limit} OFFSET ${offset}`;
-  
+
   // Get total counts first (without limit/offset)
   const dentriesCountSQL = `SELECT COUNT(*) as count FROM dentries WHERE ${where};`;
   const dentriesCount = execRowsFirstOrDefault(dentriesCountSQL)?.count || 0;
-  
+
   // Search dentries for flow conversations
   const dentriesSQL = `
     SELECT conversationid, id, dialoguetext, title, actor 
@@ -300,136 +331,157 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
       ORDER BY conversationid, id 
       ${limitClause};`;
   const dentriesResults = execRows(dentriesSQL);
-  
+
   // Also search dialogues table for orbs and tasks (they use description as dialogue text)
   let dialoguesWhere = "";
-  
+
   if (quotedPhrases.length > 0 || words.length > 0) {
     const dialoguesConditions = [];
-    
+
     // Add conditions for each quoted phrase
-    quotedPhrases.forEach(phrase => {
+    quotedPhrases.forEach((phrase) => {
       const safe = phrase.replace(/'/g, "''");
-      dialoguesConditions.push(`(description LIKE '%${safe}%' OR title LIKE '%${safe}%')`);
+      dialoguesConditions.push(
+        `(description LIKE '%${safe}%' OR title LIKE '%${safe}%')`
+      );
     });
-    
+
     // Add conditions for each word
-    words.forEach(word => {
+    words.forEach((word) => {
       const safe = word.replace(/'/g, "''");
       if (wholeWords) {
-        dialoguesConditions.push(`(
+        allowedWordBarriers.forEach((c) => {
+          dialoguesConditions.push(`(
+          description LIKE '%${c}${safe}${c}%' OR 
+          description LIKE '% ${safe}${c}%' OR 
+          description LIKE '%${c}${safe} %' OR 
           description LIKE '% ${safe} %' OR 
-          description LIKE '${safe} %' OR 
-          description LIKE '% ${safe}' OR 
-          description LIKE '${safe}' OR
-          description LIKE '%,${safe},%' OR 
-          description LIKE '%,${safe} %' OR 
-          description LIKE '% ${safe},%' OR
-          title LIKE '% ${safe} %' OR 
-          title LIKE '${safe} %' OR 
-          title LIKE '% ${safe}' OR 
-          title LIKE '${safe}'
-        )`);
+          description LIKE '${safe}' OR 
+          displayTitle LIKE '%${c}${safe}${c}%' OR 
+          displayTitle LIKE '% ${safe}${c}%' OR 
+          displayTitle LIKE '%${c}${safe} %' OR 
+          displayTitle LIKE '% ${safe} %' OR
+          displayTitle LIKE '${safe}'
+            )`);
+        });
       } else {
-        dialoguesConditions.push(`(description LIKE '%${safe}%' OR title LIKE '%${safe}%')`);
+        dialoguesConditions.push(
+          `(description LIKE '%${safe}%' OR displayTitle LIKE '%${safe}%')`
+        );
       }
     });
-    
+
     // All phrases and words must be present (AND logic) and must be orb or task
-    dialoguesWhere = `${dialoguesConditions.join(' AND ')} AND type IN ('orb', 'task')`;
+    dialoguesWhere = `${dialoguesConditions.join(
+      " AND "
+    )} AND type IN ('orb', 'task')`;
   } else {
     dialoguesWhere = `type IN ('orb', 'task')`;
   }
-  
+
   // Handle multiple actor IDs for dialogues
   if (actorIds) {
     if (Array.isArray(actorIds) && actorIds.length > 0) {
-      const actorList = actorIds.map(id => `'${id}'`).join(',');
+      const actorList = actorIds.map((id) => `'${id}'`).join(",");
       // For orbs and tasks, check both actor and conversant fields
       // Always include actor/conversant = 0 (unassigned orbs/tasks)
       dialoguesWhere += ` AND (actor IN (${actorList}, '0') OR conversant IN (${actorList}, '0'))`;
-    } else if (typeof actorIds === 'string' || typeof actorIds === 'number') {
+    } else if (typeof actorIds === "string" || typeof actorIds === "number") {
       dialoguesWhere += ` AND (actor='${actorIds}' OR conversant='${actorIds}' OR actor='0' OR conversant='0')`;
     }
   }
-  
+
   // Handle conversation IDs for dialogues (orbs/tasks use id as conversationid)
-  if (conversationIds && Array.isArray(conversationIds) && conversationIds.length > 0) {
-    const convoList = conversationIds.map(id => `'${id}'`).join(',');
+  if (
+    conversationIds &&
+    Array.isArray(conversationIds) &&
+    conversationIds.length > 0
+  ) {
+    const convoList = conversationIds.map((id) => `'${id}'`).join(",");
     dialoguesWhere += ` AND id IN (${convoList})`;
   }
-  
+
   // Get count for dialogues
   const dialoguesCountSQL = `SELECT COUNT(*) as count FROM dialogues WHERE ${dialoguesWhere};`;
   const dialoguesCount = execRowsFirstOrDefault(dialoguesCountSQL)?.count || 0;
-  
+
   const dialoguesSQL = `
-    SELECT id as conversationid, id, description as dialoguetext, title, actor 
+    SELECT id as conversationid, id, description as dialoguetext, displayTitle, actor 
       FROM dialogues 
       WHERE ${dialoguesWhere} 
       ORDER BY id 
       ${limitClause};`;
   const dialoguesResults = execRows(dialoguesSQL);
-  
+
   // Also search alternates table for alternate dialogue lines
   let alternatesWhere = "";
-  
+
   if (quotedPhrases.length > 0 || words.length > 0) {
     const alternatesConditions = [];
-    
+
     // Add conditions for each quoted phrase
-    quotedPhrases.forEach(phrase => {
+    quotedPhrases.forEach((phrase) => {
       const safe = phrase.replace(/'/g, "''");
       alternatesConditions.push(`alternateline LIKE '%${safe}%'`);
     });
-    
+
     // Add conditions for each word
-    words.forEach(word => {
+    words.forEach((word) => {
       const safe = word.replace(/'/g, "''");
       if (wholeWords) {
-        alternatesConditions.push(`(
+        allowedWordBarriers.forEach((c) => {
+          alternatesConditions.push(`(
           alternateline LIKE '% ${safe} %' OR 
-          alternateline LIKE '${safe} %' OR 
-          alternateline LIKE '% ${safe}' OR 
-          alternateline LIKE '${safe}' OR
-          alternateline LIKE '%,${safe},%' OR 
-          alternateline LIKE '%,${safe} %' OR 
-          alternateline LIKE '% ${safe},%'
+          alternateline LIKE '${c}${safe} %' OR 
+          alternateline LIKE '% ${safe}${c}%' OR 
+          alternateline LIKE '${c}${safe}${c}' OR 
+          alternateline LIKE '%${safe}%'
         )`);
+        });
       } else {
         alternatesConditions.push(`alternateline LIKE '%${safe}%'`);
       }
     });
-    
+
     // All phrases and words must be present (AND logic)
-    alternatesWhere = alternatesConditions.join(' AND ');
+    alternatesWhere = alternatesConditions.join(" AND ");
   }
-  
+
   // Handle multiple actor IDs for alternates (join with dentries to get actor)
   if (actorIds) {
     if (Array.isArray(actorIds) && actorIds.length > 0) {
-      const actorList = actorIds.map(id => `'${id}'`).join(',');
+      const actorList = actorIds.map((id) => `'${id}'`).join(",");
       const actorFilter = `d.actor IN (${actorList})`;
-      alternatesWhere = alternatesWhere ? `${alternatesWhere} AND ${actorFilter}` : actorFilter;
-    } else if (typeof actorIds === 'string' || typeof actorIds === 'number') {
+      alternatesWhere = alternatesWhere
+        ? `${alternatesWhere} AND ${actorFilter}`
+        : actorFilter;
+    } else if (typeof actorIds === "string" || typeof actorIds === "number") {
       const actorFilter = `d.actor='${actorIds}'`;
-      alternatesWhere = alternatesWhere ? `${alternatesWhere} AND ${actorFilter}` : actorFilter;
+      alternatesWhere = alternatesWhere
+        ? `${alternatesWhere} AND ${actorFilter}`
+        : actorFilter;
     }
   }
-  
+
   // Handle conversation IDs for alternates
-  if (conversationIds && Array.isArray(conversationIds) && conversationIds.length > 0) {
-    const convoList = conversationIds.map(id => `'${id}'`).join(',');
+  if (
+    conversationIds &&
+    Array.isArray(conversationIds) &&
+    conversationIds.length > 0
+  ) {
+    const convoList = conversationIds.map((id) => `'${id}'`).join(",");
     const convoFilter = `a.conversationid IN (${convoList})`;
-    alternatesWhere = alternatesWhere ? `${alternatesWhere} AND ${convoFilter}` : convoFilter;
+    alternatesWhere = alternatesWhere
+      ? `${alternatesWhere} AND ${convoFilter}`
+      : convoFilter;
   }
-  
+
   if (filterStartInput && alternatesWhere) {
     alternatesWhere += ` AND a.dialogueid NOT IN (0, 1)`;
   } else if (filterStartInput) {
     alternatesWhere = `a.dialogueid NOT IN (0, 1)`;
   }
-  
+
   // Only query alternates if we have search criteria
   let alternatesResults = [];
   let alternatesCount = 0;
@@ -440,7 +492,7 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
       JOIN dentries d ON a.conversationid = d.conversationid AND a.dialogueid = d.id
       WHERE ${alternatesWhere};`;
     alternatesCount = execRowsFirstOrDefault(alternatesCountSQL)?.count || 0;
-    
+
     const alternatesSQL = `
       SELECT a.conversationid, a.dialogueid as id, a.alternateline as dialoguetext, d.title, d.actor, a.condition as alternatecondition
         FROM alternates a
@@ -448,16 +500,19 @@ export function searchDialogues(q, minLength = 3, limit = 1000, actorIds = null,
         WHERE ${alternatesWhere} 
         ORDER BY a.conversationid, a.dialogueid 
         ${limitClause};`;
-    alternatesResults = execRows(alternatesSQL).map(r => ({ ...r, isAlternate: true }));
+    alternatesResults = execRows(alternatesSQL).map((r) => ({
+      ...r,
+      isAlternate: true,
+    }));
   }
-  
+
   // Calculate total count
   const totalCount = dentriesCount + dialoguesCount + alternatesCount;
-  
+
   // Combine results
   return {
     results: [...dentriesResults, ...dialoguesResults, ...alternatesResults],
-    total: totalCount
+    total: totalCount,
   };
 }
 

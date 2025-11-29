@@ -389,7 +389,7 @@ section {
 }
 
 .search-option-toggle .toggle-slider::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 16px;
   height: 16px;
@@ -849,7 +849,7 @@ section {
   display: none;
 }
 
-.tree .expanded>.children {
+.tree .expanded > .children {
   display: block;
 }
 
@@ -915,7 +915,7 @@ section {
   gap: 8px;
 }
 
-.card-item .card-title>span:first-child {
+.card-item .card-title > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -924,7 +924,7 @@ section {
 }
 
 /* Allow wrapping for history items to prevent long titles from clipping */
-.history-item .card-title>span:first-child {
+.history-item .card-title > span:first-child {
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -1212,7 +1212,7 @@ a:hover {
   text-decoration: underline;
 }
 
-.details-list>.details-item>span {
+.details-list > .details-item > span {
   color: #666;
   font-size: 11px;
 }
@@ -2069,7 +2069,7 @@ a:hover {
 }
 
 .toggle-slider::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 20px;
   height: 20px;
@@ -2663,7 +2663,7 @@ a:hover {
     font-size: 18px;
   }
 
-  #entries-section>div:not(.mobile-nav-bar) {
+  #entries-section > div:not(.mobile-nav-bar) {
     padding: 12px;
   }
 
@@ -2689,4 +2689,11 @@ a:hover {
   #history-section {
     display: none;
   }
+}
+
+.yellow-highlighting {
+  background: #ffeb3b;
+  color: #000;
+  padding: 0 2px;
+  border-radius: 2px;
 }

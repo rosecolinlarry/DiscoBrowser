@@ -2,97 +2,101 @@
 import { loadSqlJs } from "./sqlLoader.js";
 import * as DB from "./db.js";
 import { buildTitleTree, renderTree } from "./treeBuilder.js";
+import { $ } from "./ui.js";
 import * as UI from "./ui.js";
 
-const searchInput = UI.$("search");
-const searchBtn = UI.$("searchBtn");
-const conversationFilterBtn = UI.$("conversationFilterBtn");
-const conversationFilterLabel = UI.$("conversationFilterLabel");
-const conversationFilterDropdown = UI.$("conversationFilterDropdown");
-const conversationSearchInput = UI.$("conversationSearch");
-const conversationCheckboxList = UI.$("conversationCheckboxList");
-const selectAllConversations = UI.$("selectAllConversations");
-const addConversationToSelectionBtn = UI.$("addConversationToSelection");
-const actorFilterBtn = UI.$("actorFilterBtn");
-const actorFilterLabel = UI.$("actorFilterLabel");
-const actorFilterDropdown = UI.$("actorFilterDropdown");
-const actorSearchInput = UI.$("actorSearch");
-const actorCheckboxList = UI.$("actorCheckboxList");
-const selectAllActors = UI.$("selectAllActors");
-const addToSelectionBtn = UI.$("addToSelection");
-const typeFilterBtn = UI.$("typeFilterBtn");
-const typeFilterLabel = UI.$("typeFilterLabel");
-const typeFilterDropdown = UI.$("typeFilterDropdown");
-const typeCheckboxList = UI.$("typeCheckboxList");
-const selectAllTypes = UI.$("selectAllTypes");
-const searchLoader = UI.$("searchLoader");
-const convoListEl = UI.$("convoList");
-const convoSearchInput = UI.$("convoSearch");
+const searchInput = $("search");
+const searchBtn = $("searchBtn");
+const conversationFilterBtn = $("conversationFilterBtn");
+const conversationFilterLabel = $("conversationFilterLabel");
+const conversationFilterDropdown = $("conversationFilterDropdown");
+const conversationSearchInput = $("conversationSearch");
+const conversationCheckboxList = $("conversationCheckboxList");
+const selectAllConversations = $("selectAllConversations");
+const addConversationToSelectionBtn = $("addConversationToSelection");
+const actorFilterBtn = $("actorFilterBtn");
+const actorFilterLabel = $("actorFilterLabel");
+const actorFilterDropdown = $("actorFilterDropdown");
+const actorSearchInput = $("actorSearch");
+const actorCheckboxList = $("actorCheckboxList");
+const selectAllActors = $("selectAllActors");
+const addToSelectionBtn = $("addToSelection");
+const typeFilterBtn = $("typeFilterBtn");
+const typeFilterLabel = $("typeFilterLabel");
+const typeFilterDropdown = $("typeFilterDropdown");
+const typeCheckboxList = $("typeCheckboxList");
+const selectAllTypes = $("selectAllTypes");
+const searchLoader = $("searchLoader");
+const convoListEl = $("convoList");
+const convoSearchInput = $("convoSearch");
 const convoTypeFilterBtns = document.querySelectorAll(".type-filter-btn");
-const entryListEl = UI.$("entryList");
-const entryListHeaderEl = UI.$("entryListHeader");
-const entryDetailsEl = UI.$("entryDetails");
-const entryOverviewEl = UI.$("entryOverview");
-const currentEntryContainerEl = UI.$("currentEntryContainer");
-const chatLogEl = UI.$("chatLog");
-const backBtn = UI.$("backBtn");
-const backStatus = UI.$("backStatus");
-const rootBtn = UI.$("rootBtn");
-const moreDetailsEl = UI.$("moreDetails");
+const entryListEl = $("entryList");
+const entryListHeaderEl = $("entryListHeader");
+const entryDetailsEl = $("entryDetails");
+const entryOverviewEl = $("entryOverview");
+const currentEntryContainerEl = $("currentEntryContainer");
+const chatLogEl = $("chatLog");
+const backBtn = $("backBtn");
+const backStatus = $("backStatus");
+const rootBtn = $("rootBtn");
+const moreDetailsEl = $("moreDetails");
 
 // Tablet sidebar elements
-const tabletConvoSearchInput = UI.$("tabletConvoSearch");
-const tabletConvoSidebar = UI.$("tabletConvoSidebar");
-const tabletConvoSidebarClose = UI.$("tabletConvoSidebarClose");
-const tabletConvoToggle = UI.$("tabletConvoToggle");
-const tabletConvoList = UI.$("tabletConvoList");
-const tabletHistorySidebar = UI.$("tabletHistorySidebar");
-const tabletHistorySidebarClose = UI.$("tabletHistorySidebarClose");
-const tabletHistoryToggle = UI.$("tabletHistoryToggle");
-const tabletChatLog = UI.$("tabletChatLog");
-const tabletBackBtn = UI.$("tabletBackBtn");
-const tabletRootBtn = UI.$("tabletRootBtn");
+const tabletConvoSearchInput = $("tabletConvoSearch");
+const tabletConvoSidebar = $("tabletConvoSidebar");
+const tabletConvoSidebarClose = $("tabletConvoSidebarClose");
+const tabletConvoToggle = $("tabletConvoToggle");
+const tabletConvoList = $("tabletConvoList");
+const tabletHistorySidebar = $("tabletHistorySidebar");
+const tabletHistorySidebarClose = $("tabletHistorySidebarClose");
+const tabletHistoryToggle = $("tabletHistoryToggle");
+const tabletChatLog = $("tabletChatLog");
+const tabletBackBtn = $("tabletBackBtn");
+const tabletRootBtn = $("tabletRootBtn");
+
+const isTabletMql = window.matchMedia("(min-width: 768px) and (max-width: 1024px)")  
+let isTablet = isTabletMql.matches;
 
 // Search option elements
-const wholeWordsCheckbox = UI.$("wholeWordsCheckbox");
-const mobileWholeWordsCheckbox = UI.$("mobileWholeWordsCheckbox");
+const wholeWordsCheckbox = $("wholeWordsCheckbox");
+const mobileWholeWordsCheckbox = $("mobileWholeWordsCheckbox");
 
 // Mobile search elements
-const mobileSearchTrigger = UI.$("mobileSearchTrigger");
-const mobileSearchScreen = UI.$("mobileSearchScreen");
-const mobileSearchInput = UI.$("mobileSearchInput");
-const mobileSearchBtn = UI.$("mobileSearchBtn");
-const mobileSearchIconBtn = UI.$("mobileSearchIconBtn");
-const mobileSearchBack = UI.$("mobileSearchBack");
-const mobileSearchResults = UI.$("mobileSearchResults");
-const mobileSearchLoader = UI.$("mobileSearchLoader");
-const mobileSearchCount = UI.$("mobileSearchCount");
-const mobileClearFilters = UI.$("mobileClearFilters");
-const mobileConvoFilter = UI.$("mobileConvoFilter");
-const mobileTypeFilter = UI.$("mobileTypeFilter");
-const mobileActorFilter = UI.$("mobileActorFilter");
-const mobileConvoFilterValue = UI.$("mobileConvoFilterValue");
-const mobileTypeFilterValue = UI.$("mobileTypeFilterValue");
-const mobileActorFilterValue = UI.$("mobileActorFilterValue");
-const mobileConvoFilterScreen = UI.$("mobileConvoFilterScreen");
-const mobileActorFilterScreen = UI.$("mobileActorFilterScreen");
-const mobileTypeFilterSheet = UI.$("mobileTypeFilterSheet");
+const mobileSearchTrigger = $("mobileSearchTrigger");
+const mobileSearchScreen = $("mobileSearchScreen");
+const mobileSearchInput = $("mobileSearchInput");
+const mobileSearchBtn = $("mobileSearchBtn");
+const mobileSearchIconBtn = $("mobileSearchIconBtn");
+const mobileSearchBack = $("mobileSearchBack");
+const mobileSearchResults = $("mobileSearchResults");
+const mobileSearchLoader = $("mobileSearchLoader");
+const mobileSearchCount = $("mobileSearchCount");
+const mobileClearFilters = $("mobileClearFilters");
+const mobileConvoFilter = $("mobileConvoFilter");
+const mobileTypeFilter = $("mobileTypeFilter");
+const mobileActorFilter = $("mobileActorFilter");
+const mobileConvoFilterValue = $("mobileConvoFilterValue");
+const mobileTypeFilterValue = $("mobileTypeFilterValue");
+const mobileActorFilterValue = $("mobileActorFilterValue");
+const mobileConvoFilterScreen = $("mobileConvoFilterScreen");
+const mobileActorFilterScreen = $("mobileActorFilterScreen");
+const mobileTypeFilterSheet = $("mobileTypeFilterSheet");
 
 // Mobile sidebar elements
-const mobileSidebarToggle = UI.$("mobileSidebarToggle");
-const mobileSidebarOverlay = UI.$("mobileSidebarOverlay");
-const conversationsSection = UI.$("conversations-section");
-const mobileHeader = UI.$("mobileHeader");
-const mobileHeaderTitle = UI.$("mobileHeaderTitle");
-const mobileBackBtn = UI.$("mobileBackBtn");
+const mobileSidebarToggle = $("mobileSidebarToggle");
+const mobileSidebarOverlay = $("mobileSidebarOverlay");
+const conversationsSection = $("conversations-section");
+const mobileHeader = $("mobileHeader");
+const mobileHeaderTitle = $("mobileHeaderTitle");
+const mobileBackBtn = $("mobileBackBtn");
 
 // Tree control elements
-const expandAllBtn = UI.$("expandAllBtn");
-const collapseAllBtn = UI.$("collapseAllBtn");
+const expandAllBtn = $("expandAllBtn");
+const collapseAllBtn = $("collapseAllBtn");
 
 // Clear filters button
-const clearFiltersBtn = UI.$("clearFiltersBtn");
-const mobileRootBtn = UI.$("mobileRootBtn");
+const clearFiltersBtn = $("clearFiltersBtn");
+const mobileRootBtn = $("mobileRootBtn");
 
 const minSearchLength = 3;
 const searchResultLimit = 50;
@@ -151,6 +155,10 @@ async function boot() {
   conversationTree = buildTitleTree(convos);
   renderTree(convoListEl, conversationTree);
   
+  isTabletMql.addEventListener("change", (event) => {
+
+  });
+
   // Also render to tablet sidebar if it exists
   if (tabletConvoList) {
     renderTree(tabletConvoList, conversationTree);
@@ -360,11 +368,11 @@ function collapseAllTreeNodes() {
 }
 
 function filterConversationTree() {
+  let searchText;
   if (!conversationTree) return;
-  
-  let searchText = convoSearchInput ? convoSearchInput.value.toLowerCase().trim() : "";
-  if(tabletConvoList) {
-    searchText = tabletConvoSearchInput ? tabletConvoSearchInput.value.toLowerCase().trim() : "";
+    searchText= convoSearchInput?.value?.toLowerCase().trim() ?? "";
+  if(isTablet && tabletConvoList) {
+    searchText = tabletConvoSearchInput?.value?.toLowerCase().trim() ?? "";
   }
   
   // If no filters active, render the original tree
@@ -431,19 +439,19 @@ function collectMatchingLeaves(node, searchText, typeFilter, matches, tree) {
       
       // Text filter
       if (searchText) {
-        const titleMatch = convo.title.toLowerCase().includes(searchText);
+        const titleMatch = convo.displayTitle.toLowerCase().includes(searchText);
         const idMatch = cid.toString().includes(searchText);
         if (titleMatch || idMatch) {
           matches.push({
             convoId: cid,
-            title: convo.title,
+            title: convo.displayTitle,
             type: convo.type || 'flow'
           });
         }
       } else {
         matches.push({
           convoId: cid,
-          title: convo.title,
+          title: convo.displayTitle,
           type: convo.type || 'flow'
         });
       }
@@ -464,7 +472,7 @@ function createFilteredLeafItem(match, searchText, tree) {
   
   const label = document.createElement("div");
   label.className = "label";
-  label.dataset.convoId = match.convoId;
+  label.dataset.convoId = match?.convoId;
   
   // No toggle for leaf items
   const toggle = document.createElement("span");
@@ -475,34 +483,34 @@ function createFilteredLeafItem(match, searchText, tree) {
   
   // Highlight matching text
   if (searchText) {
-    const titleLower = match.title.toLowerCase();
+    const titleLower = match?.title?.toLowerCase();
     const index = titleLower.indexOf(searchText);
     if (index !== -1) {
-      const before = match.title.substring(0, index);
-      const highlighted = match.title.substring(index, index + searchText.length);
-      const after = match.title.substring(index + searchText.length);
+      const before = match?.title?.substring(0, index);
+      const highlighted = match?.title?.substring(index, index + searchText.length);
+      const after = match?.title?.substring(index + searchText.length);
       
-      titleSpan.innerHTML = `${escapeHtml(before)}<mark style="background: #ffeb3b; color: #000; padding: 0 2px; border-radius: 2px;">${escapeHtml(highlighted)}</mark>${escapeHtml(after)}`;
+      titleSpan.innerHTML = `${escapeHtml(before)}<mark class="yellow-highlighting">${escapeHtml(highlighted)}</mark>${escapeHtml(after)}`;
     } else {
-      titleSpan.textContent = match.title;
+      titleSpan.textContent = match?.title;
     }
   } else {
-    titleSpan.textContent = match.title;
+    titleSpan.textContent = match?.title;
   }
   
   label.appendChild(titleSpan);
   
   // Add type badge
-  if (match.type !== 'flow') {
+  if (match?.type !== 'flow') {
     const badge = document.createElement("span");
-    badge.className = `type-badge type-${match.type}`;
-    badge.textContent = match.type.toUpperCase();
+    badge.className = `type-badge type-${match?.type}`;
+    badge.textContent = match?.type?.toUpperCase();
     label.appendChild(badge);
   }
   
   // Apply highlight class based on type
-  if (match.type !== 'flow') {
-    label.classList.add(`highlight-${match.type}`);
+  if (match?.type !== 'flow') {
+    label.classList.add(`highlight-${match?.type}`);
   }
   
   wrapper.appendChild(label);
@@ -512,7 +520,7 @@ function createFilteredLeafItem(match, searchText, tree) {
     ev.stopPropagation();
     label.dispatchEvent(
       new CustomEvent("convoLeafClick", {
-        detail: { convoId: match.convoId },
+        detail: { convoId: match?.convoId },
         bubbles: true,
       })
     );
@@ -677,156 +685,6 @@ function updateActorFilterLabel() {
   }
 }
 
-// Setup conversation filter
-async function populateConversationDropdown() {
-  const conversations = DB.getAllConversations();
-  let filteredConversations = [...conversations];
-  
-  // Toggle dropdown
-  if (conversationFilterBtn) {
-    conversationFilterBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const isVisible = conversationFilterDropdown.style.display !== "none";
-      conversationFilterDropdown.style.display = isVisible ? "none" : "block";
-    });
-  }
-  
-  // Close dropdown when clicking outside
-  document.addEventListener("click", (e) => {
-    if (!conversationFilterDropdown.contains(e.target) && e.target !== conversationFilterBtn) {
-      conversationFilterDropdown.style.display = "none";
-    }
-  });
-  
-  // Prevent dropdown from closing when clicking inside
-  conversationFilterDropdown.addEventListener("click", (e) => {
-    e.stopPropagation();
-  });
-  
-  // Search within conversation dropdown
-  if (conversationSearchInput) {
-    conversationSearchInput.addEventListener("input", () => {
-      const searchText = conversationSearchInput.value.toLowerCase().trim();
-      
-      if (!searchText) {
-        filteredConversations = [...conversations];
-      } else {
-        filteredConversations = conversations.filter(convo => {
-          return convo.title.toLowerCase().includes(searchText) || 
-                 convo.conversationid.toString().includes(searchText);
-        });
-      }
-      
-      renderConversationCheckboxes(filteredConversations);
-      updateConversationSelectAllState();
-    });
-  }
-  
-  // Select All checkbox
-  if (selectAllConversations) {
-    selectAllConversations.addEventListener("change", (e) => {
-      const isChecked = e.target.checked;
-      const checkboxes = conversationCheckboxList.querySelectorAll('input[type="checkbox"]');
-      
-      checkboxes.forEach(cb => {
-        const convoId = parseInt(cb.dataset.convoId);
-        cb.checked = isChecked;
-        
-        if (isChecked) {
-          selectedConvoIds.add(convoId);
-        } else {
-          selectedConvoIds.delete(convoId);
-        }
-      });
-      
-      updateConversationFilterLabel();
-      triggerSearch();
-    });
-  }
-  
-  // Add to Selection button
-  if (addConversationToSelectionBtn) {
-    addConversationToSelectionBtn.addEventListener("click", () => {
-      const checkboxes = conversationCheckboxList.querySelectorAll('input[type="checkbox"]:checked');
-      checkboxes.forEach(cb => {
-        selectedConvoIds.add(parseInt(cb.dataset.convoId));
-      });
-      
-      // Clear search and show all with current selection
-      conversationSearchInput.value = "";
-      const searchText = "";
-      filteredConversations = [...conversations];
-      renderConversationCheckboxes(filteredConversations);
-      updateConversationSelectAllState();
-      updateConversationFilterLabel();
-      triggerSearch();
-    });
-  }
-  
-  renderConversationCheckboxes(filteredConversations);
-}
-
-function renderConversationCheckboxes(conversations) {
-  conversationCheckboxList.innerHTML = "";
-  
-  conversations.forEach(convo => {
-    const label = document.createElement("label");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.dataset.convoId = convo.conversationid;
-    checkbox.checked = selectedConvoIds.has(convo.conversationid);
-    
-    checkbox.addEventListener("change", () => {
-      if (checkbox.checked) {
-        selectedConvoIds.add(convo.conversationid);
-      } else {
-        selectedConvoIds.delete(convo.conversationid);
-      }
-      updateConversationSelectAllState();
-      updateConversationFilterLabel();
-      triggerSearch();
-    });
-    
-    const span = document.createElement("span");
-    span.textContent = convo.title;
-    
-    label.appendChild(checkbox);
-    label.appendChild(span);
-    conversationCheckboxList.appendChild(label);
-  });
-  
-  updateConversationSelectAllState();
-}
-
-function updateConversationSelectAllState() {
-  if (!selectAllConversations) return;
-  
-  const visibleCheckboxes = conversationCheckboxList.querySelectorAll('input[type="checkbox"]');
-  const visibleConvoIds = Array.from(visibleCheckboxes).map(cb => parseInt(cb.dataset.convoId));
-  
-  const allSelected = visibleConvoIds.length > 0 && visibleConvoIds.every(id => selectedConvoIds.has(id));
-  const someSelected = visibleConvoIds.some(id => selectedConvoIds.has(id));
-  
-  selectAllConversations.checked = allSelected;
-  selectAllConversations.indeterminate = !allSelected && someSelected;
-}
-
-function updateConversationFilterLabel() {
-  if (!conversationFilterLabel) return;
-  
-  const allConversations = DB.getAllConversations();
-  
-  if (selectedConvoIds.size === 0 || selectedConvoIds.size === allConversations.length) {
-    conversationFilterLabel.textContent = "All Conversations";
-  } else if (selectedConvoIds.size === 1) {
-    const convoId = Array.from(selectedConvoIds)[0];
-    const convo = allConversations.find(c => c.conversationid === convoId);
-    conversationFilterLabel.textContent = convo ? convo.title : "1 Conversation";
-  } else {
-    conversationFilterLabel.textContent = `${selectedConvoIds.size} Conversations`;
-  }
-}
-
 function triggerSearch() {
   if (searchInput.value) {
     // Always reset search when filters change to clear old results
@@ -940,14 +798,9 @@ function updateTypeFilterLabel() {
 // Setup tablet sidebars
 function setupTabletSidebars() {
   if (!tabletConvoSidebar || !tabletHistorySidebar) return;
-
-  // Check if we're on tablet (between 768px and 1024px)
-  const isTablet = () => window.innerWidth <= 1024 && window.innerWidth > 768;
-
   // Show/hide tablet elements based on viewport
   const updateTabletVisibility = () => {
-    const tablet = isTablet();
-    if (tablet) {
+    if (isTablet) {
       // Show sidebar on tablet (open by default for conversations)
       tabletConvoSidebar.style.display = 'flex';
       tabletHistorySidebar.style.display = 'flex';
@@ -1016,15 +869,13 @@ function setupTabletSidebars() {
   }
 
   // Setup tablet conversation filter
-  const tabletConvoSearchInput = UI.$("tabletConvoSearch");
+  const tabletConvoSearchInput = $("tabletConvoSearch");
   const tabletConvoTypeFilterBtns = document.querySelectorAll("#tablet-convo-type-filter .type-filter-btn");
-  const tabletExpandAllBtn = UI.$("tabletExpandAllBtn");
-  const tabletCollapseAllBtn = UI.$("tabletCollapseAllBtn");
+  const tabletExpandAllBtn = $("tabletExpandAllBtn");
+  const tabletCollapseAllBtn = $("tabletCollapseAllBtn");
   
   if (tabletConvoSearchInput) {
-    console.log(`Adding event listener for tablet ${tabletConvoSearchInput.value}`)
     tabletConvoSearchInput.addEventListener("input", function(event)  {
-      console.log(`Tablet Search Input: ${event.target.value}`)
       filterConversationTree();
     });
   }
@@ -1360,57 +1211,6 @@ function updateBackButtonState() {
   }
 }
 
-async function goBack() {
-  if (navigationHistory.length <= 1) return;
-  
-  // Remove the last item from the chat log
-  if (chatLogEl && chatLogEl.lastElementChild) {
-    chatLogEl.removeChild(chatLogEl.lastElementChild);
-  }
-  
-  // Pop the current entry from history
-  navigationHistory.pop();
-  
-  // Get the previous entry (now at the end of the array)
-  const previous = navigationHistory[navigationHistory.length - 1];
-  if (previous) {
-    const cid = UI.getParsedIntOrDefault(previous.convoId);
-    
-    // If entryId is null, we're going back to the conversation root
-    if (previous.entryId === null) {
-      loadEntriesForConversation(cid, false);
-      highlightConversationInTree(cid);
-      updateBackButtonState();
-      return;
-    }
-    
-    // Update current state
-    currentConvoId = cid;
-    currentEntryId = UI.getParsedIntOrDefault(previous.entryId);
-    
-    // Update the UI to show this entry
-    const coreRow = DB.getEntry(currentConvoId, currentEntryId);
-    const title = coreRow ? coreRow.title : `(line ${currentConvoId}:${currentEntryId})`;
-    const dialoguetext = coreRow ? coreRow.dialoguetext : "";
-    
-    // Get conversation type
-    const conversation = DB.getConversationById(currentConvoId);
-    const convoType = conversation?.type || 'flow';
-    
-    UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoType);
-    
-    // Load child options
-    loadChildOptions(currentConvoId, currentEntryId);
-    
-    // Show details if expanded
-    if (moreDetailsEl && moreDetailsEl.open) {
-      await showEntryDetails(currentConvoId, currentEntryId);
-    }
-  }
-  
-  updateBackButtonState();
-}
-
 // Browser History Management
 function setupBrowserHistory() {
   // Set initial state
@@ -1543,27 +1343,6 @@ function goToHomeView() {
   }
   
   updateBackButtonState();
-}
-
-async function updateUiToShowEntry() {
-    // Update the UI
-    const coreRow = DB.getEntry(currentConvoId, currentEntryId); // About 650 entries without titles
-    const title = coreRow ? coreRow.title : `(line ${currentConvoId}:${currentEntryId})`;
-    const dialoguetext = coreRow ? coreRow.dialoguetext : "";
-    
-    // Get conversation type
-    const conversation = DB.getConversationById(currentConvoId);
-    const convoType = conversation?.type || 'flow';
-    
-    UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoType);
-    
-    // Load child options
-    loadChildOptions(currentConvoId, currentEntryId);
-    
-    // Show details if expanded
-    if (moreDetailsEl && moreDetailsEl.open) {
-      await showEntryDetails(currentConvoId, currentEntryId);
-    }
 }
 
 /* Jump back to a specific point in history by removing all entries after it */
@@ -1946,7 +1725,6 @@ function searchDialogues(q, resetSearch = true) {
   try {
     const response = DB.searchDialogues(
       currentSearchQuery,
-      3, // minLength (no longer used but kept for compatibility)
       searchResultLimit,
       currentSearchActorIds,
       true, // filterStartInput
@@ -2497,7 +2275,7 @@ function showMobileActorFilter() {
   tempSelectedActorIds = new Set(mobileSelectedActorIds);
   
   // Re-render the actor list with current selection
-  const listContainer = UI.$("mobileActorFilterList");
+  const listContainer = $("mobileActorFilterList");
   if (listContainer) {
     renderActorListForMobile(allActors);
   }
@@ -2511,11 +2289,11 @@ function showMobileTypeFilter() {
 }
 
 function setupMobileConvoFilter() {
-  const backBtn = UI.$("mobileConvoFilterBack");
-  const searchInput = UI.$("mobileConvoFilterSearch");
-  const listContainer = UI.$("mobileConvoFilterList");
-  const selectAllCheckbox = UI.$("mobileConvoSelectAll");
-  const addToSelectionBtn = UI.$("mobileConvoAddToSelection");
+  const backBtn = $("mobileConvoFilterBack");
+  const searchInput = $("mobileConvoFilterSearch");
+  const listContainer = $("mobileConvoFilterList");
+  const selectAllCheckbox = $("mobileConvoSelectAll");
+  const addToSelectionBtn = $("mobileConvoAddToSelection");
   
   if (!backBtn || !searchInput || !listContainer) {
     console.error("Mobile convo filter elements missing:", { backBtn, searchInput, listContainer });
@@ -2580,7 +2358,7 @@ function setupMobileConvoFilter() {
       const isChecked = tempSelectedConvoIds.has(convo.id);
       item.innerHTML = `
         <input type="checkbox" ${isChecked ? 'checked' : ''} />
-        <span>${convo.title || `Conversation ${convo.id}`}</span>
+        <span>${convo.displayTitle || `Conversation ${convo.id}`}</span>
       `;
       item.addEventListener("click", (e) => {
         if (e.target.tagName !== 'INPUT') {
@@ -2630,9 +2408,10 @@ function setupMobileConvoFilter() {
     }
     
     const filtered = allConvos.filter(c => {
-      return (c.title || "").toLowerCase().includes(query) || 
+      return (c.displayTitle || "").toLowerCase().includes(query) || 
              c.id.toString().includes(query);
     });
+    
     renderConvoList(filtered);
   });
 }
@@ -2644,7 +2423,7 @@ function updateMobileConvoFilterLabel() {
     const convoId = Array.from(mobileSelectedConvoIds)[0];
     const allConvos = DB.getAllConversations();
     const convo = allConvos.find(c => c.id === convoId);
-    mobileConvoFilterValue.textContent = convo ? (convo.title || `#${convo.id}`) : "1 Convo";
+    mobileConvoFilterValue.textContent = convo ? (convo.displayTitle || `#${convo.id}`) : "1 Convo";
   } else {
     mobileConvoFilterValue.textContent = `${mobileSelectedConvoIds.size} Convos`;
   }
@@ -2652,8 +2431,8 @@ function updateMobileConvoFilterLabel() {
 
 // Render mobile actor list (used by setupMobileActorFilter and showMobileActorFilter)
 function renderActorListForMobile(actors) {
-  const listContainer = UI.$("mobileActorFilterList");
-  const selectAllCheckbox = UI.$("mobileActorSelectAll");
+  const listContainer = $("mobileActorFilterList");
+  const selectAllCheckbox = $("mobileActorSelectAll");
   
   if (!listContainer) return;
   
@@ -2703,10 +2482,10 @@ function renderActorListForMobile(actors) {
 }
 
 function setupMobileActorFilter() {
-  const backBtn = UI.$("mobileActorFilterBack");
-  const searchInput = UI.$("mobileActorFilterSearch");
-  const selectAllCheckbox = UI.$("mobileActorSelectAll");
-  const addToSelectionBtn = UI.$("mobileActorAddToSelection");
+  const backBtn = $("mobileActorFilterBack");
+  const searchInput = $("mobileActorFilterSearch");
+  const selectAllCheckbox = $("mobileActorSelectAll");
+  const addToSelectionBtn = $("mobileActorAddToSelection");
   
   if (!backBtn || !searchInput) return;
   
@@ -2789,7 +2568,7 @@ function updateMobileTypeFilterLabel() {
 }
 
 function setupMobileTypeFilter() {
-  const applyBtn = UI.$("mobileTypeApply");
+  const applyBtn = $("mobileTypeApply");
   const checkboxes = mobileTypeFilterSheet.querySelectorAll('input[type="checkbox"]');
   
   if (!applyBtn) return;
