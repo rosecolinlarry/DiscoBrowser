@@ -888,7 +888,6 @@ function setupTabletSidebars() {
       tabletConvoToggle.style.display = "none";
       tabletHistoryToggle.style.display = "none";
     } else if (isMobile) {
-      console.log(isMobile)
       // Hide on mobile
       tabletConvoSidebar.style.display = "none";
       tabletConvoToggle.style.display = "none";
@@ -1761,7 +1760,7 @@ async function showEntryDetails(
     checks,
     parents,
     children,
-    conversationTitle: convoRow.title,
+    conversationTitle: convoRow.displayTitle,
     conversationDescription: convoRow.description,
     conversationActorId: convoRow.actor,
     conversationActorName: convoActorName,

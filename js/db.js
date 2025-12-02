@@ -90,7 +90,7 @@ export function prepareAndAll(stmtSql, params = []) {
 /* Conversations list */
 export function getAllConversations() {
   return execRows(
-    `SELECT id, displayTitle, type FROM dialogues WHERE isHidden == 0 ORDER BY displayTitle;`
+    `SELECT id, displayTitle, type FROM conversations WHERE isHidden == 0 ORDER BY displayTitle;`
   );
 }
 
@@ -117,8 +117,8 @@ export function getConversationById(convoId) {
   if (convoId) {
     return execRowsFirstOrDefault(
       `SELECT id, displayTitle, description, actor, conversant, type 
-        FROM dialogues 
-        WHERE id='${convoId}';`
+        FROM conversations 
+        WHERE id=${convoId};`
     );
   }
 }
@@ -128,7 +128,7 @@ export function getEntriesForConversation(convoId) {
   return execRows(`
     SELECT id, title, dialoguetext, actor
       FROM dentries
-      WHERE conversationid='${convoId}'
+      WHERE conversationid=${convoId}
       ORDER BY id;
   `);
 }
@@ -136,10 +136,18 @@ export function getEntriesForConversation(convoId) {
 /* Fetch a single entry row (core fields) */
 export function getEntry(convoId, entryId) {
   return execRowsFirstOrDefault(
-    `SELECT id, title, dialoguetext, actor, hascheck, hasalts, sequence, conditionstring, userscript, difficultypass 
-      FROM dentries 
-      WHERE conversationid='${convoId}' 
-      AND id='${entryId}'`
+    `SELECT de.id, de.title, de.dialoguetext, de.actor, 
+    CASE WHEN de.totalChecks > 0 THEN TRUE 
+    ELSE FALSE END as 'hascheck',
+    CASE WHEN de.totalAlternates > 0 THEN TRUE
+    ELSE FALSE END AS 'hasalts'
+    , de.sequence, de.conditionstring, de.userscript, c.difficulty as difficultypass
+          FROM dentries de
+        LEFT JOIN checks c ON c.dialogueid = de.id AND c.conversationid = de.conversationid
+        LEFT JOIN modifiers m ON m.dialogueid = de.id AND m.conversationid = de.conversationid
+        LEFT JOIN alternates a ON a.dialogueid = de.id AND a.conversationid = de.conversationid
+          WHERE de.conversationid=${convoId} 
+          AND de.id=${entryId}`
   );
 }
 
@@ -156,8 +164,10 @@ export function getAlternates(convoId, entryId) {
 /* Fetch check(s) for an entry */
 export function getChecks(convoId, entryId) {
   return execRows(
-    `SELECT isred, difficulty, flagname, forced, skilltype 
-      FROM checks 
+    `SELECT checktype, difficulty, flagName, forced, a.name
+      FROM checks c
+	    LEFT JOIN dentries d ON c.dialogueid = d.id AND c.conversationid = d.conversationid
+	    LEFT JOIN actors a ON a.articyId = c.skilltype
       WHERE conversationid=${convoId} 
       AND dialogueid=${entryId};`
   );
@@ -196,7 +206,7 @@ export function getEntriesBulk(pairs = []) {
     const rows = execRows(
       `SELECT id, title, dialoguetext, actor 
         FROM dentries 
-        WHERE conversationid='${convoId}' 
+        WHERE conversationid=${convoId} 
         AND id IN (${entryIdList});`
     );
     rows.forEach((r) => {
@@ -402,12 +412,12 @@ export function searchDialogues(
   }
 
   // Get count for dialogues
-  const dialoguesCountSQL = `SELECT COUNT(*) as count FROM dialogues WHERE ${dialoguesWhere};`;
+  const dialoguesCountSQL = `SELECT COUNT(*) as count FROM conversations WHERE ${dialoguesWhere};`;
   const dialoguesCount = execRowsFirstOrDefault(dialoguesCountSQL)?.count || 0;
 
   const dialoguesSQL = `
     SELECT id as conversationid, id, description as dialoguetext, displayTitle, actor 
-      FROM dialogues 
+      FROM conversations 
       WHERE ${dialoguesWhere} 
       ORDER BY id 
       ${limitClause};`;
