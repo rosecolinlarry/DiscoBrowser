@@ -60,10 +60,8 @@ class DiscoDBParser:
         self.ACTOR_FIELD_MAP = {
             "id": lambda actor, fields: actor.get("id"),
             "name": lambda actor, fields: self._get_field_value(fields, "Name"),
-            "isPlayer": lambda actor, fields: self._parse_bool(self._get_field_value(fields, "IsPlayer")),
             "description": lambda actor, fields: self._get_field_value(fields, "Description"),
             "characterShortName": lambda actor, fields: self._get_field_value(fields, "character_short_name"),
-            "isNPC": lambda actor, fields: self._parse_bool(self._get_field_value(fields, "IsNPC")),
             "isFemale": lambda actor, fields: self._parse_bool(self._get_field_value(fields, "IsFemale")),
             "shortDescription": lambda actor, fields: self._get_field_value(fields, "short_description"),
             "longDescription": lambda actor, fields: self._get_field_value(fields, "LongDescription"),
@@ -71,16 +69,11 @@ class DiscoDBParser:
             "articyId": lambda actor, fields: self._get_field_value(fields, "Articy Id"),
             "pictures": lambda actor, fields: self._get_field_value(fields, "Pictures"),
             "talkativeness": lambda actor, fields: self._parse_number(self._get_field_value(fields, "Talkativeness")),
-            "portrait": lambda actor, fields: str(actor.get("portrait")),
-            "spritePortrait": lambda actor, fields: str(actor.get("spritePortrait")),
-            "alternatePortraits": lambda actor, fields: str(actor.get("alternatePortraits")),
-            "spritePortraits": lambda actor, fields: str(actor.get("spritePortraits")),
         }
 
         self.ITEM_DATA_MAP = {
             "id": lambda item, fields: item.get("id"),
             "name": lambda item, fields: self._get_field_value(fields, 'Name'),
-            "isItem": lambda item, fields: self._parse_bool(self._coalesce_field_values(fields, ['IsItem', 'Is Item'])),
             "isCursed": lambda item, fields: self._parse_bool(self._coalesce_field_values(fields, ['Cursed', 'cursed'])),
             "isConsumable": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'isConsumable')),
             "autoequip": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'autoequip')),
@@ -103,7 +96,6 @@ class DiscoDBParser:
             "stackName": lambda item, fields: self._get_field_value(fields, 'stackName'),
             "equipOrb": lambda item, fields: self._get_field_value(fields, 'equipOrb'),
             "mediumTextValue": lambda item, fields: self._get_field_value(fields, 'MediumTextValue'),
-            "tooltip": lambda item, fields: self._get_field_value(fields, 'Tooltip'),
             "articyId": lambda item, fields: self._get_field_value(fields, 'Articy Id'),
         }
 
@@ -131,8 +123,6 @@ class DiscoDBParser:
             'articyId': lambda entry, fields: self._get_field_value(fields, 'Articy Id'),
             'sequence': lambda entry, fields: self._get_field_value(fields, 'Sequence'),
             'dialogueEntryType': lambda entry, fields: self._get_field_value(fields, 'DialogueEntryType'),
-            'alwaysPlayVoice': lambda entry, fields: self._parse_bool(self._get_field_value(fields, 'AlwaysPlayVoice')),
-            'playVoiceInPsychologicalMode': lambda entry, fields: self._parse_bool(self._get_field_value(fields, 'PlayVoiceInPsychologicalMode')),
             'actor': lambda entry, fields: self._parse_number(self._get_field_value(fields, 'Actor')),
             'conversant': lambda entry, fields: self._parse_number(self._get_field_value(fields, 'Conversant')),
             'outputId': lambda entry, fields: self._get_field_value(fields, 'OutputId'),
@@ -140,19 +130,9 @@ class DiscoDBParser:
             'forced': lambda entry, fields: self._parse_bool(self._get_field_value(fields, 'Forced')),
             'menuText': lambda entry, fields: self._get_field_value(fields, 'Menu Text'),
             'flagname': lambda entry, fields: self._get_field_value(fields, 'FlagName'),
-            'isRoot': lambda entry, fields:  self._parse_bool(entry.get('isRoot')),
             'isGroup': lambda entry, fields:  self._parse_bool(entry.get('isGroup')),
-            'nodeColor': lambda entry, fields:  entry.get('nodeColor'),
-            'delaySimStatus': lambda entry, fields:  self._parse_number(entry.get('delaySimStatus')),
-            'falseConditionAction': lambda entry, fields:  entry.get('falseConditionAction'),
-            'conditionPriority': lambda entry, fields:  self._parse_number(entry.get('conditionPriority')),
             'conditionstring': lambda entry, fields:  entry.get('conditionsString'),
-            'userscript': lambda entry, fields:  entry.get('userScript'),
-
-            'canvasRectX': lambda entry, fields: self._parse_number(entry.get('canvasRect', {}).get('x')),
-            'canvasRectY': lambda entry, fields: self._parse_number(entry.get('canvasRect', {}).get('y')),
-            'canvasRectWidth': lambda entry, fields: self._parse_number(entry.get('canvasRect', {}).get('width')),
-            'canvasRectHeight': lambda entry, fields: self._parse_number(entry.get('canvasRect', {}).get('height')),
+            'userscript': lambda entry, fields:  entry.get('userScript')
         }
 
     def build_task_map(self, entry, fields):
@@ -613,6 +593,7 @@ class DiscoDBParser:
                     check_target = self._get_field_value(
                         fields, 'check_target')
 
+                    # Update to switch statement, only one can be true at once
                     if difficultypassive is not None:
                         self.cursor.execute("""
                             INSERT INTO checks
@@ -642,9 +623,9 @@ class DiscoDBParser:
 
                     self.cursor.execute("""
                             UPDATE dentries
-                            SET totalAlternates = ?, totalChecks = ?, totalModifiers = ?
+                            SET totalAlternates = ?, hasCheck = ?, totalModifiers = ?
                             WHERE conversationid = ? and id = ?
-                        """, (entry_alternates, entry_checks, entry_modifiers, convo_id, entry_id))
+                        """, (entry_alternates, entry_checks > 0, entry_modifiers, convo_id, entry_id))
 
                     total_entries += 1
 
