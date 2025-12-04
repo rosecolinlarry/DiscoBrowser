@@ -3,22 +3,15 @@ CREATE TABLE "actors"
 (
 	"id" INT DEFAULT null,
 	"name" TEXT DEFAULT null,
-	-- "isPlayer" BOOL DEFAULT false, # Calculate on "you"
 	"description" TEXT DEFAULT null,
 	"characterShortName" TEXT DEFAULT null,
-	-- "isNPC" BOOL DEFAULT true, # Calculate on "you"
 	"shortDescription" TEXT DEFAULT null,
 	"longDescription" TEXT DEFAULT null,
 	"color" INT DEFAULT 0, 
 	"articyId" TEXT DEFAULT null,
 	"pictures" TEXT DEFAULT null,
 	"isFemale" BOOL DEFAULT null,
-	-- "portrait" TEXT DEFAULT null,
-	-- "spritePortrait" TEXT DEFAULT null,
-	-- "alternatePortraits" TEXT DEFAULT null,
-	-- "spritePortraits" TEXT DEFAULT null,
 	"talkativeness" INT DEFAULT 0,
-	-- "isHidden" BOOL DEFAULT FALSE, # Always false for now
 	PRIMARY KEY("id")
 );
 
@@ -49,27 +42,6 @@ CREATE TABLE "conversations"
 	"description" TEXT DEFAULT null,
 	"actor" INT DEFAULT null,
 	"conversant" INT DEFAULT null,
-	-- "useOverrides" INT DEFAULT null, -- Always false
-	-- "overrideSubtitleSettings" BOOL DEFAULT null,
-	-- "showNPCSubtitlesDuringLine" BOOL DEFAULT null,  -- Always true
-	-- "showNPCSubtitlesWithResponses" BOOL DEFAULT null, -- Always true
-	-- "showPCSubtitlesDuringLine" BOOL DEFAULT null,
-	-- "skipPCSubtitleAfterResponseMenu" BOOL DEFAULT null,
-	-- "subtitleCharsPerSecond" NUMERIC DEFAULT null, -- Always 30
-	-- "minSubtitleSeconds" NUMERIC DEFAULT null, -- Always 2
-	-- "continueButton" BOOL DEFAULT null, -- Always 0
-	-- "overrideSequenceSettings" BOOL DEFAULT null, 
-	-- "defaultSequence" TEXT DEFAULT null,
-	-- "defaultPlayerSequence" TEXT DEFAULT null,
-	-- "defaultResponseMenuSequence" TEXT DEFAULT null,
-	-- "overrideInputSettings" INT DEFAULT null,
-	-- "alwaysForceResponseMenu" INT DEFAULT null,
-	-- "includeInvalidEntries" INT DEFAULT null,
-	-- "responseTimeout" NUMERIC DEFAULT null,
-	-- "nodeColor" TEXT DEFAULT null,
-	-- "canvasScrollPositionX" NUMERIC DEFAULT null,
-	-- "canvasScrollPositionY" NUMERIC DEFAULT null,
-	-- "canvasZoom" NUMERIC DEFAULT null,
 	"displayConditionMain" TEXT DEFAULT null,
 	"doneConditionMain" TEXT DEFAULT null,
 	"cancelConditionMain" TEXT DEFAULT null,
@@ -91,7 +63,6 @@ CREATE TABLE "items"
 (
 	"id" INT,
 	"name" TEXT DEFAULT null,
-	-- "isItem" BOOL DEFAULT null, -- Always true
 	"description" TEXT DEFAULT null,
 	"characterShortName" TEXT DEFAULT null,
 	"isCursed" BOOL DEFAULT null,
@@ -114,9 +85,7 @@ CREATE TABLE "items"
 	"itemValue" NUMERIC DEFAULT null,
 	"mediumTextValue" TEXT DEFAULT null,
 	"multipleAllowed" BOOL DEFAULT null,
-	-- "tooltip" TEXT DEFAULT null, -- Always None
 	"articyId" TEXT DEFAULT null,
-	-- "isHidden" BOOL DEFAULT FALSE, -- Unused for now
 	PRIMARY KEY("id"),
 	FOREIGN KEY("conversation") REFERENCES "conversations"("id")
 );
@@ -128,12 +97,6 @@ CREATE TABLE "dentries"
 	"conversationid" INT DEFAULT null,
 	"actor" INT DEFAULT null,
 	"conversant" INT DEFAULT null,
-	-- "delaySimStatus" NUMERIC DEFAULT null,
-	-- "canvasRectX" NUMERIC DEFAULT null,
-	-- "canvasRectY" NUMERIC DEFAULT null,
-	-- "canvasRectWidth" NUMERIC DEFAULT null,
-	-- "canvasRectHeight" NUMERIC DEFAULT null,
-	-- "conditionPriority" INT DEFAULT null, -- Always 2
 	"title" TEXT DEFAULT null,
 	"dialoguetext" TEXT DEFAULT null,
 	"articyId" TEXT DEFAULT null,
@@ -143,17 +106,12 @@ CREATE TABLE "dentries"
 	"flagName" TEXT DEFAULT null,
 	"outputId" TEXT DEFAULT null,
 	"inputId" TEXT DEFAULT null,
-	-- "isRoot" BOOL DEFAULT null, -- Always 0
 	"isGroup" BOOL DEFAULT null,
 	"forced" BOOL DEFAULT null,
-	-- "alwaysPlayVoice" BOOL DEFAULT null,
-	-- "playVoiceInPsychologicalMode" BOOL DEFAULT null,
-	-- "nodeColor" TEXT DEFAULT null,
-	-- "falseConditionAction" TEXT DEFAULT null, -- Always false
 	"userscript" TEXT DEFAULT null,
 	"conditionstring" TEXT DEFAULT null, 
 	"totalAlternates" INT DEFAULT NULL,
-	"hasCheck" BOOL DEFAULT FALSE, -- Use bool, always 0 or 1
+	"hasCheck" BOOL DEFAULT FALSE,
 	"totalModifiers" INT DEFAULT NULL,
 	"isHidden" BOOL DEFAULT FALSE,
 	"displayTitle" TEXT DEFAULT NULL,
