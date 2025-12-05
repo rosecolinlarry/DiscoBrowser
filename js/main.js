@@ -40,7 +40,6 @@ const backBtn = $("backBtn");
 const backStatus = $("backStatus");
 const rootBtn = $("rootBtn");
 const moreDetailsEl = $("moreDetails");
-
 // Tablet sidebar elements
 const tabletConvoSearchInput = $("tabletConvoSearch");
 const tabletConvoSidebar = $("tabletConvoSidebar");
@@ -92,10 +91,10 @@ const mobileTypeFilterSheet = $("mobileTypeFilterSheet");
 const mobileSidebarToggle = $("mobileSidebarToggle");
 const mobileSidebarOverlay = $("mobileSidebarOverlay");
 const conversationsSection = $("conversations-section");
-const mobileHeader = $("mobileHeader"); // Not in refactored HTML (will be null, guarded)
 const mobileHeaderTitle = $("mobileHeaderTitle"); // Not in refactored HTML (will be null, guarded)
 const mobileBackBtn = $("mobileBackBtn"); // Exists in refactored HTML
 const mobileRootBtn = $("mobileRootBtn"); // Exists in refactored HTML
+const mobileHomeButtonEl = $("mobile-home-button");
 
 // Tree control elements
 const expandAllBtn = $("expandAllBtn");
@@ -104,7 +103,6 @@ const collapseAllBtn = $("collapseAllBtn");
 // Clear filters button
 const clearFiltersBtn = $("clearFiltersBtn");
 
-const minSearchLength = 3;
 const searchResultLimit = 50;
 
 let navigationHistory = [];
@@ -123,14 +121,12 @@ let filteredActors = [];
 // Search pagination state
 let currentSearchQuery = "";
 let currentSearchActorIds = null;
-let currentSearchConvoIds = null;
 let currentSearchOffset = 0;
 let currentSearchTotal = 0;
 let currentSearchFilteredCount = 0; // Count after type filtering
 let isLoadingMore = false;
 
 // Mobile search state
-let mobileSelectedConvoId = null;
 let mobileSelectedConvoIds = new Set();
 let mobileSelectedTypes = new Set(["all"]);
 let mobileSelectedActorIds = new Set();
@@ -336,6 +332,23 @@ async function boot() {
 }
 
 function setupConversationFilter() {
+  // Mobile home button
+  if (mobileHomeButtonEl) {
+    mobileHomeButtonEl.addEventListener("click", () => {
+      if (
+        conversationsSection &&
+        conversationsSection.classList.contains("open")
+      ) {
+        // Close sidebar
+        conversationsSection && conversationsSection.classList.remove("open");
+      }
+      if(mobileSidebarOverlay && mobileSidebarOverlay.style.display == "block") {
+        mobileSidebarOverlay.style.display = "none" // Unblur
+      }
+      goToHomeView();
+    });
+  }
+
   // Text search filter
   if (convoSearchInput) {
     convoSearchInput.addEventListener("input", () => {
@@ -2150,7 +2163,7 @@ function setupUnifiedFilterPanel() {
     filterSelectAll.addEventListener("change", () => {
       const checkboxes = filterList.querySelectorAll('input[type="checkbox"]');
       if (filterSelectAll.checked) {
-        checkboxes.forEach(cb => {
+        checkboxes.forEach((cb) => {
           cb.checked = true;
           const item = cb.closest(".checkbox-item");
           if (item) {
@@ -2159,7 +2172,7 @@ function setupUnifiedFilterPanel() {
           }
         });
       } else {
-        checkboxes.forEach(cb => cb.checked = false);
+        checkboxes.forEach((cb) => (cb.checked = false));
         tempSelection.clear();
       }
     });
@@ -2168,13 +2181,16 @@ function setupUnifiedFilterPanel() {
   function openFilterPanel(filterType) {
     currentFilterType = filterType;
     tempSelection = new Set(
-      filterType === "actor" ? mobileSelectedActorIds : 
-      filterType === "type" ? mobileSelectedTypes : []
+      filterType === "actor"
+        ? mobileSelectedActorIds
+        : filterType === "type"
+        ? mobileSelectedTypes
+        : []
     );
 
     // Set title
     if (filterPanelTitle) {
-      filterPanelTitle.textContent = 
+      filterPanelTitle.textContent =
         filterType === "actor" ? "Select Actors" : "Select Types";
     }
 
@@ -2186,10 +2202,10 @@ function setupUnifiedFilterPanel() {
 
     // Populate list
     filterList.innerHTML = "";
-    
+
     if (filterType === "actor") {
       // Render actor list
-      allActors.forEach(actor => {
+      allActors.forEach((actor) => {
         const label = document.createElement("label");
         label.className = "checkbox-item";
         label.dataset.id = actor.id;
@@ -2212,8 +2228,8 @@ function setupUnifiedFilterPanel() {
       // Render type list
       const types = ["flow", "orb", "task"];
       const hasAll = mobileSelectedTypes.has("all");
-      
-      types.forEach(type => {
+
+      types.forEach((type) => {
         const label = document.createElement("label");
         label.className = "checkbox-item";
         label.dataset.id = type;
@@ -2241,10 +2257,14 @@ function setupUnifiedFilterPanel() {
 
   function updateSelectAllState() {
     if (!filterSelectAll) return;
-    const checkboxes = Array.from(filterList.querySelectorAll('input[type="checkbox"]'));
-    const checkedCount = checkboxes.filter(cb => cb.checked).length;
-    filterSelectAll.checked = checkedCount === checkboxes.length && checkboxes.length > 0;
-    filterSelectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+    const checkboxes = Array.from(
+      filterList.querySelectorAll('input[type="checkbox"]')
+    );
+    const checkedCount = checkboxes.filter((cb) => cb.checked).length;
+    filterSelectAll.checked =
+      checkedCount === checkboxes.length && checkboxes.length > 0;
+    filterSelectAll.indeterminate =
+      checkedCount > 0 && checkedCount < checkboxes.length;
   }
 
   // Handle search in filter panel
@@ -2252,7 +2272,7 @@ function setupUnifiedFilterPanel() {
     filterSearch.addEventListener("input", (e) => {
       const query = e.target.value.toLowerCase();
       const items = filterList.querySelectorAll(".checkbox-item");
-      items.forEach(item => {
+      items.forEach((item) => {
         const text = item.textContent.toLowerCase();
         item.style.display = text.includes(query) ? "block" : "none";
       });
@@ -2269,7 +2289,7 @@ function setupUnifiedFilterPanel() {
             valueSpan.textContent = "";
           } else if (mobileSelectedActorIds.size === 1) {
             const actorId = Array.from(mobileSelectedActorIds)[0];
-            const actor = allActors.find(a => a.id === actorId);
+            const actor = allActors.find((a) => a.id === actorId);
             valueSpan.textContent = actor ? actor.name : `1 Actor`;
           } else {
             valueSpan.textContent = `${mobileSelectedActorIds.size} Actors`;
@@ -2281,11 +2301,15 @@ function setupUnifiedFilterPanel() {
       if (chip) {
         const valueSpan = chip.querySelector(".filter-value");
         if (valueSpan) {
-          if (mobileSelectedTypes.has("all") || mobileSelectedTypes.size === 0) {
+          if (
+            mobileSelectedTypes.has("all") ||
+            mobileSelectedTypes.size === 0
+          ) {
             valueSpan.textContent = "";
           } else if (mobileSelectedTypes.size === 1) {
             const type = Array.from(mobileSelectedTypes)[0];
-            valueSpan.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            valueSpan.textContent =
+              type.charAt(0).toUpperCase() + type.slice(1);
           } else {
             valueSpan.textContent = `${mobileSelectedTypes.size} Types`;
           }
@@ -2647,7 +2671,7 @@ function performMobileSearch(resetSearch = true) {
 
 function showMobileConvoFilter() {
   if (!mobileConvoFilterScreen) return;
-  
+
   if (window.refreshMobileConvoList) {
     window.refreshMobileConvoList();
   }
@@ -2656,7 +2680,7 @@ function showMobileConvoFilter() {
 
 function showMobileActorFilter() {
   if (!mobileActorFilterScreen) return;
-  
+
   // Reset temporary selection to current selection when opening
   tempSelectedActorIds = new Set(mobileSelectedActorIds);
 
@@ -2671,7 +2695,7 @@ function showMobileActorFilter() {
 
 function showMobileTypeFilter() {
   if (!mobileTypeFilterSheet) return;
-  
+
   mobileTypeFilterSheet.style.display = "block";
   mobileTypeFilterSheet.classList.add("active");
 }

@@ -61,6 +61,21 @@ h1 {
 h1:hover {
   color: var(--accent);
 }
+#mobile-home-button {
+  margin: 0;
+  font-weight: bold;
+  padding: 8px 0;
+  flex: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+  width: 50px;
+  background-color: var(--card-bg);
+}
+
+#mobile-home-button:hover {
+  background-color: var(--secondary);
+}
 
 .github-link {
   color: var(--accent);
@@ -1181,7 +1196,8 @@ button {
 }
 
 button:hover {
-  background: #2974c6;
+  background: var(--secondary);
+  color: white;
   box-shadow: 0 2px 8px rgba(34, 106, 168, 0.3);
 }
 
@@ -1557,7 +1573,6 @@ a:hover {
     flex: 0 0 auto;
     min-width: 120px;
   }
-
 }
 
 /* Responsive: Landscape Tablet (768px to 1024px) */
@@ -2685,6 +2700,10 @@ a:hover {
 
   #entryListHeader {
     margin: 2px 0 4px 0;
+  }
+
+  #tree-controls {
+    padding: 8px 16px;
   }
 }
 
