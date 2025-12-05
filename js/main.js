@@ -415,6 +415,7 @@ function filterConversationTree() {
     }
     return;
   }
+  // TODO KA Do not render as flat list if the filter is just on convo type
 
   // Get all matching conversation leaves
   const matches = [];

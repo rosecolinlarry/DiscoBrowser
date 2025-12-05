@@ -226,8 +226,7 @@ export function searchDialogues(
   filterStartInput = true,
   offset = 0,
   conversationIds = null,
-  wholeWords = false,
-  showHidden = false
+  wholeWords = false
 ) {
   const raw = (q || "").trim();
 
@@ -320,12 +319,6 @@ export function searchDialogues(
     where = where ? `${where} AND ${startFilter}` : startFilter;
   }
 
-  // Hide hidden conversations
-  const showHiddenFilter = !showHidden ? `isHidden <> 0` : "";
-  if (!showHidden) {
-    where = where ? `${where} AND ${showHiddenFilter}` : showHiddenFilter;
-  }
-
   // If still no where clause, default to all (except start input if filtered)
   if (!where) {
     where = "1=1";
@@ -416,8 +409,6 @@ export function searchDialogues(
     dialoguesWhere += ` AND id IN (${convoList})`;
   }
 
-  dialoguesWhere += !showHidden ? ` AND isHidden <> 0` : "";
-  
   // Get count for dialogues
   const dialoguesCountSQL = `SELECT COUNT(*) as count FROM conversations WHERE ${dialoguesWhere};`;
   const dialoguesCount = execRowsFirstOrDefault(dialoguesCountSQL)?.count || 0;
