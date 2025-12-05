@@ -62,40 +62,40 @@ class DiscoDBParser:
             "name": lambda actor, fields: self._get_field_value(fields, "Name"),
             "description": lambda actor, fields: self._get_field_value(fields, "Description"),
             "characterShortName": lambda actor, fields: self._get_field_value(fields, "character_short_name"),
-            "isFemale": lambda actor, fields: self._parse_bool(self._get_field_value(fields, "IsFemale")),
             "shortDescription": lambda actor, fields: self._get_field_value(fields, "short_description"),
             "longDescription": lambda actor, fields: self._get_field_value(fields, "LongDescription"),
             "color": lambda actor, fields: self._parse_number(self._get_field_value(fields, "color")),
             "articyId": lambda actor, fields: self._get_field_value(fields, "Articy Id"),
             "pictures": lambda actor, fields: self._get_field_value(fields, "Pictures"),
+            "isFemale": lambda actor, fields: self._parse_bool(self._get_field_value(fields, "IsFemale")),
             "talkativeness": lambda actor, fields: self._parse_number(self._get_field_value(fields, "Talkativeness")),
         }
 
         self.ITEM_DATA_MAP = {
             "id": lambda item, fields: item.get("id"),
             "name": lambda item, fields: self._get_field_value(fields, 'Name'),
-            "isCursed": lambda item, fields: self._parse_bool(self._coalesce_field_values(fields, ['Cursed', 'cursed'])),
-            "isConsumable": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'isConsumable')),
-            "autoequip": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'autoequip')),
-            "isSubstance": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'isSubstance')),
-            "isThought": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'isThought')),
-            "multipleAllowed": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'multipleAllowed')),
-            "timeLeft": lambda item, fields: self._parse_number(self._get_field_value(fields, 'timeLeft')),
-            "itemType": lambda item, fields: self._parse_number(self._get_field_value(fields, 'itemType')),
-            "sound": lambda item, fields: self._parse_number(self._get_field_value(fields, 'sound')),
-            "itemGroup": lambda item, fields: self._parse_number(self._get_field_value(fields, 'itemGroup')),
-            "itemValue": lambda item, fields: self._parse_number(self._get_field_value(fields, 'itemValue')),
             "description": lambda item, fields: self._coalesce_field_values(fields, ['description', 'Description']),
             "characterShortName": lambda item, fields: self._get_field_value(fields, 'character_short_name'),
+            "isCursed": lambda item, fields: self._parse_bool(self._coalesce_field_values(fields, ['Cursed', 'cursed'])),
             "fixtureBonus": lambda item, fields: self._get_field_value(fields, 'fixtureBonus'),
             "requirement": lambda item, fields: self._get_field_value(fields, 'requirement'),
             "bonus": lambda item, fields: self._get_field_value(fields, 'bonus'),
-            "conversation": lambda item, fields: self._get_field_value(fields, 'conversation'),
             "thoughtType": lambda item, fields: self._get_field_value(fields, 'thoughtType'),
+            "isThought": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'isThought')),
             "fixtureDescription": lambda item, fields: self._get_field_value(fields, 'fixtureDescription'),
+            "autoequip": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'autoequip')),
+            "itemType": lambda item, fields: self._parse_number(self._get_field_value(fields, 'itemType')),
+            "conversation": lambda item, fields: self._get_field_value(fields, 'conversation'),
+            "timeLeft": lambda item, fields: self._parse_number(self._get_field_value(fields, 'timeLeft')),
+            "isSubstance": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'isSubstance')),
             "stackName": lambda item, fields: self._get_field_value(fields, 'stackName'),
+            "sound": lambda item, fields: self._parse_number(self._get_field_value(fields, 'sound')),
+            "isConsumable": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'isConsumable')),
+            "itemGroup": lambda item, fields: self._parse_number(self._get_field_value(fields, 'itemGroup')),
             "equipOrb": lambda item, fields: self._get_field_value(fields, 'equipOrb'),
+            "itemValue": lambda item, fields: self._parse_number(self._get_field_value(fields, 'itemValue')),
             "mediumTextValue": lambda item, fields: self._get_field_value(fields, 'MediumTextValue'),
+            "multipleAllowed": lambda item, fields: self._parse_bool(self._get_field_value(fields, 'multipleAllowed')),
             "articyId": lambda item, fields: self._get_field_value(fields, 'Articy Id'),
         }
 
@@ -458,23 +458,17 @@ class DiscoDBParser:
                     'type': convo_type,
                     'totalSubtasks': total_subtasks,
                     'displayTitle': self.clean_conversation_titles(title, convo_type),
-                    'isHidden': self.mark_conversations_hidden(title, description)
+                    'isHidden': self.mark_conversations_hidden(title, description),
                 }
 
                 self.cursor.execute("""
                     INSERT OR REPLACE INTO conversations 
                     (id, title, articyId, onUse, overrideDialogueCondition, alternateOrbText, checkType, 
-                     condition, instruction, placement, difficulty, description, actor, conversant, useOverrides,
-                     overrideSubtitleSettings, showNPCSubtitlesDuringLine, showNPCSubtitlesWithResponses,
-                     showPCSubtitlesDuringLine, skipPCSubtitleAfterResponseMenu, subtitleCharsPerSecond,
-                     minSubtitleSeconds, continueButton, overrideSequenceSettings, defaultSequence,
-                     defaultPlayerSequence, defaultResponseMenuSequence, overrideInputSettings,
-                     alwaysForceResponseMenu, includeInvalidEntries, responseTimeout, nodeColor,
-                     canvasScrollPositionX, canvasScrollPositionY, canvasZoom,
+                     condition, instruction, placement, difficulty, description, actor, conversant, 
                      displayConditionMain, doneConditionMain, cancelConditionMain, taskReward, taskTimed,
                      type, totalSubtasks, displayTitle, isHidden
                      )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, tuple(convo_data.values()))
 
             self.connection.commit()
@@ -602,10 +596,9 @@ class DiscoDBParser:
 
                     self.cursor.execute("""
                             UPDATE dentries
-                            SET totalAlternates = ?, hasCheck = ?, totalModifiers = ?
+                            SET hasAlts = ?, hasCheck = ?, totalModifiers = ?
                             WHERE conversationid = ? and id = ?
-                        """, (entry_alternates, entry_checks > 0, entry_modifiers, convo_id, entry_id))
-
+                        """, (entry_alternates > 0, entry_checks > 0, entry_modifiers, convo_id, entry_id))
                     total_entries += 1
 
             self.connection.commit()
@@ -752,33 +745,6 @@ class DiscoDBParser:
             self.connection.rollback()
             return False
 
-    def parse_metadata(self) -> bool:
-        """Parse metadata from JSON."""
-        if self.data is None or self.connection is None or self.cursor is None:
-            return False
-        try:
-            logger.info("Parsing metadata...")
-            meta_data = {
-                'm_Name': self.data.get('m_Name'),
-                'version': self.data.get('version'),
-                'author': self.data.get('author'),
-                'description': self.data.get('description'),
-                'globalUserScript': self.data.get('globalUserScript'),
-            }
-
-            self.cursor.execute("""
-                INSERT INTO meta (m_Name, version, author, description, globalUserScript)
-                VALUES (?, ?, ?, ?, ?)
-            """, tuple(meta_data.values()))
-
-            self.connection.commit()
-            logger.info("Successfully inserted metadata")
-            return True
-        except Exception as e:
-            logger.error(f"Error parsing metadata: {e}")
-            self.connection.rollback()
-            return False
-
     def parse(self) -> bool:
         """Run the complete parsing process."""
         try:
@@ -786,9 +752,6 @@ class DiscoDBParser:
                 return False
 
             if not self.create_database():
-                return False
-
-            if not self.parse_metadata():
                 return False
 
             if not self.parse_actors():
@@ -837,16 +800,9 @@ class DiscoDBParser:
 
 
 def main():
-    """Main entry point."""
-    if len(sys.argv) != 4:
-        print("Usage: python parse_disco_json.py <input_json_path> <sql_schema_path> <output_db_path>")
-        print(
-            "Example: python parse_disco_json.py 'Disco Elysium.json' 'discobase.sql' 'discobase.sqlite3'")
-        sys.exit(1)
-
-    json_path = sys.argv[1]
-    schema_sql_path = sys.argv[2]
-    db_path = sys.argv[3]
+    json_path = "D:\\Disco Elysium\\Source Code\\extractDiscoDb\\Disco Elysium.json"
+    schema_sql_path = "D:\\Disco Elysium\\Source Code\\DiscoBrowser\\db\\discobase.sql"
+    db_path = "D:\\Disco Elysium\\Source Code\\DiscoBrowser\\db\\discobase.sqlite3"
 
     # Verify input file exists
     if not Path(json_path).exists():

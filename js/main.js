@@ -92,9 +92,10 @@ const mobileTypeFilterSheet = $("mobileTypeFilterSheet");
 const mobileSidebarToggle = $("mobileSidebarToggle");
 const mobileSidebarOverlay = $("mobileSidebarOverlay");
 const conversationsSection = $("conversations-section");
-const mobileHeader = $("mobileHeader");
-const mobileHeaderTitle = $("mobileHeaderTitle");
-const mobileBackBtn = $("mobileBackBtn");
+const mobileHeader = $("mobileHeader"); // Not in refactored HTML (will be null, guarded)
+const mobileHeaderTitle = $("mobileHeaderTitle"); // Not in refactored HTML (will be null, guarded)
+const mobileBackBtn = $("mobileBackBtn"); // Exists in refactored HTML
+const mobileRootBtn = $("mobileRootBtn"); // Exists in refactored HTML
 
 // Tree control elements
 const expandAllBtn = $("expandAllBtn");
@@ -102,7 +103,6 @@ const collapseAllBtn = $("collapseAllBtn");
 
 // Clear filters button
 const clearFiltersBtn = $("clearFiltersBtn");
-const mobileRootBtn = $("mobileRootBtn");
 
 const minSearchLength = 3;
 const searchResultLimit = 50;
@@ -319,6 +319,9 @@ async function boot() {
 
   // Setup mobile sidebar
   setupMobileSidebar();
+
+  // Setup unified filter panel (for refactored HTML)
+  setupUnifiedFilterPanel();
 
   // Setup mobile search
   setupMobileSearch();
@@ -1800,13 +1803,16 @@ function searchDialogues(q, resetSearch = true) {
 
     // Starting a new search
     currentSearchQuery = trimmedQ;
-    currentSearchActorIds =
-      selectedActorIds.size === 0 || selectedActorIds.size === allActors.length
-        ? null
-        : Array.from(selectedActorIds);
-
     currentSearchOffset = 0;
+  }
 
+  // Always update actor IDs from current filter selection (even when re-filtering)
+  currentSearchActorIds =
+    selectedActorIds.size === 0 || selectedActorIds.size === allActors.length
+      ? null
+      : Array.from(selectedActorIds);
+
+  if (resetSearch) {
     if (searchLoader) searchLoader.style.display = "flex";
 
     // Hide homepage, show dialogue content for search
@@ -2083,6 +2089,211 @@ function loadChildOptions(convoId, entryId) {
   }
 }
 
+/* Unified Filter Panel Handler (for refactored HTML) */
+function setupUnifiedFilterPanel() {
+  const filterPanel = $("filterPanel");
+  const filterBackBtn = document.querySelector(".filter-back-btn");
+  const filterPanelTitle = $("filterPanelTitle");
+  const filterSearch = $("filterSearch");
+  const filterSelectAll = $("filterSelectAll");
+  const filterApply = $("filterApply");
+  const filterList = $("filterList");
+  const actorFilterChip = $("actorFilterChip");
+  const typeFilterChip = $("typeFilterChip");
+
+  if (!filterPanel) return; // Skip if new filter panel doesn't exist
+
+  let currentFilterType = null; // 'actor' or 'type'
+  let tempSelection = new Set();
+
+  // Handle filter chip clicks
+  if (actorFilterChip) {
+    actorFilterChip.addEventListener("click", () => {
+      openFilterPanel("actor");
+    });
+  }
+
+  if (typeFilterChip) {
+    typeFilterChip.addEventListener("click", () => {
+      openFilterPanel("type");
+    });
+  }
+
+  // Handle back button
+  if (filterBackBtn) {
+    filterBackBtn.addEventListener("click", () => {
+      filterPanel.style.display = "none";
+      currentFilterType = null;
+    });
+  }
+
+  // Handle apply button
+  if (filterApply) {
+    filterApply.addEventListener("click", () => {
+      if (currentFilterType === "actor") {
+        mobileSelectedActorIds = new Set(tempSelection);
+        updateMobileActorFilterLabel();
+        updateFilterChipDisplay("actor");
+      } else if (currentFilterType === "type") {
+        mobileSelectedTypes = new Set(tempSelection);
+        updateMobileTypeFilterLabel();
+        updateFilterChipDisplay("type");
+      }
+      filterPanel.style.display = "none";
+      currentFilterType = null;
+    });
+  }
+
+  // Handle select all checkbox
+  if (filterSelectAll) {
+    filterSelectAll.addEventListener("change", () => {
+      const checkboxes = filterList.querySelectorAll('input[type="checkbox"]');
+      if (filterSelectAll.checked) {
+        checkboxes.forEach(cb => {
+          cb.checked = true;
+          const item = cb.closest(".checkbox-item");
+          if (item) {
+            const id = item.dataset.id;
+            if (id) tempSelection.add(id);
+          }
+        });
+      } else {
+        checkboxes.forEach(cb => cb.checked = false);
+        tempSelection.clear();
+      }
+    });
+  }
+
+  function openFilterPanel(filterType) {
+    currentFilterType = filterType;
+    tempSelection = new Set(
+      filterType === "actor" ? mobileSelectedActorIds : 
+      filterType === "type" ? mobileSelectedTypes : []
+    );
+
+    // Set title
+    if (filterPanelTitle) {
+      filterPanelTitle.textContent = 
+        filterType === "actor" ? "Select Actors" : "Select Types";
+    }
+
+    // Show/hide disclaimer
+    const disclaimer = $("filterDisclaimer");
+    if (disclaimer) {
+      disclaimer.style.display = filterType === "actor" ? "block" : "none";
+    }
+
+    // Populate list
+    filterList.innerHTML = "";
+    
+    if (filterType === "actor") {
+      // Render actor list
+      allActors.forEach(actor => {
+        const label = document.createElement("label");
+        label.className = "checkbox-item";
+        label.dataset.id = actor.id;
+        const isSelected = mobileSelectedActorIds.has(actor.id);
+        label.innerHTML = `
+          <input type="checkbox" ${isSelected ? "checked" : ""} />
+          <span>${actor.name}</span>
+        `;
+        label.querySelector("input").addEventListener("change", (e) => {
+          if (e.target.checked) {
+            tempSelection.add(actor.id);
+          } else {
+            tempSelection.delete(actor.id);
+          }
+          updateSelectAllState();
+        });
+        filterList.appendChild(label);
+      });
+    } else if (filterType === "type") {
+      // Render type list
+      const types = ["flow", "orb", "task"];
+      const hasAll = mobileSelectedTypes.has("all");
+      
+      types.forEach(type => {
+        const label = document.createElement("label");
+        label.className = "checkbox-item";
+        label.dataset.id = type;
+        const isSelected = hasAll || mobileSelectedTypes.has(type);
+        label.innerHTML = `
+          <input type="checkbox" ${isSelected ? "checked" : ""} />
+          <span>${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+        `;
+        label.querySelector("input").addEventListener("change", (e) => {
+          if (e.target.checked) {
+            tempSelection.add(type);
+            tempSelection.delete("all");
+          } else {
+            tempSelection.delete(type);
+          }
+          updateSelectAllState();
+        });
+        filterList.appendChild(label);
+      });
+    }
+
+    updateSelectAllState();
+    filterPanel.style.display = "block";
+  }
+
+  function updateSelectAllState() {
+    if (!filterSelectAll) return;
+    const checkboxes = Array.from(filterList.querySelectorAll('input[type="checkbox"]'));
+    const checkedCount = checkboxes.filter(cb => cb.checked).length;
+    filterSelectAll.checked = checkedCount === checkboxes.length && checkboxes.length > 0;
+    filterSelectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+  }
+
+  // Handle search in filter panel
+  if (filterSearch) {
+    filterSearch.addEventListener("input", (e) => {
+      const query = e.target.value.toLowerCase();
+      const items = filterList.querySelectorAll(".checkbox-item");
+      items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(query) ? "block" : "none";
+      });
+    });
+  }
+
+  function updateFilterChipDisplay(filterType) {
+    if (filterType === "actor") {
+      const chip = $("actorFilterChip");
+      if (chip) {
+        const valueSpan = chip.querySelector(".filter-value");
+        if (valueSpan) {
+          if (mobileSelectedActorIds.size === 0) {
+            valueSpan.textContent = "";
+          } else if (mobileSelectedActorIds.size === 1) {
+            const actorId = Array.from(mobileSelectedActorIds)[0];
+            const actor = allActors.find(a => a.id === actorId);
+            valueSpan.textContent = actor ? actor.name : `1 Actor`;
+          } else {
+            valueSpan.textContent = `${mobileSelectedActorIds.size} Actors`;
+          }
+        }
+      }
+    } else if (filterType === "type") {
+      const chip = $("typeFilterChip");
+      if (chip) {
+        const valueSpan = chip.querySelector(".filter-value");
+        if (valueSpan) {
+          if (mobileSelectedTypes.has("all") || mobileSelectedTypes.size === 0) {
+            valueSpan.textContent = "";
+          } else if (mobileSelectedTypes.size === 1) {
+            const type = Array.from(mobileSelectedTypes)[0];
+            valueSpan.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+          } else {
+            valueSpan.textContent = `${mobileSelectedTypes.size} Types`;
+          }
+        }
+      }
+    }
+  }
+}
+
 /* Mobile Search Functions */
 function setupMobileSearch() {
   // Open mobile search screen
@@ -2134,16 +2345,16 @@ function setupMobileSearch() {
     mobileClearFilters.addEventListener("click", () => {
       // Clear conversation filter
       mobileSelectedConvoIds.clear();
-      mobileConvoFilterValue.textContent = "All";
+      if (mobileConvoFilterValue) mobileConvoFilterValue.textContent = "All";
 
       // Clear type filter
       mobileSelectedTypes.clear();
       mobileSelectedTypes.add("all");
-      mobileTypeFilterValue.textContent = "All";
+      if (mobileTypeFilterValue) mobileTypeFilterValue.textContent = "All";
 
       // Clear actor filter
       mobileSearchActorIds = null;
-      mobileActorFilterValue.textContent = "All";
+      if (mobileActorFilterValue) mobileActorFilterValue.textContent = "All";
 
       // Clear whole words
       if (mobileWholeWordsCheckbox) {
@@ -2287,7 +2498,6 @@ function performMobileSearch(resetSearch = true) {
   try {
     const response = DB.searchDialogues(
       mobileSearchQuery,
-      3,
       searchResultLimit,
       mobileSearchActorIds,
       true,
@@ -2435,6 +2645,8 @@ function performMobileSearch(resetSearch = true) {
 }
 
 function showMobileConvoFilter() {
+  if (!mobileConvoFilterScreen) return;
+  
   if (window.refreshMobileConvoList) {
     window.refreshMobileConvoList();
   }
@@ -2442,6 +2654,8 @@ function showMobileConvoFilter() {
 }
 
 function showMobileActorFilter() {
+  if (!mobileActorFilterScreen) return;
+  
   // Reset temporary selection to current selection when opening
   tempSelectedActorIds = new Set(mobileSelectedActorIds);
 
@@ -2455,6 +2669,8 @@ function showMobileActorFilter() {
 }
 
 function showMobileTypeFilter() {
+  if (!mobileTypeFilterSheet) return;
+  
   mobileTypeFilterSheet.style.display = "block";
   mobileTypeFilterSheet.classList.add("active");
 }
@@ -2466,12 +2682,8 @@ function setupMobileConvoFilter() {
   const selectAllCheckbox = $("mobileConvoSelectAll");
   const addToSelectionBtn = $("mobileConvoAddToSelection");
 
+  // Skip setup if any required elements are missing (indicates refactored HTML)
   if (!backBtn || !searchInput || !listContainer) {
-    console.error("Mobile convo filter elements missing:", {
-      backBtn,
-      searchInput,
-      listContainer,
-    });
     return;
   }
 
@@ -2600,6 +2812,8 @@ function setupMobileConvoFilter() {
 }
 
 function updateMobileConvoFilterLabel() {
+  if (!mobileConvoFilterValue) return;
+
   if (mobileSelectedConvoIds.size === 0) {
     mobileConvoFilterValue.textContent = "All";
   } else if (mobileSelectedConvoIds.size === 1) {
@@ -2738,6 +2952,8 @@ function setupMobileActorFilter() {
 }
 
 function updateMobileActorFilterLabel() {
+  if (!mobileActorFilterValue) return;
+
   if (mobileSelectedActorIds.size === 0) {
     mobileActorFilterValue.textContent = "All";
   } else if (mobileSelectedActorIds.size === 1) {
@@ -2750,6 +2966,8 @@ function updateMobileActorFilterLabel() {
 }
 
 function updateMobileTypeFilterLabel() {
+  if (!mobileTypeFilterValue) return;
+
   if (mobileSelectedTypes.has("all") || mobileSelectedTypes.size === 0) {
     mobileTypeFilterValue.textContent = "All";
   } else if (mobileSelectedTypes.size === 1) {
@@ -2762,6 +2980,9 @@ function updateMobileTypeFilterLabel() {
 }
 
 function setupMobileTypeFilter() {
+  // Skip setup if required elements are missing (indicates refactored HTML)
+  if (!mobileTypeFilterSheet) return;
+
   const applyBtn = $("mobileTypeApply");
   const checkboxes = mobileTypeFilterSheet.querySelectorAll(
     'input[type="checkbox"]'

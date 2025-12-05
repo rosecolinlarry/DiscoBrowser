@@ -136,11 +136,7 @@ export function getEntriesForConversation(convoId) {
 /* Fetch a single entry row (core fields) */
 export function getEntry(convoId, entryId) {
   return execRowsFirstOrDefault(
-    `SELECT de.id, de.title, de.dialoguetext, de.actor, 
-    CASE WHEN de.totalChecks > 0 THEN TRUE 
-    ELSE FALSE END as 'hascheck',
-    CASE WHEN de.totalAlternates > 0 THEN TRUE
-    ELSE FALSE END AS 'hasalts'
+    `SELECT de.id, de.title, de.dialoguetext, de.actor, de.hasCheck,de.hasAlts
     , de.sequence, de.conditionstring, de.userscript, c.difficulty as difficultypass
           FROM dentries de
         LEFT JOIN checks c ON c.dialogueid = de.id AND c.conversationid = de.conversationid
@@ -266,16 +262,17 @@ export function searchDialogues(
       if (wholeWords) {
         // Use word boundaries: space, punctuation, or start/end of string
         allowedWordBarriers.forEach((c) => {
+          const safeC = c.replace(/'/g, "''"); // Escape single quotes in barriers
           conditions.push(`(
           dialoguetext LIKE '% ${safe} %' OR 
-          dialoguetext LIKE '${c}${safe} %' OR 
-          dialoguetext LIKE '% ${safe}${c}' OR 
-          dialoguetext LIKE '${c}${safe}${c}' OR 
+          dialoguetext LIKE '${safeC}${safe} %' OR 
+          dialoguetext LIKE '% ${safe}${safeC}' OR 
+          dialoguetext LIKE '${safeC}${safe}${safeC}' OR 
           dialoguetext LIKE '${safe}' OR 
           title LIKE '% ${safe} %' OR 
-          title LIKE '${c}${safe} %' OR 
-          title LIKE '% ${safe}${c}' OR 
-          title LIKE '${c}${safe}${c}' OR 
+          title LIKE '${safeC}${safe} %' OR 
+          title LIKE '% ${safe}${safeC}' OR 
+          title LIKE '${safeC}${safe}${safeC}' OR 
           title LIKE '${safe}'
         )`);
         });
@@ -361,15 +358,16 @@ export function searchDialogues(
       const safe = word.replace(/'/g, "''");
       if (wholeWords) {
         allowedWordBarriers.forEach((c) => {
+          const safeC = c.replace(/'/g, "''"); // Escape single quotes in barriers
           dialoguesConditions.push(`(
-          description LIKE '%${c}${safe}${c}%' OR 
-          description LIKE '% ${safe}${c}%' OR 
-          description LIKE '%${c}${safe} %' OR 
+          description LIKE '%${safeC}${safe}${safeC}%' OR 
+          description LIKE '% ${safe}${safeC}%' OR 
+          description LIKE '%${safeC}${safe} %' OR 
           description LIKE '% ${safe} %' OR 
           description LIKE '${safe}' OR 
-          displayTitle LIKE '%${c}${safe}${c}%' OR 
-          displayTitle LIKE '% ${safe}${c}%' OR 
-          displayTitle LIKE '%${c}${safe} %' OR 
+          displayTitle LIKE '%${safeC}${safe}${safeC}%' OR 
+          displayTitle LIKE '% ${safe}${safeC}%' OR 
+          displayTitle LIKE '%${safeC}${safe} %' OR 
           displayTitle LIKE '% ${safe} %' OR
           displayTitle LIKE '${safe}'
             )`);
@@ -440,11 +438,12 @@ export function searchDialogues(
       const safe = word.replace(/'/g, "''");
       if (wholeWords) {
         allowedWordBarriers.forEach((c) => {
+          const safeC = c.replace(/'/g, "''"); // Escape single quotes in barriers
           alternatesConditions.push(`(
           alternateline LIKE '% ${safe} %' OR 
-          alternateline LIKE '${c}${safe} %' OR 
-          alternateline LIKE '% ${safe}${c}%' OR 
-          alternateline LIKE '${c}${safe}${c}' OR 
+          alternateline LIKE '${safeC}${safe} %' OR 
+          alternateline LIKE '% ${safe}${safeC}%' OR 
+          alternateline LIKE '${safeC}${safe}${safeC}' OR 
           alternateline LIKE '%${safe}%'
         )`);
         });

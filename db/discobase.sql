@@ -110,7 +110,7 @@ CREATE TABLE "dentries"
 	"forced" BOOL DEFAULT null,
 	"userscript" TEXT DEFAULT null,
 	"conditionstring" TEXT DEFAULT null, 
-	"totalAlternates" INT DEFAULT NULL,
+	"hasAlts" BOOL DEFAULT FALSE,
 	"hasCheck" BOOL DEFAULT FALSE,
 	"totalModifiers" INT DEFAULT NULL,
 	"isHidden" BOOL DEFAULT FALSE,

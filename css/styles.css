@@ -1558,10 +1558,6 @@ a:hover {
     min-width: 120px;
   }
 
-  /* Hide the "Inspired by" text at this breakpoint to reduce clutter */
-  .muted-text.mobile-hide {
-    display: none;
-  }
 }
 
 /* Responsive: Landscape Tablet (768px to 1024px) */
