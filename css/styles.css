@@ -61,7 +61,7 @@ h1 {
 h1:hover {
   color: var(--accent);
 }
-#mobile-home-button {
+#convoSearchHomeButton {
   margin: 0;
   font-weight: bold;
   padding: 8px 0;
@@ -73,7 +73,7 @@ h1:hover {
   background-color: var(--card-bg);
 }
 
-#mobile-home-button:hover {
+#convoSearchHomeButton:hover {
   background-color: var(--secondary);
 }
 
@@ -474,7 +474,7 @@ section {
   transform: scale(0.98);
 }
 
-/* Conversation Filter (for tablet view) */
+/* Conversation Filter */
 #conversation-filter-wrapper {
   position: relative;
   min-width: 180px;
@@ -511,11 +511,6 @@ section {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Hide conversation filter by default (show only on tablet) */
-.tablet-only {
-  display: none;
 }
 
 #typeFilterLabel {
@@ -720,7 +715,7 @@ section {
 }
 
 /* Conversation filter styles */
-#convo-filter {
+#convoFilterContainer {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -730,7 +725,7 @@ section {
   border-radius: 4px;
 }
 
-#convoSearch {
+#convoSearchInput {
   padding: 6px 8px;
   border: 1px solid var(--card-border);
   background: var(--card-bg);
@@ -739,17 +734,17 @@ section {
   font-size: 13px;
 }
 
-#convoSearch::placeholder {
+#convoSearchInput::placeholder {
   color: var(--muted);
 }
 
-#convo-type-filter {
+#convoTypeFilterRow {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
 
-.type-filter-btn {
+.convo__type__filter {
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 600;
@@ -761,36 +756,36 @@ section {
   transition: all 0.2s;
 }
 
-.type-filter-btn:hover {
+.convo__type__filter:hover {
   background: var(--panel);
 }
 
-.type-filter-btn.active {
+.convo__type__filter.active {
   background: var(--secondary);
   border-color: var(--secondary);
   color: #fff;
 }
 
-.type-filter-btn[data-type="orb"].active {
+.convo__type__filter[data-type="orb"].active {
   background: #4ac6aa;
   border-color: #4ac6aa;
   color: #000;
 }
 
-.type-filter-btn[data-type="task"].active {
+.convo__type__filter[data-type="task"].active {
   background: #d7421c;
   border-color: #d7421c;
   color: #fff;
 }
 
-.type-filter-btn[data-type="flow"].active {
+.convo__type__filter[data-type="flow"].active {
   background: #666;
   border-color: #666;
   color: #fff;
 }
 
-/* Tree controls for expand/collapse all */
-#tree-controls {
+/* Conversation Filter Buttons */
+.tree-control-btn-row {
   display: flex;
   gap: 6px;
   padding: 0 8px 8px 8px;
@@ -1339,8 +1334,8 @@ a:hover {
   color: var(--accent) !important;
 }
 
-/* Tablet Sidebar Styles */
-.tablet-sidebar {
+/* Sidebar Styles */
+.sidebar {
   position: fixed;
   top: 0;
   width: 320px;
@@ -1354,25 +1349,38 @@ a:hover {
   transition: transform 0.3s ease;
 }
 
-.tablet-sidebar-left {
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 150;
+  backdrop-filter: blur(2px);
+}
+
+.sidebar-left {
   left: 0;
   transform: translateX(-100%);
 }
 
-.tablet-sidebar-left.open {
+.sidebar-left.open {
   transform: translateX(0);
 }
 
-.tablet-sidebar-right {
+.sidebar-right {
   right: 0;
   transform: translateX(100%);
 }
 
-.tablet-sidebar-right.open {
+.sidebar-right.open {
   transform: translateX(0);
 }
 
-.tablet-sidebar-header {
+.sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1381,12 +1389,12 @@ a:hover {
   flex-shrink: 0;
 }
 
-.tablet-sidebar-header h3 {
+.sidebar-header h3 {
   margin: 0;
   font-size: 1.1rem;
 }
 
-.tablet-sidebar-close {
+.sidebar-close {
   background: none;
   border: none;
   color: var(--fg);
@@ -1398,23 +1406,12 @@ a:hover {
   transition: opacity 0.2s;
 }
 
-.tablet-sidebar-close:hover {
+.sidebar-close:hover {
   opacity: 1;
 }
 
-.tablet-sidebar #tablet-convo-filter,
-.tablet-sidebar #tablet-tree-controls {
-  margin: 12px 16px;
-  flex-shrink: 0;
-}
 
-.tablet-sidebar #tablet-convo-filter {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tablet-sidebar #tabletConvoSearch {
+.sidebar #tabletConvoSearch {
   padding: 6px 8px;
   border: 1px solid var(--card-border);
   background: var(--card-bg);
@@ -1423,28 +1420,13 @@ a:hover {
   font-size: 13px;
 }
 
-.tablet-sidebar #tabletConvoSearch::placeholder {
-  color: var(--muted);
-}
-
-.tablet-sidebar #tablet-convo-type-filter {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.tablet-sidebar #tablet-tree-controls {
-  display: flex;
-  gap: 6px;
-}
-
-.tablet-sidebar .scrolling-card {
+.sidebar .scrolling-card {
   flex: 1;
   margin: 0 16px 16px 16px;
   overflow-y: auto;
 }
 
-.tablet-sidebar #tabletBackButtonContainer {
+.sidebar #historyNavigationButtonContainer {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
   display: flex;
@@ -1452,11 +1434,11 @@ a:hover {
   flex-shrink: 0;
 }
 
-.tablet-sidebar #tabletBackButtonContainer button {
+.sidebar #historyNavigationButtonContainer button {
   flex: 1;
 }
 
-.tablet-toggle-btn {
+.sidebar-toggle-btn {
   position: fixed;
   top: 50%;
   transform: translateY(-50%);
@@ -1477,28 +1459,28 @@ a:hover {
   text-orientation: mixed;
 }
 
-.tablet-toggle-btn:hover {
+.sidebar-toggle-btn:hover {
   background: var(--hover-bg);
 }
 
-.tablet-toggle-left {
+.sidebar-toggle-left {
   left: 0;
   border-left: none;
   border-radius: 0 8px 8px 0;
 }
 
-.tablet-toggle-right {
+.sidebar-toggle-right {
   right: 0;
   border-right: none;
   border-radius: 8px 0 0 8px;
 }
 
-.tablet-toggle-btn .toggle-icon {
+.sidebar-toggle-btn .toggle-icon {
   font-size: 1.2rem;
   writing-mode: horizontal-tb;
 }
 
-.tablet-toggle-btn .toggle-label {
+.sidebar-toggle-btn .toggle-label {
   font-size: 0.75rem;
   font-weight: 500;
 }
@@ -1540,7 +1522,7 @@ a:hover {
   }
 
   /* Show tablet toggle buttons */
-  .tablet-toggle-btn {
+  .sidebar-toggle-btn {
     display: flex;
   }
 
@@ -1891,7 +1873,7 @@ a:hover {
   display: none;
 }
 
-.mobile-sidebar-overlay {
+.sidebar-overlay {
   display: none;
 }
 
@@ -2528,7 +2510,7 @@ a:hover {
   }
 
   /* Mobile Sidebar */
-  .mobile-sidebar-overlay {
+  .sidebar-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -2569,7 +2551,7 @@ a:hover {
     z-index: 10;
   }
 
-  #convo-filter {
+  #convoFilterContainer {
     background: transparent;
     padding: 12px 16px;
     border-radius: 0;
@@ -2577,19 +2559,19 @@ a:hover {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  #convoSearch {
+  #convoSearchInput {
     padding: 10px 12px;
     font-size: 15px;
     border-radius: 6px;
     background: var(--card-bg);
   }
 
-  #convo-type-filter {
+  #convoTypeFilterRow {
     margin-top: 10px;
     gap: 8px;
   }
 
-  .type-filter-btn {
+  .convo__type__filter {
     padding: 8px 14px;
     font-size: 13px;
     border-radius: 16px;
@@ -2702,7 +2684,7 @@ a:hover {
     margin: 2px 0 4px 0;
   }
 
-  #tree-controls {
+  #convoTreeControlsRow {
     padding: 8px 16px;
   }
 }

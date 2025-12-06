@@ -28,8 +28,8 @@ const typeCheckboxList = $("typeCheckboxList");
 const selectAllTypes = $("selectAllTypes");
 const searchLoader = $("searchLoader");
 const convoListEl = $("convoList");
-const convoSearchInput = $("convoSearch");
-const convoTypeFilterBtns = document.querySelectorAll(".type-filter-btn");
+const convoSearchInput = $("convoSearchInput");
+const convoTypeFilterBtns = document.querySelectorAll(".radio-button-group .radio-button");
 const entryListEl = $("entryList");
 const entryListHeaderEl = $("entryListHeader");
 const entryDetailsEl = $("entryDetails");
@@ -38,33 +38,21 @@ const currentEntryContainerEl = $("currentEntryContainer");
 const chatLogEl = $("chatLog");
 const backBtn = $("backBtn");
 const backStatus = $("backStatus");
-const rootBtn = $("rootBtn");
+const convoRootBtn = $("convoRootBtn");
 const moreDetailsEl = $("moreDetails");
-// Tablet sidebar elements
-const tabletConvoSearchInput = $("tabletConvoSearch");
-const tabletConvoSidebar = $("tabletConvoSidebar");
-const tabletConvoSidebarClose = $("tabletConvoSidebarClose");
-const tabletConvoToggle = $("tabletConvoToggle");
-const tabletConvoList = $("tabletConvoList");
-const tabletHistorySidebar = $("tabletHistorySidebar");
-const tabletHistorySidebarClose = $("tabletHistorySidebarClose");
-const tabletHistoryToggle = $("tabletHistoryToggle");
-const tabletChatLog = $("tabletChatLog");
-const tabletBackBtn = $("tabletBackBtn");
-const tabletRootBtn = $("tabletRootBtn");
 
-const isDesktopMql = window.matchMedia("(min-width: 1025px)");
-const isTabletMql = window.matchMedia(
-  "(min-width: 768px) and (max-width: 1024px)"
-);
-const isMobileMql = window.matchMedia("(max-width: 767px)");
-let isTablet = isTabletMql.matches;
-let isMobile = isMobileMql.matches;
-let isDesktop = isDesktopMql.matches;
+// Sidebar elements
+const convoToggle = $("convoToggle");
+const convoSidebar = $("convoSidebar");
+const convoSidebarClose = $("historySidebarClose");
+
+const historySidebarToggle = $("historySidebarToggle");
+const historySidebar = $("historySidebar");
+const historySidebarClose = $("historySidebarClose");
+const chatLog = $("chatLog");
 
 // Search option elements
 const wholeWordsCheckbox = $("wholeWordsCheckbox");
-const mobileWholeWordsCheckbox = $("mobileWholeWordsCheckbox");
 
 // Mobile search elements
 const mobileSearchTrigger = $("mobileSearchTrigger");
@@ -86,15 +74,15 @@ const mobileActorFilterValue = $("mobileActorFilterValue");
 const mobileConvoFilterScreen = $("mobileConvoFilterScreen");
 const mobileActorFilterScreen = $("mobileActorFilterScreen");
 const mobileTypeFilterSheet = $("mobileTypeFilterSheet");
+const mobileWholeWordsCheckbox = $("mobileWholeWordsCheckbox");
 
-// Mobile sidebar elements
+// Sidebar elements
 const mobileSidebarToggle = $("mobileSidebarToggle");
-const mobileSidebarOverlay = $("mobileSidebarOverlay");
+const sidebarOverlay = $("sidebarOverlay");
 const conversationsSection = $("conversations-section");
-const mobileHeaderTitle = $("mobileHeaderTitle"); // Not in refactored HTML (will be null, guarded)
 const mobileBackBtn = $("mobileBackBtn"); // Exists in refactored HTML
 const mobileRootBtn = $("mobileRootBtn"); // Exists in refactored HTML
-const mobileHomeButtonEl = $("mobile-home-button");
+const mobileHomeButtonEl = $("convoSearchHomeButton");
 
 // Tree control elements
 const expandAllBtn = $("expandAllBtn");
@@ -157,15 +145,6 @@ async function boot() {
   conversationTree = buildTitleTree(convos);
   renderTree(convoListEl, conversationTree);
 
-  isTabletMql.addEventListener("change", (event) => {});
-  isMobileMql.addEventListener("change", (event) => {});
-  isDesktopMql.addEventListener("change", (event) => {});
-
-  // Also render to tablet sidebar if it exists
-  if (tabletConvoList) {
-    renderTree(tabletConvoList, conversationTree);
-  }
-
   // Set up conversation filter
   setupConversationFilter();
 
@@ -199,9 +178,6 @@ async function boot() {
       highlightConversationInTree(convoId);
     });
   }
-
-  // Setup tablet sidebars
-  setupTabletSidebars();
 
   // actor dropdown
   populateActorDropdown();
@@ -253,8 +229,8 @@ async function boot() {
     });
   }
 
-  if (rootBtn) {
-    rootBtn.addEventListener("click", () => {
+  if (convoRootBtn) {
+    convoRootBtn.addEventListener("click", () => {
       if (currentConvoId !== null) {
         jumpToConversationRoot();
       }
@@ -342,8 +318,11 @@ function setupConversationFilter() {
         // Close sidebar
         conversationsSection && conversationsSection.classList.remove("open");
       }
-      if(mobileSidebarOverlay && mobileSidebarOverlay.style.display == "block") {
-        mobileSidebarOverlay.style.display = "none" // Unblur
+      if (
+        sidebarOverlay &&
+        sidebarOverlay.style.display == "block"
+      ) {
+        sidebarOverlay.style.display = "none"; // Unblur
       }
       goToHomeView();
     });
@@ -413,16 +392,10 @@ function filterConversationTree() {
   let searchText;
   if (!conversationTree) return;
   searchText = convoSearchInput?.value?.toLowerCase().trim() ?? "";
-  if (isTablet && tabletConvoList) {
-    searchText = tabletConvoSearchInput?.value?.toLowerCase().trim() ?? "";
-  }
 
   // If no filters active, render the original tree
   if (!searchText && activeTypeFilter === "all") {
     renderTree(convoListEl, conversationTree);
-    if (tabletConvoList) {
-      renderTree(tabletConvoList, conversationTree);
-    }
     if (currentConvoId !== null) {
       highlightConversationInTree(currentConvoId);
     }
@@ -442,22 +415,12 @@ function filterConversationTree() {
 
   // Clear and render matching results directly as a flat list
   convoListEl.innerHTML = "";
-  if (tabletConvoList) {
-    tabletConvoList.innerHTML = "";
-  }
 
   if (matches.length === 0) {
     const noResults = document.createElement("div");
     noResults.className = "hint-text";
     noResults.textContent = "No matching conversations found.";
     convoListEl.appendChild(noResults);
-
-    if (tabletConvoList) {
-      const noResultsTablet = document.createElement("div");
-      noResultsTablet.className = "hint-text";
-      noResultsTablet.textContent = "No matching conversations found.";
-      tabletConvoList.appendChild(noResultsTablet);
-    }
     return;
   }
 
@@ -465,16 +428,6 @@ function filterConversationTree() {
   matches.forEach((match) => {
     const item = createFilteredLeafItem(match, searchText, conversationTree);
     convoListEl.appendChild(item);
-
-    // Also add to tablet list
-    if (tabletConvoList) {
-      const tabletItem = createFilteredLeafItem(
-        match,
-        searchText,
-        conversationTree
-      );
-      tabletConvoList.appendChild(tabletItem);
-    }
   });
 }
 
@@ -884,181 +837,11 @@ function updateTypeFilterLabel() {
   }
 }
 
-// Setup tablet sidebars
-function setupTabletSidebars() {
-  if (!tabletConvoSidebar || !tabletHistorySidebar) return;
-  // Show/hide tablet elements based on viewport
-  const updateTabletVisibility = () => {
-    if (isTablet) {
-      // Show sidebar on tablet (open by default for conversations)
-      tabletConvoSidebar.style.display = "flex";
-      tabletHistorySidebar.style.display = "flex";
-      tabletConvoToggle.style.display = "flex";
-      tabletHistoryToggle.style.display = "flex";
-
-      // Open conversation sidebar by default
-      tabletConvoSidebar.classList.add("open");
-    } else if (isDesktop) {
-      // Hide on desktop
-      tabletConvoSidebar.style.display = "none";
-      tabletHistorySidebar.style.display = "none";
-      tabletConvoToggle.style.display = "none";
-      tabletHistoryToggle.style.display = "none";
-    } else if (isMobile) {
-      // Hide on mobile
-      tabletConvoSidebar.style.display = "none";
-      tabletConvoToggle.style.display = "none";
-      tabletHistorySidebar.style.display = "flex";
-      tabletHistoryToggle.style.display = "flex";
-    }
-  };
-
-  // Toggle conversation sidebar
-  if (tabletConvoToggle) {
-    tabletConvoToggle.addEventListener("click", () => {
-      tabletConvoSidebar.classList.toggle("open");
-    });
+function closeSidebar() {
+  if (convoSidebar) {
+    convoSidebar.classList.remove("open");
   }
-
-  if (tabletConvoSidebarClose) {
-    tabletConvoSidebarClose.addEventListener("click", () => {
-      tabletConvoSidebar.classList.remove("open");
-    });
-  }
-
-  // Toggle history sidebar
-  if (tabletHistoryToggle) {
-    tabletHistoryToggle.addEventListener("click", () => {
-      tabletHistorySidebar.classList.toggle("open");
-    });
-  }
-
-  if (tabletHistorySidebarClose) {
-    tabletHistorySidebarClose.addEventListener("click", () => {
-      tabletHistorySidebar.classList.remove("open");
-    });
-  }
-
-  // Setup tablet conversation list - use same tree as desktop
-  if (tabletConvoList) {
-    // Delegate clicks to handle conversation selection
-    tabletConvoList.addEventListener("click", (e) => {
-      const leaf = e.target.closest(".leaf");
-      if (leaf) {
-        const convoId = parseInt(leaf.dataset.id);
-        loadEntriesForConversation(convoId, true);
-        highlightConversationInTree(convoId);
-        // Auto-close sidebar after selection
-        tabletConvoSidebar.classList.remove("open");
-      }
-    });
-
-    // Handle custom convoLeafClick events
-    tabletConvoList.addEventListener("convoLeafClick", (e) => {
-      const convoId = e.detail.convoId;
-      loadEntriesForConversation(convoId, true);
-      highlightConversationInTree(convoId);
-      // Auto-close sidebar after selection
-      tabletConvoSidebar.classList.remove("open");
-    });
-  }
-
-  // Setup tablet conversation filter
-  const tabletConvoSearchInput = $("tabletConvoSearch");
-  const tabletConvoTypeFilterBtns = document.querySelectorAll(
-    "#tablet-convo-type-filter .type-filter-btn"
-  );
-  const tabletExpandAllBtn = $("tabletExpandAllBtn");
-  const tabletCollapseAllBtn = $("tabletCollapseAllBtn");
-
-  if (tabletConvoSearchInput) {
-    tabletConvoSearchInput.addEventListener("input", function (event) {
-      filterConversationTree();
-    });
-  }
-
-  if (tabletConvoTypeFilterBtns.length > 0) {
-    tabletConvoTypeFilterBtns.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        // Update active state for tablet buttons
-        tabletConvoTypeFilterBtns.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-
-        // Also sync with desktop buttons
-        convoTypeFilterBtns.forEach((b) => b.classList.remove("active"));
-        const desktopBtn = Array.from(convoTypeFilterBtns).find(
-          (b) => b.dataset.type === btn.dataset.type
-        );
-        if (desktopBtn) desktopBtn.classList.add("active");
-
-        // Update active filter
-        activeTypeFilter = btn.dataset.type;
-
-        // Apply filter
-        filterConversationTree();
-      });
-    });
-  }
-
-  if (tabletExpandAllBtn) {
-    tabletExpandAllBtn.addEventListener("click", () => {
-      expandAllTreeNodes();
-      // Also expand tablet tree
-      const allNodes = tabletConvoList?.querySelectorAll(".node");
-      allNodes?.forEach((node) => {
-        const toggle = node.querySelector(".toggle");
-        if (
-          toggle &&
-          toggle.textContent &&
-          !node.classList.contains("expanded")
-        ) {
-          node.classList.add("expanded");
-          toggle.textContent = "▾";
-        }
-      });
-    });
-  }
-
-  if (tabletCollapseAllBtn) {
-    tabletCollapseAllBtn.addEventListener("click", () => {
-      collapseAllTreeNodes();
-      // Also collapse tablet tree
-      const allNodes = tabletConvoList?.querySelectorAll(".node");
-      allNodes?.forEach((node) => {
-        if (node.classList.contains("expanded")) {
-          const toggle = node.querySelector(".toggle");
-          node.classList.remove("expanded");
-          if (toggle) {
-            toggle.textContent = "▸";
-          }
-        }
-      });
-    });
-  }
-
-  // Setup tablet back button
-  if (tabletBackBtn) {
-    tabletBackBtn.addEventListener("click", () => {
-      window.history.back();
-    });
-  }
-
-  // Setup tablet root button
-  if (tabletRootBtn) {
-    tabletRootBtn.addEventListener("click", () => {
-      if (currentConvoId !== null) {
-        loadEntriesForConversation(currentConvoId, true);
-      }
-    });
-  }
-
-  // Initial setup
-  updateTabletVisibility();
-
-  // Update on resize
-  window.addEventListener("resize", updateTabletVisibility);
 }
-
 // Setup clear filters button
 function setupClearFiltersButton() {
   if (!clearFiltersBtn) return;
@@ -1161,8 +944,8 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     if (chatLogEl) {
       chatLogEl.innerHTML = "";
     }
-    if (tabletChatLog) {
-      tabletChatLog.innerHTML = "";
+    if (chatLog) {
+      chatLog.innerHTML = "";
     }
   } else if (resetHistory) {
     navigationHistory = [{ convoId, entryId: null }];
@@ -1196,11 +979,11 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   currentEntryId = null;
 
   // Hide root button at conversation root
-  if (rootBtn) {
-    rootBtn.style.display = "none";
+  if (convoRootBtn) {
+    convoRootBtn.style.display = "none";
   }
-  if (tabletRootBtn) {
-    tabletRootBtn.style.display = "none";
+  if (convoRootBtn) {
+    convoRootBtn.style.display = "none";
   }
 
   // Update mobile nav buttons (at root, so hide both)
@@ -1417,8 +1200,8 @@ function goToHomeView() {
   if (chatLogEl) {
     chatLogEl.innerHTML = "";
   }
-  if (tabletChatLog) {
-    tabletChatLog.innerHTML = "";
+  if (chatLog) {
+    chatLog.innerHTML = "";
   }
 
   // Show homepage, hide dialogue content
@@ -1508,7 +1291,7 @@ async function jumpToHistoryPoint(targetIndex) {
         dialoguetext,
         targetIndex,
         null, // null means non-clickable
-        tabletChatLog
+        chatLog
       );
     }
 
@@ -1618,13 +1401,13 @@ async function navigateToEntry(
       chatLogEl.innerHTML = "";
   }
 
-  if (tabletChatLog) {
+  if (chatLog) {
     if (
-      tabletChatLog.children.length === 1 &&
-      tabletChatLog.children[0].textContent &&
-      tabletChatLog.children[0].textContent.includes("(navigation log")
+      chatLog.children.length === 1 &&
+      chatLog.children[0].textContent &&
+      chatLog.children[0].textContent.includes("(navigation log")
     )
-      tabletChatLog.innerHTML = "";
+      chatLog.innerHTML = "";
   }
 
   // Remove the previous "current entry" display if it exists (it will become clickable)
@@ -1636,19 +1419,6 @@ async function navigateToEntry(
       lastItem.style.cursor = "pointer";
       const historyIndex = parseInt(lastItem.dataset.historyIndex);
       lastItem.addEventListener("click", () => {
-        jumpToHistoryPoint(historyIndex);
-      });
-    }
-  }
-
-  // Also handle tablet chat log
-  if (addToHistory && tabletChatLog && tabletChatLog.lastElementChild) {
-    const lastTabletItem = tabletChatLog.lastElementChild;
-    if (lastTabletItem.classList.contains("current-entry")) {
-      lastTabletItem.classList.remove("current-entry");
-      lastTabletItem.style.cursor = "pointer";
-      const historyIndex = parseInt(lastTabletItem.dataset.historyIndex);
-      lastTabletItem.addEventListener("click", () => {
         jumpToHistoryPoint(historyIndex);
       });
     }
@@ -1684,7 +1454,7 @@ async function navigateToEntry(
       dialoguetext,
       navigationHistory.length - 1,
       null, // null means non-clickable
-      tabletChatLog
+      chatLog
     );
   }
 
@@ -1694,11 +1464,11 @@ async function navigateToEntry(
   }
 
   // Show/hide root button
-  if (rootBtn) {
-    rootBtn.style.display = currentEntryId !== null ? "inline-block" : "none";
+  if (convoRootBtn) {
+    convoRootBtn.style.display = currentEntryId !== null ? "inline-block" : "none";
   }
-  if (tabletRootBtn) {
-    tabletRootBtn.style.display =
+  if (convoRootBtn) {
+    convoRootBtn.style.display =
       currentEntryId !== null ? "inline-block" : "none";
   }
 
@@ -2434,16 +2204,16 @@ function setupMobileSidebar() {
       if (conversationsSection) {
         conversationsSection.classList.add("open");
       }
-      if (mobileSidebarOverlay) {
-        mobileSidebarOverlay.style.display = "block";
+      if (sidebarOverlay) {
+        sidebarOverlay.style.display = "block";
       }
     });
   } else {
   }
 
   // Close sidebar when clicking overlay
-  if (mobileSidebarOverlay) {
-    mobileSidebarOverlay.addEventListener("click", () => {
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener("click", () => {
       closeMobileSidebar();
     });
   }
@@ -2495,8 +2265,8 @@ function closeMobileSidebar() {
   if (conversationsSection) {
     conversationsSection.classList.remove("open");
   }
-  if (mobileSidebarOverlay) {
-    mobileSidebarOverlay.style.display = "none";
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "none";
   }
 }
 
