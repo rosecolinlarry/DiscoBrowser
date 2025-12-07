@@ -29,7 +29,9 @@ const selectAllTypes = $("selectAllTypes");
 const searchLoader = $("searchLoader");
 const convoListEl = $("convoList");
 const convoSearchInput = $("convoSearchInput");
-const convoTypeFilterBtns = document.querySelectorAll(".radio-button-group .radio-button");
+const convoTypeFilterBtns = document.querySelectorAll(
+  ".radio-button-group .radio-button"
+);
 const entryListEl = $("entryList");
 const entryListHeaderEl = $("entryListHeader");
 const entryDetailsEl = $("entryDetails");
@@ -42,9 +44,19 @@ const convoRootBtn = $("convoRootBtn");
 const moreDetailsEl = $("moreDetails");
 
 // Sidebar elements
+const sidebarOverlay = $("sidebarOverlay");
+
+const mobileBackBtn = $("mobileBackBtn");
+const mobileRootBtn = $("mobileRootBtn");
+const mobileHomeButtonEl = $("convoSearchHomeButton");
+
+const mobileSidebarToggle = $("mobileSidebarToggle");
+
+const conversationsSection = $("conversations-section"); // Item to move
+const historySection = $("history-section"); // Item to move
+
 const convoToggle = $("convoToggle");
-const convoSidebar = $("convoSidebar");
-const convoSidebarClose = $("historySidebarClose");
+const browserEl = $("browser"); // Desktop and Tablet Container
 
 const historySidebarToggle = $("historySidebarToggle");
 const historySidebar = $("historySidebar");
@@ -75,14 +87,6 @@ const mobileConvoFilterScreen = $("mobileConvoFilterScreen");
 const mobileActorFilterScreen = $("mobileActorFilterScreen");
 const mobileTypeFilterSheet = $("mobileTypeFilterSheet");
 const mobileWholeWordsCheckbox = $("mobileWholeWordsCheckbox");
-
-// Sidebar elements
-const mobileSidebarToggle = $("mobileSidebarToggle");
-const sidebarOverlay = $("sidebarOverlay");
-const conversationsSection = $("conversations-section");
-const mobileBackBtn = $("mobileBackBtn"); // Exists in refactored HTML
-const mobileRootBtn = $("mobileRootBtn"); // Exists in refactored HTML
-const mobileHomeButtonEl = $("convoSearchHomeButton");
 
 // Tree control elements
 const expandAllBtn = $("expandAllBtn");
@@ -291,6 +295,7 @@ async function boot() {
 
   // Setup mobile sidebar
   setupMobileSidebar();
+  setUpSidebarToggles();
 
   // Setup unified filter panel (for refactored HTML)
   setupUnifiedFilterPanel();
@@ -307,23 +312,67 @@ async function boot() {
   setupBrowserHistory();
 }
 
+// Define the media query that determines "mobile mode"
+const mobileMediaQuery = window.matchMedia("(max-width: 768px)");
+const tabletMediaQuery = window.matchMedia(
+  "(min-width: 769px) and (max-width: 1024px)"
+);
+const desktopMediaQuery = window.matchMedia("(min-width: 1025px)");
+
+// Runs when the media query status changes
+function handleMediaQueryChange() {
+  if (desktopMediaQuery.matches) {
+    console.log("Desktop view");
+    closeAllSidebars();
+    
+    toggleElementVisibilityById("historySidebarToggle", false);
+    toggleElementVisibilityById("convoToggle", false);
+    browserEl.prepend(conversationsSection);
+    browserEl.append(historySection);
+
+  } else if (tabletMediaQuery.matches) {
+    console.log("Tablet view");
+    closeAllSidebars();
+    
+    toggleElementVisibilityById("historySidebarToggle", true);
+    toggleElementVisibilityById("convoToggle", true);
+    historySidebar.appendChild(historySection);
+  } else if (mobileMediaQuery.matches) {
+    console.log("Mobile view");
+    closeAllSidebars();
+    
+    toggleElementVisibilityById("historySidebarToggle", true);
+    toggleElementVisibilityById("convoToggle", false);
+
+    browserEl.prepend(conversationsSection);
+    historySidebar.append(historySection);
+  }
+}
+// Add the event listener to the MediaQueryList object
+// The 'change' event fires when the matching status of the media query changes
+desktopMediaQuery.addEventListener("change", handleMediaQueryChange);
+tabletMediaQuery.addEventListener("change", handleMediaQueryChange);
+mobileMediaQuery.addEventListener("change", handleMediaQueryChange);
+
+// Call the function immediately on page load to check the initial state
+handleMediaQueryChange();
+
+function toggleElementVisibilityById(id, showElement) {
+  const el = $(id);
+  el.style.display = showElement ? "" : "none";
+}
+
+function setUpSidebarToggles() {
+  convoToggle.addEventListener("click", openConversationSection);
+  historySidebarToggle.addEventListener("click", openHistorySidebar);
+  sidebarOverlay.addEventListener("click", closeAllSidebars);
+}
+
 function setupConversationFilter() {
   // Mobile home button
   if (mobileHomeButtonEl) {
     mobileHomeButtonEl.addEventListener("click", () => {
-      if (
-        conversationsSection &&
-        conversationsSection.classList.contains("open")
-      ) {
-        // Close sidebar
-        conversationsSection && conversationsSection.classList.remove("open");
-      }
-      if (
-        sidebarOverlay &&
-        sidebarOverlay.style.display == "block"
-      ) {
-        sidebarOverlay.style.display = "none"; // Unblur
-      }
+      closeAllSidebars();
       goToHomeView();
     });
   }
@@ -837,11 +886,48 @@ function updateTypeFilterLabel() {
   }
 }
 
-function closeSidebar() {
-  if (convoSidebar) {
-    convoSidebar.classList.remove("open");
+function openHistorySidebar() {
+  if (historySidebar) {
+    historySidebar.classList.add("open");
+    historySidebar.style.display = "";
+  }
+  if (historySidebarClose) {
+    historySidebarClose.addEventListener("click", closeHistorySidebar);
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "block";
   }
 }
+
+function closeHistorySidebar() {
+  if (historySidebar) {
+    historySidebar.classList.remove("open");
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "none";
+  }
+}
+
+function closeConversationSection() {
+  if(conversationsSection) {
+    conversationsSection.classList.remove("open")
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "none";
+  }
+}
+
+function openConversationSection(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  if (conversationsSection) {
+    conversationsSection.classList.add("open");
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "block";
+  }
+}
+
 // Setup clear filters button
 function setupClearFiltersButton() {
   if (!clearFiltersBtn) return;
@@ -936,7 +1022,7 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   }
 
   // Close mobile sidebar when conversation is selected
-  closeMobileSidebar();
+  closeAllSidebars();
 
   // If switching conversations or resetting, clear the chat log
   if (resetHistory || (currentConvoId !== null && currentConvoId !== convoId)) {
@@ -1465,7 +1551,8 @@ async function navigateToEntry(
 
   // Show/hide root button
   if (convoRootBtn) {
-    convoRootBtn.style.display = currentEntryId !== null ? "inline-block" : "none";
+    convoRootBtn.style.display =
+      currentEntryId !== null ? "inline-block" : "none";
   }
   if (convoRootBtn) {
     convoRootBtn.style.display =
@@ -2197,25 +2284,10 @@ function setupMobileSearch() {
 function setupMobileSidebar() {
   // Open sidebar
   if (mobileSidebarToggle) {
-    mobileSidebarToggle.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (conversationsSection) {
-        conversationsSection.classList.add("open");
-      }
-      if (sidebarOverlay) {
-        sidebarOverlay.style.display = "block";
-      }
-    });
-  } else {
+    mobileSidebarToggle.addEventListener("click", openConversationSection);
   }
-
-  // Close sidebar when clicking overlay
-  if (sidebarOverlay) {
-    sidebarOverlay.addEventListener("click", () => {
-      closeMobileSidebar();
-    });
+  if (convoToggle) {
+    convoToggle.addEventListener("click", openConversationSection);
   }
 
   // Mobile back button
@@ -2261,13 +2333,9 @@ function updateMobileNavButtons() {
   }
 }
 
-function closeMobileSidebar() {
-  if (conversationsSection) {
-    conversationsSection.classList.remove("open");
-  }
-  if (sidebarOverlay) {
-    sidebarOverlay.style.display = "none";
-  }
+function closeAllSidebars() {
+  closeConversationSection()
+  closeHistorySidebar()
 }
 
 function performMobileSearch(resetSearch = true) {

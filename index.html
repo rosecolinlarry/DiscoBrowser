@@ -132,9 +132,6 @@
     </div>
   </div>
   <main>
-    <!-- Conversation Sidebar -->
-    <div id="convoSidebar" class="sidebar sidebar-left" style="display: none;">
-    </div>
 
     <!-- History Sidebar -->
     <div id="historySidebar" class="sidebar sidebar-right" style="display: none;">
@@ -266,10 +263,13 @@
 
     <div id="browser">
       <section id="conversations-section" class="section">
-        <h3>
+        <h3 style="display: flex; justify-content: space-between;">
+          <div>
           Conversations
           <span class="help-icon"
             title="Conversation Types:&#10;• FLOW - Conversations with NPCs&#10;• ORB - Thoughts from interacting with the environment&#10;• TASK - Player's quest log">?</span>
+          </div>
+          <div id="convoSidebarCloseContainer"><span id="convoSidebarClose" class="sidebar-close">⨉</span></div>
         </h3>
         <div id="convoFilterContainer">
           <button id="convoSearchHomeButton" class="navigation-btn home-btn">Home</button>

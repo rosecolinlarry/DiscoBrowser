@@ -101,6 +101,18 @@ section {
   flex-direction: column;
 }
 
+.tablet-only {
+  display: none;
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: flex;
+}
+
 #controls {
   display: flex;
   flex-direction: row;
@@ -548,6 +560,9 @@ section {
   align-items: center;
   gap: 8px;
   position: relative;
+  .sidebar-close {
+    display: none;
+  }
 }
 
 .help-icon {
@@ -1349,7 +1364,6 @@ a:hover {
   transition: transform 0.3s ease;
 }
 
-
 /* Sidebar Overlay */
 .sidebar-overlay {
   position: fixed;
@@ -1362,18 +1376,12 @@ a:hover {
   backdrop-filter: blur(2px);
 }
 
-.sidebar-left {
-  left: 0;
-  transform: translateX(-100%);
-}
-
-.sidebar-left.open {
-  transform: translateX(0);
-}
-
 .sidebar-right {
   right: 0;
   transform: translateX(100%);
+  .sidebar-close {
+    align-self: flex-start;
+  }
 }
 
 .sidebar-right.open {
@@ -1398,7 +1406,7 @@ a:hover {
   background: none;
   border: none;
   color: var(--fg);
-  font-size: 1.5rem;
+  font-size: medium;
   cursor: pointer;
   padding: 4px 8px;
   line-height: 1;
@@ -1409,7 +1417,6 @@ a:hover {
 .sidebar-close:hover {
   opacity: 1;
 }
-
 
 .sidebar #tabletConvoSearch {
   padding: 6px 8px;
@@ -1508,17 +1515,83 @@ a:hover {
     grid-template-rows: auto auto 1fr;
   }
 
-  #browser {
-    grid-template-columns: 1fr;
+  /* Mobile Sidebar */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 150;
+    backdrop-filter: blur(2px);
   }
 
-  /* Hide desktop sidebars */
   #conversations-section {
-    display: none;
+    display: block !important;
+    position: fixed !important;
+    top: 0;
+    left: -100% !important;
+    width: 85%;
+    max-width: 320px;
+    height: 100vh;
+    background: var(--bg);
+    z-index: 200;
+    transition: left 0.3s ease-out;
+    overflow-y: auto;
+    box-shadow: 4px 0 8px rgba(0, 0, 0, 0.5);
+  }
+
+  #conversations-section h3 {
+    .sidebar-close {
+      display: flex;
+    }
+  }
+
+  #conversations-section.open {
+    left: 0 !important;
+  }
+
+  #conversations-section h3 {
+    font-size: 20px;
+    margin: 0;
+    padding: 16px;
+    font-weight: 600;
+    background: var(--panel);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    .sidebar-close {
+      align-self: flex-end;
+    }
   }
 
   #history-section {
+    height: inherit;
+    padding: 16px;
+    h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+    }
+    #chatLog {
+      margin: 0;
+    }
+  }
+
+  .tablet-only {
+    display: flex;
+  }
+
+  .mobile-only {
     display: none;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  #browser {
+    grid-template-columns: 1fr;
   }
 
   /* Show tablet toggle buttons */
@@ -1581,14 +1654,6 @@ a:hover {
     gap: 10px;
   }
 
-  #conversations-section {
-    max-height: 300px;
-  }
-
-  #history-section {
-    display: none;
-  }
-
   #entries-section h3 {
     font-size: 14px;
   }
@@ -1611,6 +1676,24 @@ a:hover {
   h1 {
     font-size: 20px;
     padding: 4px 0;
+  }
+
+  #conversations-section h3 {
+    .sidebar-close {
+      display: none;
+    }
+  }
+
+  .tablet-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: flex;
+  }
+
+  .desktop-only {
+    display: none;
   }
 
   #controls {
@@ -1650,14 +1733,6 @@ a:hover {
   #browser {
     grid-template-columns: 1fr;
     gap: 8px;
-  }
-
-  #conversations-section {
-    display: none;
-  }
-
-  #history-section {
-    display: none;
   }
 
   #entries-section {
@@ -2507,48 +2582,6 @@ a:hover {
     align-items: center;
     justify-content: center;
     pointer-events: none;
-  }
-
-  /* Mobile Sidebar */
-  .sidebar-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 150;
-    backdrop-filter: blur(2px);
-  }
-
-  #conversations-section {
-    display: block !important;
-    position: fixed !important;
-    top: 0;
-    left: -100% !important;
-    width: 85%;
-    max-width: 320px;
-    height: 100vh;
-    background: var(--bg);
-    z-index: 200;
-    transition: left 0.3s ease-out;
-    overflow-y: auto;
-    box-shadow: 4px 0 8px rgba(0, 0, 0, 0.5);
-  }
-
-  #conversations-section.open {
-    left: 0 !important;
-  }
-
-  #conversations-section h3 {
-    font-size: 20px;
-    margin: 0;
-    padding: 16px;
-    font-weight: 600;
-    background: var(--panel);
-    position: sticky;
-    top: 0;
-    z-index: 10;
   }
 
   #convoFilterContainer {
