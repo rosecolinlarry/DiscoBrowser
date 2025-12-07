@@ -324,26 +324,24 @@ function handleMediaQueryChange() {
   if (desktopMediaQuery.matches) {
     console.log("Desktop view");
     closeAllSidebars();
-    
+
     toggleElementVisibilityById("historySidebarToggle", false);
     toggleElementVisibilityById("convoToggle", false);
     browserEl.prepend(conversationsSection);
     browserEl.append(historySection);
-
   } else if (tabletMediaQuery.matches) {
     console.log("Tablet view");
     closeAllSidebars();
-    
+
     toggleElementVisibilityById("historySidebarToggle", true);
     toggleElementVisibilityById("convoToggle", true);
     historySidebar.appendChild(historySection);
   } else if (mobileMediaQuery.matches) {
     console.log("Mobile view");
     closeAllSidebars();
-    
+
     toggleElementVisibilityById("historySidebarToggle", true);
     toggleElementVisibilityById("convoToggle", false);
-
     browserEl.prepend(conversationsSection);
     historySidebar.append(historySection);
   }
@@ -909,8 +907,8 @@ function closeHistorySidebar() {
 }
 
 function closeConversationSection() {
-  if(conversationsSection) {
-    conversationsSection.classList.remove("open")
+  if (conversationsSection) {
+    conversationsSection.classList.remove("open");
   }
   if (sidebarOverlay) {
     sidebarOverlay.style.display = "none";
@@ -918,13 +916,30 @@ function closeConversationSection() {
 }
 
 function openConversationSection(e) {
-    e.preventDefault();
-    e.stopPropagation();
+  e.preventDefault();
+  e.stopPropagation();
   if (conversationsSection) {
     conversationsSection.classList.add("open");
   }
   if (sidebarOverlay) {
     sidebarOverlay.style.display = "block";
+  }
+}
+
+function closeSearchScreen() {
+  if (mobileSearchScreen) {
+    mobileSearchScreen.style.display = "none";
+  }
+}
+
+function openSearchScreen() {
+  // Push browser history state for mobile search
+  if (!isHandlingPopState) {
+    pushHistoryState("search");
+  }
+  if (mobileSearchScreen) {
+    mobileSearchScreen.style.display = "block";
+    mobileSearchInput.focus();
   }
 }
 
@@ -1195,9 +1210,7 @@ function setupBrowserHistory() {
     const state = event.state;
 
     // Always close mobile search screen if it's open (when navigating via back button)
-    if (mobileSearchScreen && mobileSearchScreen.style.display === "block") {
-      mobileSearchScreen.style.display = "none";
-    }
+    closeSearchScreen()
 
     if (!state || state.view === "home") {
       // Go back to home view
@@ -1305,15 +1318,8 @@ function goToHomeView() {
     item.classList.remove("selected");
   });
 
-  // Hide mobile back button if visible
-  if (mobileBackBtn) {
-    mobileBackBtn.style.display = "none";
-  }
-
   // Close mobile search if open
-  if (mobileSearchScreen) {
-    mobileSearchScreen.style.display = "none";
-  }
+  closeSearchScreen();
 
   updateBackButtonState();
 }
@@ -2174,14 +2180,7 @@ function setupUnifiedFilterPanel() {
 function setupMobileSearch() {
   // Open mobile search screen
   if (mobileSearchTrigger) {
-    mobileSearchTrigger.addEventListener("click", () => {
-      // Push browser history state for mobile search
-      if (!isHandlingPopState) {
-        pushHistoryState("search");
-      }
-      mobileSearchScreen.style.display = "block";
-      mobileSearchInput.focus();
-    });
+    mobileSearchTrigger.addEventListener("click", openSearchScreen);
   }
 
   // Close mobile search screen
@@ -2328,8 +2327,9 @@ function updateMobileNavButtons() {
 }
 
 function closeAllSidebars() {
-  closeConversationSection()
-  closeHistorySidebar()
+  closeConversationSection();
+  closeHistorySidebar();
+  closeSearchScreen();
 }
 
 function performMobileSearch(resetSearch = true) {
@@ -2460,7 +2460,7 @@ function performMobileSearch(resetSearch = true) {
         }
 
         // Close mobile search and return to main view
-        mobileSearchScreen.style.display = "none";
+        closeSearchScreen();
       });
 
       mobileSearchResults.appendChild(div);

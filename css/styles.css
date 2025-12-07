@@ -81,11 +81,6 @@ h1:hover {
   display: block;
 }
 
-section {
-  display: flex;
-  flex-direction: column;
-}
-
 .tablet-only {
   display: none;
 }
@@ -95,7 +90,7 @@ section {
 }
 
 .desktop-only {
-  display: flex;
+  display: block;
 }
 
 #controls {
@@ -566,10 +561,8 @@ section {
 }
 
 #conversations-section {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: visible;
+  display: block;
+  overflow: scroll;
   border: 1px solid var(--card-border);
   border-radius: 6px;
   background: var(--card-bg);
@@ -621,13 +614,6 @@ section {
   display: block;
 }
 
-#entries-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
 #entries-section h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
@@ -635,26 +621,11 @@ section {
 }
 
 #dialogueContent {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
   overflow-y: auto;
 }
 
 #dialogueContent h3 {
   margin: 0 0 8px 0;
-  flex-shrink: 0;
-}
-
-#dialogueContent #currentEntryContainer {
-  flex-shrink: 0;
-}
-
-#history-section {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
 }
 
 #history-section h4 {
@@ -695,12 +666,7 @@ section {
 }
 
 .entry-list {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
   gap: 4px;
-  justify-content: flex-end;
 }
 
 .entry-list.compact {
@@ -745,8 +711,6 @@ section {
 }
 
 #convoFilterContainer {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
   margin-bottom: 8px;
   padding: 8px;
@@ -1093,8 +1057,6 @@ section {
 }
 
 #entryDetails {
-  display: flex;
-  flex-direction: column;
   gap: 12px;
   padding-right: 8px;
 }
@@ -1148,8 +1110,6 @@ section {
 }
 
 .details-list {
-  display: flex;
-  flex-direction: column;
   gap: 6px;
   padding-left: 12px;
   border-left: 2px solid var(--accent);
@@ -2484,7 +2444,6 @@ a:hover {
   }
 
   #entries-section {
-    display: flex;
     grid-column: 1;
     grid-row: 1;
     overflow-y: auto;
