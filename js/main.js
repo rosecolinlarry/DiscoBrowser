@@ -5,15 +5,24 @@ import { buildTitleTree, renderTree } from "./treeBuilder.js";
 import { $ } from "./ui.js";
 import * as UI from "./ui.js";
 
-const searchInput = $("search");
+const searchBarEl = $("searchBar"); // Item to move
+const searchInputWrapper = $('searchInputWrapper')
+const wholeWordsFilterWrapper = $('wholeWordsFilterWrapper')
+const actorFilterWrapper = $('actorFilterWrapper')
+const typeFilterWrapper = $('typeFilterWrapper')
+const clearFilterWrapper = $('clearFilterWrapper')
+
+const controlsEl = $("controls"); // Desktop Container
+const mobileHeaderEl = $("mobileHeader"); // Mobile Container
+const searchScreenControlsEl = $("searchScreenControls"); // Mobile Search Screen Container
+
+
+const wholeWordsContainer = $("wholeWordsContainer"); // Item to move
+const mobileSearchOptionsContainer = $("mobileSearchOptions"); // Mobile Container
+const searchOptionsContainer = $("searchOptions"); // Desktop Container
+
+const searchInput = $("searchInput");
 const searchBtn = $("searchBtn");
-const conversationFilterBtn = $("conversationFilterBtn");
-const conversationFilterLabel = $("conversationFilterLabel");
-const conversationFilterDropdown = $("conversationFilterDropdown");
-const conversationSearchInput = $("conversationSearch");
-const conversationCheckboxList = $("conversationCheckboxList");
-const selectAllConversations = $("selectAllConversations");
-const addConversationToSelectionBtn = $("addConversationToSelection");
 const actorFilterBtn = $("actorFilterBtn");
 const actorFilterLabel = $("actorFilterLabel");
 const actorFilterDropdown = $("actorFilterDropdown");
@@ -46,7 +55,7 @@ const moreDetailsEl = $("moreDetails");
 // Sidebar elements
 const sidebarOverlay = $("sidebarOverlay");
 
-const mobileBackBtn = $("mobileBackBtn");
+const mobileSearchBackBtnEl = $("mobileSearchBack");
 const mobileRootBtn = $("mobileRootBtn");
 const mobileHomeButtonEl = $("convoSearchHomeButton");
 
@@ -67,11 +76,7 @@ const chatLog = $("chatLog");
 const wholeWordsCheckbox = $("wholeWordsCheckbox");
 
 // Mobile search elements
-const mobileSearchTrigger = $("mobileSearchTrigger");
 const mobileSearchScreen = $("mobileSearchScreen");
-const mobileSearchInput = $("mobileSearchInput");
-const mobileSearchBtn = $("mobileSearchBtn");
-const mobileSearchIconBtn = $("mobileSearchIconBtn");
 const mobileSearchBack = $("mobileSearchBack");
 const mobileSearchResults = $("mobileSearchResults");
 const mobileSearchLoader = $("mobileSearchLoader");
@@ -86,7 +91,6 @@ const mobileActorFilterValue = $("mobileActorFilterValue");
 const mobileConvoFilterScreen = $("mobileConvoFilterScreen");
 const mobileActorFilterScreen = $("mobileActorFilterScreen");
 const mobileTypeFilterSheet = $("mobileTypeFilterSheet");
-const mobileWholeWordsCheckbox = $("mobileWholeWordsCheckbox");
 
 // Tree control elements
 const expandAllBtn = $("expandAllBtn");
@@ -211,12 +215,10 @@ async function boot() {
 
   // wire search
   if (searchBtn && searchInput) {
-    searchBtn.addEventListener("click", () =>
-      searchDialogues(searchInput.value)
-    );
-    searchInput.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter") searchDialogues(searchInput.value);
-    });
+    searchBtn.addEventListener("click", handleSearchInputTrigger);
+    searchInput.addEventListener("click", handleSearchInputTrigger);
+    searchInput.addEventListener("keydown", handleSearchInputTrigger);
+    
   }
 
   // Whole words toggle - trigger search when changed
@@ -321,31 +323,44 @@ const desktopMediaQuery = window.matchMedia("(min-width: 1025px)");
 
 // Runs when the media query status changes
 function handleMediaQueryChange() {
-  if (desktopMediaQuery.matches) {
-    console.log("Desktop view");
-    closeAllSidebars();
+  setUpSidePanes()
+  setUpSearchBarFilters()
+}
 
+function setUpSidePanes() {
+  closeAllSidebars();
+  if (desktopMediaQuery.matches) {
     toggleElementVisibilityById("historySidebarToggle", false);
     toggleElementVisibilityById("convoToggle", false);
     browserEl.prepend(conversationsSection);
     browserEl.append(historySection);
   } else if (tabletMediaQuery.matches) {
-    console.log("Tablet view");
-    closeAllSidebars();
-
     toggleElementVisibilityById("historySidebarToggle", true);
     toggleElementVisibilityById("convoToggle", true);
     historySidebar.appendChild(historySection);
   } else if (mobileMediaQuery.matches) {
-    console.log("Mobile view");
-    closeAllSidebars();
-
     toggleElementVisibilityById("historySidebarToggle", true);
     toggleElementVisibilityById("convoToggle", false);
     browserEl.prepend(conversationsSection);
     historySidebar.append(historySection);
   }
 }
+
+function setUpSearchBarFilters() {
+  if(desktopMediaQuery.matches || tabletMediaQuery.matches) {
+    searchBarEl.appendChild(searchInputWrapper)
+    searchBarEl.appendChild(wholeWordsFilterWrapper)
+    searchBarEl.appendChild(actorFilterWrapper)
+    searchBarEl.appendChild(typeFilterWrapper)
+    searchBarEl.appendChild(clearFilterWrapper)
+
+    controlsEl.appendChild(searchBarEl)
+    controlsEl.appendChild(searchLoader)
+  }
+  if(mobileMediaQuery.matches) {
+    moveSearchInputToMobileHeader()
+  }
+} 
 // Add the event listener to the MediaQueryList object
 // The 'change' event fires when the matching status of the media query changes
 desktopMediaQuery.addEventListener("change", handleMediaQueryChange);
@@ -930,17 +945,32 @@ function closeSearchScreen() {
   if (mobileSearchScreen) {
     mobileSearchScreen.style.display = "none";
   }
+  moveSearchInputToMobileHeader()
+}
+
+function moveSearchInputToMobileHeader() {
+    if(mobileHeaderEl && mobileMediaQuery.matches) {
+      mobileHeaderEl.appendChild(mobileSidebarToggle);
+      mobileHeaderEl.appendChild(searchBarEl);
+      mobileHeaderEl.appendChild(mobileHomeButtonEl);
+    }
+}
+
+function moveSearchInputToSearchScreen() {
+  if (mobileSearchScreen && mobileMediaQuery.matches) {
+    mobileSearchScreen.style.display = "block";
+    searchScreenControlsEl.appendChild(searchBarEl);
+    searchInput.focus();
+  }
 }
 
 function openSearchScreen() {
   // Push browser history state for mobile search
+  if (!mobileMediaQuery.matches) return;
   if (!isHandlingPopState) {
     pushHistoryState("search");
   }
-  if (mobileSearchScreen) {
-    mobileSearchScreen.style.display = "block";
-    mobileSearchInput.focus();
-  }
+  moveSearchInputToSearchScreen()
 }
 
 // Setup clear filters button
@@ -1210,7 +1240,7 @@ function setupBrowserHistory() {
     const state = event.state;
 
     // Always close mobile search screen if it's open (when navigating via back button)
-    closeSearchScreen()
+    closeSearchScreen();
 
     if (!state || state.view === "home") {
       // Go back to home view
@@ -1663,17 +1693,17 @@ async function showEntryDetails(
 }
 
 /* Search */
-function searchDialogues(q, resetSearch = true) {
-  const trimmedQ = q.trim();
+function searchDialogues(resetSearch = true) {
+  const q = searchInput.value.trim();
 
   if (resetSearch) {
     // Push browser history state for search view
     if (!isHandlingPopState) {
-      pushHistoryState("search", { query: trimmedQ });
+      pushHistoryState("search", { query: q });
     }
 
     // Starting a new search
-    currentSearchQuery = trimmedQ;
+    currentSearchQuery = q;
     currentSearchOffset = 0;
   }
 
@@ -2176,44 +2206,30 @@ function setupUnifiedFilterPanel() {
   }
 }
 
+function handleSearchInputTrigger(e) {
+  if (e.type === "click" || e.key === "Enter") {
+    if (mobileMediaQuery.matches) {
+      openSearchScreen();
+      performMobileSearch();
+    } else if (tabletMediaQuery.matches || desktopMediaQuery.matches) {
+      searchDialogues(searchInput.value);
+    }
+  }
+}
+
+function handleSearchBackButtonClick() {
+  if (mobileMediaQuery.matches) {
+    closeSearchScreen();
+  }
+}
+
 /* Mobile Search Functions */
 function setupMobileSearch() {
-  // Open mobile search screen
-  if (mobileSearchTrigger) {
-    mobileSearchTrigger.addEventListener("click", openSearchScreen);
-  }
-
   // Close mobile search screen
-  if (mobileSearchBack) {
-    mobileSearchBack.addEventListener("click", () => {
-      // Use browser back to return to previous state
-      window.history.back();
-    });
-  }
-
-  // Mobile search - Enter key triggers search
-  if (mobileSearchInput) {
-    mobileSearchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") performMobileSearch();
-    });
-  }
-
-  // Mobile search icon button
-  if (mobileSearchIconBtn) {
-    mobileSearchIconBtn.addEventListener("click", () => {
-      performMobileSearch();
-    });
-  }
+  mobileSearchBack.addEventListener("click", handleSearchBackButtonClick);
 
   // Whole words toggle - trigger search when changed
-  if (mobileWholeWordsCheckbox) {
-    mobileWholeWordsCheckbox.addEventListener("change", () => {
-      // Only trigger search if there's an active query
-      if (mobileSearchQuery) {
-        performMobileSearch();
-      }
-    });
-  }
+  wholeWordsCheckbox.addEventListener("change", handleSearchInputTrigger);
 
   // Clear filters button
   if (mobileClearFilters) {
@@ -2232,8 +2248,8 @@ function setupMobileSearch() {
       if (mobileActorFilterValue) mobileActorFilterValue.textContent = "All";
 
       // Clear whole words
-      if (mobileWholeWordsCheckbox) {
-        mobileWholeWordsCheckbox.checked = false;
+      if (wholeWordsCheckbox) {
+        wholeWordsCheckbox.checked = false;
       }
 
       // Re-run search if there's an active query
@@ -2243,53 +2259,20 @@ function setupMobileSearch() {
     });
   }
 
-  // Conversation filter
-  if (mobileConvoFilter) {
-    mobileConvoFilter.addEventListener("click", () => {
-      showMobileConvoFilter();
-    });
-  }
+  // Filter: Convos, Type, Actor
+  mobileConvoFilter.addEventListener("click", showMobileConvoFilter);
+  mobileTypeFilter.addEventListener("click", showMobileTypeFilter);
+  mobileActorFilter.addEventListener("click", showMobileActorFilter);
 
-  // Type filter
-  if (mobileTypeFilter) {
-    mobileTypeFilter.addEventListener("click", () => {
-      showMobileTypeFilter();
-    });
-  }
-
-  // Actor filter
-  if (mobileActorFilter) {
-    mobileActorFilter.addEventListener("click", () => {
-      showMobileActorFilter();
-    });
-  }
-
-  // Setup conversation filter screen
   setupMobileConvoFilter();
-
-  // Setup actor filter screen
   setupMobileActorFilter();
-
-  // Setup type filter sheet
   setupMobileTypeFilter();
 }
 
 function setupMobileSidebar() {
   // Open sidebar
-  if (mobileSidebarToggle) {
-    mobileSidebarToggle.addEventListener("click", openConversationSection);
-  }
-  if (convoToggle) {
-    convoToggle.addEventListener("click", openConversationSection);
-  }
-
-  // Mobile back button
-  if (mobileBackBtn) {
-    mobileBackBtn.addEventListener("click", () => {
-      // Use browser back button instead of manual history management
-      window.history.back();
-    });
-  }
+  mobileSidebarToggle.addEventListener("click", openConversationSection);
+  convoToggle.addEventListener("click", openConversationSection);
 
   // Mobile root button
   if (mobileRootBtn) {
@@ -2303,7 +2286,7 @@ function setupMobileSidebar() {
 }
 
 function updateMobileNavButtons() {
-  if (!mobileBackBtn || !mobileRootBtn) return;
+  if (!mobileSearchBackBtnEl || !mobileRootBtn) return;
 
   // Show back button if we have navigation history OR if we're not on home view
   if (
@@ -2311,10 +2294,10 @@ function updateMobileNavButtons() {
     currentConvoId !== null ||
     currentAppState !== "home"
   ) {
-    // mobileBackBtn.style.display = "flex";
-    mobileBackBtn.style.display = "none";
+    // mobileSearchBackBtnEl.style.display = "flex";
+    mobileSearchBackBtnEl.style.display = "none";
   } else {
-    mobileBackBtn.style.display = "none";
+    mobileSearchBackBtnEl.style.display = "none";
   }
 
   // Show root button if we're not at conversation root
@@ -2333,7 +2316,7 @@ function closeAllSidebars() {
 }
 
 function performMobileSearch(resetSearch = true) {
-  const query = mobileSearchInput.value.trim();
+  const query = searchInput.value.trim();
 
   if (resetSearch) {
     // Starting a new search
@@ -2360,7 +2343,7 @@ function performMobileSearch(resetSearch = true) {
       true,
       mobileSearchOffset,
       undefined, // conversationIds
-      mobileWholeWordsCheckbox?.checked || false // wholeWords
+      wholeWordsCheckbox?.checked || false // wholeWords
     );
     const { results, total } = response;
     mobileSearchTotal = total;
@@ -2561,7 +2544,7 @@ function setupMobileConvoFilter() {
       updateMobileConvoFilterLabel();
       mobileConvoFilterScreen.style.display = "none";
       // Trigger new search with updated filter
-      if (mobileSearchInput.value.trim()) {
+      if (searchInput.value.trim()) {
         performMobileSearch();
       }
     });
@@ -2766,7 +2749,7 @@ function setupMobileActorFilter() {
       updateMobileActorFilterLabel();
       mobileActorFilterScreen.style.display = "none";
       // Trigger new search with updated filter
-      if (mobileSearchInput.value.trim()) {
+      if (searchInput.value.trim()) {
         performMobileSearch(true);
       }
     });
@@ -2907,7 +2890,7 @@ function setupMobileTypeFilter() {
     mobileTypeFilterSheet.classList.remove("active");
 
     // Perform search if there's a query
-    if (mobileSearchInput.value.trim()) performMobileSearch();
+    if (searchInput.value.trim()) performMobileSearch();
   });
 }
 

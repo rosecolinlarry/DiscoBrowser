@@ -107,7 +107,7 @@ h1:hover {
   grid-row: 2;
 }
 
-#search-bar {
+#searchBar {
   display: flex;
   gap: 8px;
   align-items: center;
@@ -115,7 +115,7 @@ h1:hover {
   flex-wrap: wrap;
 }
 
-.search-input-wrapper {
+#searchInputWrapper {
   position: relative;
   flex: 1;
   min-width: 150px;
@@ -166,7 +166,7 @@ h1:hover {
   transform: none;
 }
 
-#actor-filter-wrapper {
+#actorFilterWrapper {
   position: relative;
   min-width: 180px;
 }
@@ -389,7 +389,7 @@ h1:hover {
   line-height: 1.4;
 }
 
-#type-filter-wrapper {
+#typeFilterWrapper {
   position: relative;
   min-width: 150px;
 }
@@ -1473,12 +1473,12 @@ a:hover {
 }
 
 @media (max-width: 1120px) and (min-width: 1025px) {
-  .search-input-wrapper {
+  #searchInputWrapper {
     max-width: 320px;
   }
 
-  #actor-filter-wrapper,
-  #type-filter-wrapper {
+  #actorFilterWrapper,
+  #typeFilterWrapper {
     min-width: 130px;
   }
 
@@ -1580,17 +1580,17 @@ a:hover {
     padding: 12px;
   }
 
-  #search-bar {
+  #searchBar {
     gap: 10px;
   }
 
-  .search-input-wrapper {
+  #searchInputWrapper {
     max-width: none;
     flex: 1;
   }
 
-  #actor-filter-wrapper,
-  #type-filter-wrapper {
+  #actorFilterWrapper,
+  #typeFilterWrapper {
     min-width: 0;
     flex: 1;
   }
@@ -1611,7 +1611,7 @@ a:hover {
     min-height: 40px;
   }
 
-  #search-bar {
+  #searchBar {
     gap: 6px;
   }
 
@@ -1680,7 +1680,7 @@ a:hover {
     gap: 8px;
   }
 
-  #search-bar {
+  #searchBar {
     gap: 6px;
     flex-direction: column;
   }
@@ -1851,13 +1851,6 @@ a:hover {
     cursor: pointer;
     line-height: 1;
     margin: -4px 0;
-  }
-
-  .mobile-search-input-wrapper {
-    flex: 1;
-    position: relative;
-    display: flex;
-    align-items: center;
   }
 
   #mobileSearchInput {
@@ -2300,7 +2293,7 @@ a:hover {
     display: none !important;
   }
 
-  #actor-filter-wrapper {
+  #actorFilterWrapper {
     display: none;
   }
 
@@ -2525,7 +2518,7 @@ a:hover {
     gap: 6px;
   }
 
-  #search-bar {
+  #searchBar {
     gap: 4px;
   }
 

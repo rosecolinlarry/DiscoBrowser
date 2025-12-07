@@ -13,17 +13,8 @@
 <body>
   <!-- Mobile Search Screen -->
   <div id="mobileSearchScreen" class="mobile-search-screen" style="display: none;">
-    <div class="mobile-search-header">
+    <div id="searchScreenControls" class="mobile-search-header">
       <button id="mobileSearchBack" class="mobile-back-btn">←</button>
-      <div class="mobile-search-input-wrapper">
-        <input id="mobileSearchInput" type="text" placeholder="Search dialogues..." />
-        <button id="mobileSearchIconBtn" class="mobile-search-icon-btn">
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-            <path
-              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-          </svg>
-        </button>
-      </div>
     </div>
 
     <div class="mobile-search-filters">
@@ -47,12 +38,7 @@
       </button>
     </div>
 
-    <div class="mobile-search-options">
-      <label class="mobile-option-toggle">
-        <input type="checkbox" id="mobileWholeWordsCheckbox" />
-        <span class="toggle-slider"></span>
-        <span class="toggle-label">Whole Words</span>
-      </label>
+    <div id="mobileSearchOptions" class="mobile-search-options">
     </div>
 
     <div id="mobileSearchCount" class="mobile-search-count" style="display: none;"></div>
@@ -152,16 +138,6 @@
     <!-- Mobile Header Bar -->
     <div id="mobileHeader" class="mobile-header">
       <button id="mobileSidebarToggle" class="mobile-menu-btn">☰</button>
-      <div class="mobile-search-trigger-wrapper">
-        <input id="mobileSearchTrigger" class="mobile-search-trigger" type="text" placeholder="Search dialogues..."
-          readonly />
-        <span class="mobile-search-trigger-icon">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path
-              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-          </svg>
-        </span>
-      </div>
       <button id="convoSearchHomeButton" class="mobile-menu-btn">
         <span>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z"/></svg>
@@ -186,23 +162,25 @@
     </div>
 
     <section id="controls">
-      <div id="search-bar">
-        <label class="mobile-hide" for="search">Search lines:</label>
-        <div class="search-input-wrapper">
-          <input id="search" class="desktop-search" placeholder="search text..." />
-          <button id="searchBtn" class="search-icon-btn mobile-hide" title="Search">
+      <div id="searchBar">
+        <div id="searchInputWrapper">
+          <label class="mobile-hide" for="search">Search lines:</label>
+          <input id="searchInput" placeholder="Search text..." />
+          <button id="searchBtn" class="search-icon-btn" title="Search">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path
                 d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
             </svg>
           </button>
         </div>
-        <label class="search-option-toggle mobile-hide">
-          <input type="checkbox" id="wholeWordsCheckbox" />
-          <span class="toggle-slider"></span>
-          <span class="toggle-label">Whole Words</span>
-        </label>
-        <div id="actor-filter-wrapper">
+        <div id="wholeWordsFilterWrapper">
+          <label id="wholeWordsContainer" class="search-option-toggle">
+            <input type="checkbox" id="wholeWordsCheckbox" />
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Whole Words</span>
+          </label>
+        </div>
+        <div id="actorFilterWrapper">
           <button id="actorFilterBtn" type="button">
             <span id="actorFilterLabel" class="filter-label">All Actors</span>
             <span class="dropdown-arrow">▼</span>
@@ -222,7 +200,7 @@
             </div>
           </div>
         </div>
-        <div id="type-filter-wrapper">
+        <div id="typeFilterWrapper">
           <button id="typeFilterBtn" type="button">
             <span id="typeFilterLabel" class="filter-label">All Types</span>
             <span class="dropdown-arrow">▼</span>
@@ -250,19 +228,16 @@
             </div>
           </div>
         </div>
-        <button id="clearFiltersBtn" type="button" class="clear-filters-btn" title="Clear all filters">
-          Clear Filters
-        </button>
-        </label>
-      </div>
-      </div>
+        <div id="clearFilterWrapper">
+          <button id="clearFiltersBtn" type="button" class="clear-filters-btn" title="Clear all filters">
+            Clear Filters
+          </button>
+        </div>
       </div>
       <div id="searchLoader" class="search-loader" style="display: none">
         <span class="spinner"></span>
         <span>Searching...</span>
       </div>
-      </div>
-      <div class="muted-text mobile-hide">
     </section>
 
     <div id="browser">
@@ -276,7 +251,7 @@
           <div id="convoSidebarCloseContainer"><span id="convoSidebarClose" class="sidebar-close">⨉</span></div>
         </h3>
         <div id="convoFilterContainer">
-          <input id="convoSearchInput" class="search-bar" type="text" placeholder="Filter by title or ID..." />
+          <input id="convoSearchInput" type="text" placeholder="Filter by title or ID..." />
           <div id="convoTypeFilterRow" class="tree-control-btn-row radio-button-group">
             <button class="tree-control-btn radio-button active" data-type="all">All</button>
             <button class="tree-control-btn radio-button type-badge type-flow" data-type="flow">Flow</button>
