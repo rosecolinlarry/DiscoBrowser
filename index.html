@@ -131,57 +131,19 @@
       <button class="mobile-apply-btn" id="mobileTypeApply">Apply</button>
     </div>
   </div>
-
   <main>
-    <!-- Tablet Conversation Sidebar -->
-    <div id="tabletConvoSidebar" class="tablet-sidebar tablet-sidebar-left" style="display: none;">
-      <div class="tablet-sidebar-header">
-        <h3>Conversations</h3>
-        <button id="tabletConvoSidebarClose" class="tablet-sidebar-close" title="Close sidebar">✕</button>
-      </div>
-      <div id="tablet-convo-filter">
-        <input id="tabletConvoSearch" type="text" placeholder="Filter by title or ID..." />
-        <div id="tablet-convo-type-filter">
-          <button class="type-filter-btn active" data-type="all">All</button>
-          <button class="type-filter-btn" data-type="flow">Flow</button>
-          <button class="type-filter-btn" data-type="orb">Orb</button>
-          <button class="type-filter-btn" data-type="task">Task</button>
-        </div>
-      </div>
-      <div id="tablet-tree-controls">
-        <button id="tabletExpandAllBtn" class="tree-control-btn" title="Expand all conversations">Expand All</button>
-        <button id="tabletCollapseAllBtn" class="tree-control-btn" title="Collapse all conversations">Collapse
-          All</button>
-      </div>
-      <div id="tabletConvoList" class="scrolling-card tree">(loading...)</div>
+
+    <!-- History Sidebar -->
+    <div id="historySidebar" class="sidebar sidebar-right" style="display: none;">
     </div>
 
-    <!-- Tablet History Sidebar -->
-    <div id="tabletHistorySidebar" class="tablet-sidebar tablet-sidebar-right" style="display: none;">
-      <div class="tablet-sidebar-header">
-        <h3>History</h3>
-        <button id="tabletHistorySidebarClose" class="tablet-sidebar-close" title="Close sidebar">✕</button>
-      </div>
-      <div id="tabletChatLog" class="scrolling-card" title="Click an entry to jump back to that point">
-        (navigation log)
-      </div>
-      <div id="tabletBackButtonContainer">
-        <button id="tabletBackBtn" title="Go back to previous entry">
-          ← Back
-        </button>
-        <button id="tabletRootBtn" title="Return to conversation root" style="display: none;">
-          ↑ Root
-        </button>
-      </div>
-    </div>
-
-    <!-- Tablet Sidebar Toggle Buttons -->
-    <button id="tabletConvoToggle" class="tablet-toggle-btn tablet-toggle-left" style="display: none;"
+    <!-- Sidebar Toggle Buttons -->
+    <button id="convoToggle" class="sidebar-toggle-btn sidebar-toggle-left" style="display: none;"
       title="Toggle conversations sidebar">
       <span class="toggle-icon">☰</span>
       <span class="toggle-label">Conversations</span>
     </button>
-    <button id="tabletHistoryToggle" class="tablet-toggle-btn tablet-toggle-right" style="display: none;"
+    <button id="historySidebarToggle" class="sidebar-toggle-btn sidebar-toggle-right" style="display: none;"
       title="Toggle history sidebar">
       <span class="toggle-label">History</span>
       <span class="toggle-icon">☰</span>
@@ -190,7 +152,6 @@
     <!-- Mobile Header Bar -->
     <div id="mobileHeader" class="mobile-header">
       <button id="mobileSidebarToggle" class="mobile-menu-btn">☰</button>
-      <h3 id="mobileHeaderTitle" class="mobile-header-title">Disco Browser</h3>
       <div class="mobile-search-trigger-wrapper">
         <input id="mobileSearchTrigger" class="mobile-search-trigger" type="text" placeholder="Search dialogues..."
           readonly />
@@ -201,10 +162,15 @@
           </svg>
         </span>
       </div>
+      <button id="convoSearchHomeButton" class="mobile-menu-btn">
+        <span>
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z"/></svg>
+        </span>
+      </button>
     </div>
 
-    <!-- Mobile Sidebar Overlay -->
-    <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" style="display: none;"></div>
+    <!-- Blurred Sidebar Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay" style="display: none;"></div>
 
     <div class="header-container">
       <div>
@@ -238,7 +204,7 @@
         </label>
         <div id="actor-filter-wrapper">
           <button id="actorFilterBtn" type="button">
-            <span id="actorFilterLabel">All Actors</span>
+            <span id="actorFilterLabel" class="filter-label">All Actors</span>
             <span class="dropdown-arrow">▼</span>
           </button>
           <div id="actorFilterDropdown" class="filter-dropdown" style="display: none;">
@@ -258,7 +224,7 @@
         </div>
         <div id="type-filter-wrapper">
           <button id="typeFilterBtn" type="button">
-            <span id="typeFilterLabel">All Types</span>
+            <span id="typeFilterLabel" class="filter-label">All Types</span>
             <span class="dropdown-arrow">▼</span>
           </button>
           <div id="typeFilterDropdown" class="filter-dropdown" style="display: none;">
@@ -301,39 +267,30 @@
 
     <div id="browser">
       <section id="conversations-section" class="section">
-        <h3 class="mobile-hide">
+        <h3 style="display: flex; justify-content: space-between;">
+          <div>
           Conversations
           <span class="help-icon"
             title="Conversation Types:&#10;• FLOW - Conversations with NPCs&#10;• ORB - Thoughts from interacting with the environment&#10;• TASK - Player's quest log">?</span>
+          </div>
+          <div id="convoSidebarCloseContainer"><span id="convoSidebarClose" class="sidebar-close">⨉</span></div>
         </h3>
-        <div id="convo-filter">
-          <button id="mobile-home-button">Home</button>
-          <input id="convoSearch" type="text" placeholder="Filter by title or ID..." />
-          <div id="convo-type-filter">
-            <button class="type-filter-btn active" data-type="all">All</button>
-            <button class="type-filter-btn" data-type="flow">Flow</button>
-            <button class="type-filter-btn" data-type="orb">Orb</button>
-            <button class="type-filter-btn" data-type="task">Task</button>
+        <div id="convoFilterContainer">
+          <input id="convoSearchInput" class="search-bar" type="text" placeholder="Filter by title or ID..." />
+          <div id="convoTypeFilterRow" class="tree-control-btn-row radio-button-group">
+            <button class="tree-control-btn radio-button active" data-type="all">All</button>
+            <button class="tree-control-btn radio-button type-badge type-flow" data-type="flow">Flow</button>
+            <button class="tree-control-btn radio-button type-badge type-orb" data-type="orb">Orb</button>
+            <button class="tree-control-btn radio-button type-badge type-task" data-type="task">Task</button>
           </div>
         </div>
-        <div id="tree-controls">
+        <div id="convoTreeControlsRow"  class="tree-control-btn-row">
           <button id="expandAllBtn" class="tree-control-btn" title="Expand all conversations">Expand All</button>
           <button id="collapseAllBtn" class="tree-control-btn" title="Collapse all conversations">Collapse All</button>
         </div>
         <div id="convoList" class="scrolling-card tree">(loading...)</div>
       </section>
       <section id="entries-section" class="section">
-        <div class="mobile-nav-bar">
-          <button id="mobileBackBtn" class="mobile-nav-btn" style="display: none;">
-            <span>←</span>
-            <span>Back</span>
-          </button>
-          <button id="mobileRootBtn" class="mobile-nav-btn" style="display: none;">
-            <span>↑</span>
-            <span>Root</span>
-          </button>
-        </div>
-
         <!-- Homepage (shown by default) -->
         <div id="homePageContainer" class="card home-page-card">
           <div style="display: flex; flex-direction: column; justify-content: space-between; align-items: baseline;">
@@ -417,7 +374,9 @@
         </div>
       </section>
       <section id="history-section" class="section">
-        <h4>History</h4>
+        <h4 style="display: flex; justify-content: space-between; align-items: center;">
+          History
+        </h4>
         <div id="chatLog" class="scrolling-card" title="Click an entry to jump back to that point">
           (navigation log)
         </div>
@@ -425,7 +384,7 @@
           <button id="backBtn" title="Go back to previous entry">
             ← Back
           </button>
-          <button id="rootBtn" title="Return to conversation root" style="display: none;">
+          <button id="convoRootBtn" title="Return to conversation root" style="display: none;">
             ↑ Root
           </button>
           <span id="backStatus" class="muted-text"></span>

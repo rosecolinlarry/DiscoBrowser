@@ -76,8 +76,7 @@ export function appendHistoryItem(
   title,
   text,
   historyIndex,
-  onClick,
-  tabletChatLogEl = null
+  onClick
 ) {
   const item = document.createElement("div");
   item.className = "card-item history-item";
@@ -106,14 +105,6 @@ export function appendHistoryItem(
   if (onClick) item.addEventListener("click", onClick);
   chatLogEl.appendChild(item);
   chatLogEl.scrollTop = chatLogEl.scrollHeight;
-  
-  // Also add to tablet chat log if provided
-  if (tabletChatLogEl) {
-    const tabletItem = item.cloneNode(true);
-    if (onClick) tabletItem.addEventListener("click", onClick);
-    tabletChatLogEl.appendChild(tabletItem);
-    tabletChatLogEl.scrollTop = tabletChatLogEl.scrollHeight;
-  }
   
   return item;
 }
