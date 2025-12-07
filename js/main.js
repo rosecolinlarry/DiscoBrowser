@@ -1079,12 +1079,6 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   const conversation = DB.getConversationById(convoId);
   if (conversation) {
     UI.renderConversationOverview(entryOverviewEl, conversation);
-
-    // Update mobile header title
-    if (mobileHeaderTitle) {
-      mobileHeaderTitle.textContent =
-        conversation.title || `Conversation ${convoId}`;
-    }
   }
 
   // Make sure current entry container is visible
