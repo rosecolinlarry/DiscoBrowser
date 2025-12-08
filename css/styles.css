@@ -285,8 +285,6 @@ h1:hover {
   max-width: 320px;
   height: 100vh;
   background: var(--bg);
-
-  transition: 0.3s ease;
   z-index: 15;
 
   overflow-y: auto;
@@ -1417,7 +1415,6 @@ a:hover {
   }
 
   #history-section {
-    height: inherit;
     padding: 16px;
     h4 {
       margin: 0 0 8px 0;
