@@ -7,13 +7,6 @@ import * as UI from "./ui.js";
 
 const searchInput = $("search");
 const searchBtn = $("searchBtn");
-const conversationFilterBtn = $("conversationFilterBtn");
-const conversationFilterLabel = $("conversationFilterLabel");
-const conversationFilterDropdown = $("conversationFilterDropdown");
-const conversationSearchInput = $("conversationSearch");
-const conversationCheckboxList = $("conversationCheckboxList");
-const selectAllConversations = $("selectAllConversations");
-const addConversationToSelectionBtn = $("addConversationToSelection");
 const actorFilterBtn = $("actorFilterBtn");
 const actorFilterLabel = $("actorFilterLabel");
 const actorFilterDropdown = $("actorFilterDropdown");
@@ -52,15 +45,19 @@ const mobileHomeButtonEl = $("convoSearchHomeButton");
 
 const mobileSidebarToggle = $("mobileSidebarToggle");
 
-const conversationsSection = $("conversations-section"); // Item to move
+const conversationsSection = $("convo-section"); // Item to move
 const historySection = $("history-section"); // Item to move
 
-const convoToggle = $("convoToggle");
 const browserEl = $("browser"); // Desktop and Tablet Container
 
 const historySidebarToggle = $("historySidebarToggle");
 const historySidebar = $("historySidebar");
 const historySidebarClose = $("historySidebarClose");
+
+const convoSidebarToggle = $("convoSidebarToggle")
+const convoSidebar = $("convoSidebar");
+const convoSidebarClose = $("convoSidebarClose");
+
 const chatLog = $("chatLog");
 
 // Search option elements
@@ -70,7 +67,6 @@ const wholeWordsCheckbox = $("wholeWordsCheckbox");
 const mobileSearchTrigger = $("mobileSearchTrigger");
 const mobileSearchScreen = $("mobileSearchScreen");
 const mobileSearchInput = $("mobileSearchInput");
-const mobileSearchBtn = $("mobileSearchBtn");
 const mobileSearchIconBtn = $("mobileSearchIconBtn");
 const mobileSearchBack = $("mobileSearchBack");
 const mobileSearchResults = $("mobileSearchResults");
@@ -326,26 +322,28 @@ function handleMediaQueryChange() {
     closeAllSidebars();
     
     toggleElementVisibilityById("historySidebarToggle", false);
-    toggleElementVisibilityById("convoToggle", false);
+    toggleElementVisibilityById("convoSidebarToggle", false);
     browserEl.prepend(conversationsSection);
-    browserEl.append(historySection);
+    browserEl.appendChild(historySection);
 
   } else if (tabletMediaQuery.matches) {
     console.log("Tablet view");
     closeAllSidebars();
     
     toggleElementVisibilityById("historySidebarToggle", true);
-    toggleElementVisibilityById("convoToggle", true);
+    toggleElementVisibilityById("convoSidebarToggle", true);
     historySidebar.appendChild(historySection);
+    convoSidebar.appendChild(conversationsSection);
+
   } else if (mobileMediaQuery.matches) {
     console.log("Mobile view");
     closeAllSidebars();
     
     toggleElementVisibilityById("historySidebarToggle", true);
-    toggleElementVisibilityById("convoToggle", false);
+    toggleElementVisibilityById("convoSidebarToggle", false);
 
-    browserEl.prepend(conversationsSection);
     historySidebar.append(historySection);
+    convoSidebar.appendChild(conversationsSection);
   }
 }
 // Add the event listener to the MediaQueryList object
@@ -363,7 +361,7 @@ function toggleElementVisibilityById(id, showElement) {
 }
 
 function setUpSidebarToggles() {
-  convoToggle.addEventListener("click", openConversationSection);
+  convoSidebarToggle.addEventListener("click", openConversationSection);
   historySidebarToggle.addEventListener("click", openHistorySidebar);
   sidebarOverlay.addEventListener("click", closeAllSidebars);
 }
@@ -909,8 +907,8 @@ function closeHistorySidebar() {
 }
 
 function closeConversationSection() {
-  if(conversationsSection) {
-    conversationsSection.classList.remove("open")
+  if(convoSidebar) {
+    convoSidebar.classList.remove("open")
   }
   if (sidebarOverlay) {
     sidebarOverlay.style.display = "none";
@@ -918,10 +916,12 @@ function closeConversationSection() {
 }
 
 function openConversationSection(e) {
-    e.preventDefault();
-    e.stopPropagation();
-  if (conversationsSection) {
-    conversationsSection.classList.add("open");
+  if (convoSidebar) {
+    convoSidebar.classList.add("open");
+    convoSidebar.style.display = "";
+  }
+  if(convoSidebarClose) {
+    convoSidebarClose.addEventListener("click", closeConversationSection)
   }
   if (sidebarOverlay) {
     sidebarOverlay.style.display = "block";
@@ -2280,8 +2280,8 @@ function setupMobileSidebar() {
   if (mobileSidebarToggle) {
     mobileSidebarToggle.addEventListener("click", openConversationSection);
   }
-  if (convoToggle) {
-    convoToggle.addEventListener("click", openConversationSection);
+  if (convoSidebarToggle) {
+    convoSidebarToggle.addEventListener("click", openConversationSection);
   }
 
   // Mobile back button

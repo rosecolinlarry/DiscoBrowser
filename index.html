@@ -16,7 +16,7 @@
     <div class="mobile-search-header">
       <button id="mobileSearchBack" class="mobile-back-btn">←</button>
       <div class="mobile-search-input-wrapper">
-        <input id="mobileSearchInput" type="text" placeholder="Search dialogues..." />
+        <input id="mobileSearchInput" type="text" placeholder="Search text..." />
         <button id="mobileSearchIconBtn" class="mobile-search-icon-btn">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
             <path
@@ -133,12 +133,16 @@
   </div>
   <main>
 
+    <!-- Conversation Sidebar -->
+    <div id="convoSidebar" class="sidebar sidebar-left" style="display: none;">
+    </div>
+
     <!-- History Sidebar -->
     <div id="historySidebar" class="sidebar sidebar-right" style="display: none;">
     </div>
 
     <!-- Sidebar Toggle Buttons -->
-    <button id="convoToggle" class="sidebar-toggle-btn sidebar-toggle-left" style="display: none;"
+    <button id="convoSidebarToggle" class="sidebar-toggle-btn sidebar-toggle-left" style="display: none;"
       title="Toggle conversations sidebar">
       <span class="toggle-icon">☰</span>
       <span class="toggle-label">Conversations</span>
@@ -153,7 +157,7 @@
     <div id="mobileHeader" class="mobile-header">
       <button id="mobileSidebarToggle" class="mobile-menu-btn">☰</button>
       <div class="mobile-search-trigger-wrapper">
-        <input id="mobileSearchTrigger" class="mobile-search-trigger" type="text" placeholder="Search dialogues..."
+        <input id="mobileSearchTrigger" class="mobile-search-trigger" type="text" placeholder="Search text..."
           readonly />
         <span class="mobile-search-trigger-icon">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -189,7 +193,7 @@
       <div id="search-bar">
         <label class="mobile-hide" for="search">Search lines:</label>
         <div class="search-input-wrapper">
-          <input id="search" class="desktop-search" placeholder="search text..." />
+          <input id="search" class="desktop-search" placeholder="Search text..." />
           <button id="searchBtn" class="search-icon-btn mobile-hide" title="Search">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path
@@ -266,14 +270,14 @@
     </section>
 
     <div id="browser">
-      <section id="conversations-section" class="section">
+      <section id="convo-section" class="section">
         <h3 style="display: flex; justify-content: space-between;">
           <div>
           Conversations
           <span class="help-icon"
             title="Conversation Types:&#10;• FLOW - Conversations with NPCs&#10;• ORB - Thoughts from interacting with the environment&#10;• TASK - Player's quest log">?</span>
           </div>
-          <div id="convoSidebarCloseContainer"><span id="convoSidebarClose" class="sidebar-close">⨉</span></div>
+          <div id="convoSidebarClose"><span class="sidebar-close">⨉</span></div>
         </h3>
         <div id="convoFilterContainer">
           <input id="convoSearchInput" class="search-bar" type="text" placeholder="Filter by title or ID..." />
@@ -376,6 +380,7 @@
       <section id="history-section" class="section">
         <h4 style="display: flex; justify-content: space-between; align-items: center;">
           History
+            <div id="historySidebarClose"><span class="sidebar-close">⨉</span></div>
         </h4>
         <div id="chatLog" class="scrolling-card" title="Click an entry to jump back to that point">
           (navigation log)

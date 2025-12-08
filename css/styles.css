@@ -32,7 +32,7 @@ main {
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto auto 1fr;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   gap: 12px;
 }
@@ -530,32 +530,6 @@ section {
   min-width: 180px;
 }
 
-#conversationFilterBtn {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-  color: #fff;
-  border-radius: 4px;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  text-align: left;
-  transition: background-color 0.2s;
-}
-
-#conversationFilterBtn:hover {
-  background: var(--panel);
-}
-
-#conversationFilterBtn .dropdown-arrow {
-  margin-left: 8px;
-  font-size: 10px;
-  color: var(--accent);
-}
-
 #browser {
   display: grid;
   grid-template-columns: 280px 1fr 280px;
@@ -565,7 +539,7 @@ section {
   min-height: 0;
 }
 
-#conversations-section {
+#convo-section {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -575,7 +549,7 @@ section {
   background: var(--card-bg);
 }
 
-#conversations-section h3 {
+#convo-section h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
   padding: 12px 12px 0 12px;
@@ -695,8 +669,6 @@ section {
 }
 
 .entry-list {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1356,7 +1328,7 @@ a:hover {
   position: fixed;
   top: 0;
   width: 320px;
-  height: 100vh;
+  height: 100%;
   background: var(--card-bg);
   border: 1px solid var(--border);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -1386,6 +1358,18 @@ a:hover {
 }
 
 .sidebar-right.open {
+  transform: translateX(0);
+}
+
+.sidebar-left {
+  left: 0;
+  transform: translateX(-100%);
+  .sidebar-close {
+    align-self: flex-end;
+  }
+}
+
+.sidebar-left.open {
   transform: translateX(0);
 }
 
@@ -1454,7 +1438,7 @@ a:hover {
   border: 1px solid var(--border);
   padding: 12px 8px;
   cursor: pointer;
-  z-index: 899;
+  z-index: 100;
   display: none;
   flex-direction: column;
   align-items: center;
@@ -1544,32 +1528,18 @@ a:hover {
     backdrop-filter: blur(2px);
   }
 
-  #conversations-section {
+  #convo-section {
     display: block !important;
     position: fixed !important;
     top: 0;
-    left: -100% !important;
-    width: 85%;
-    max-width: 320px;
     height: 100vh;
     background: var(--bg);
     z-index: 200;
-    transition: left 0.3s ease-out;
     overflow-y: auto;
     box-shadow: 4px 0 8px rgba(0, 0, 0, 0.5);
   }
 
-  #conversations-section h3 {
-    .sidebar-close {
-      display: flex;
-    }
-  }
-
-  #conversations-section.open {
-    left: 0 !important;
-  }
-
-  #conversations-section h3 {
+  #convo-section h3 {
     margin: 0;
     padding: 16px;
     background: var(--panel);
@@ -1582,7 +1552,6 @@ a:hover {
   }
 
   #history-section {
-    height: inherit;
     padding: 16px;
     h4 {
       margin: 0 0 8px 0;
@@ -1694,7 +1663,7 @@ a:hover {
     display: block;
   }
 
-  #conversations-section h3 {
+  #convo-section h3 {
     .sidebar-close {
       display: none;
     }
@@ -2356,7 +2325,7 @@ a:hover {
     padding: 0;
     gap: 0;
     grid-template-rows: auto 1fr;
-    height: 100vh;
+    height: 100%;
     overflow: auto;
   }
 
