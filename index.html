@@ -119,17 +119,13 @@
   </div>
   <main>
 
-    <!-- History Sidebar -->
-    <div id="historySidebar" class="sidebar sidebar-right" style="display: none;">
-    </div>
-
     <!-- Sidebar Toggle Buttons -->
     <button id="convoToggle" class="sidebar-toggle-btn sidebar-toggle-left" style="display: none;"
       title="Toggle conversations sidebar">
       <span class="toggle-icon">☰</span>
       <span class="toggle-label">Conversations</span>
     </button>
-    <button id="historySidebarToggle" class="sidebar-toggle-btn sidebar-toggle-right" style="display: none;"
+    <button id="historySectionToggle" class="sidebar-toggle-btn sidebar-toggle-right" style="display: none;"
       title="Toggle history sidebar">
       <span class="toggle-label">History</span>
       <span class="toggle-icon">☰</span>
@@ -163,10 +159,10 @@
 
     <section id="controls">
       <div id="searchBar">
-        <div id="searchInputWrapper">
-          <label class="mobile-hide" for="search">Search lines:</label>
-          <input id="searchInput" placeholder="Search text..." />
-          <button id="searchBtn" class="search-icon-btn" title="Search">
+        <div class="search-container" id="searchInputWrapper">
+          <label class="search-label mobile-hide" for="search">Search lines:</label>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search text..." />
+          <button id="searchBtn" class="search-icon" title="Search">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path
                 d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
@@ -241,7 +237,7 @@
     </section>
 
     <div id="browser">
-      <section id="conversations-section" class="section">
+      <section id="conversations-section" class="section sidebar-left">
         <h3 style="display: flex; justify-content: space-between;">
           <div>
           Conversations
@@ -251,7 +247,9 @@
           <div id="convoSidebarCloseContainer"><span id="convoSidebarClose" class="sidebar-close">⨉</span></div>
         </h3>
         <div id="convoFilterContainer">
-          <input id="convoSearchInput" type="text" placeholder="Filter by title or ID..." />
+          <div class="search-container">
+            <input id="convoSearchInput" class="search-input" type="text" placeholder="Filter by title or ID..." />
+          </div>
           <div id="convoTypeFilterRow" class="tree-control-btn-row radio-button-group">
             <button class="tree-control-btn radio-button active" data-type="all">All</button>
             <button class="tree-control-btn radio-button type-badge type-flow" data-type="flow">Flow</button>
@@ -348,7 +346,7 @@
           </div>
         </div>
       </section>
-      <section id="history-section" class="section">
+      <section id="history-section" class="section sidebar-right">
         <h4 style="display: flex; justify-content: space-between; align-items: center;">
           History
         </h4>

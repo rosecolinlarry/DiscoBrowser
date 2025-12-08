@@ -8,6 +8,9 @@
   --border-color: #c0badb;
   --card-bg: #1a1818;
   --card-border: #444;
+  --transition-speed-slow: 0.3s;
+  --transition-speed-normal: 0.2s;
+  --gap: 6px;
 }
 
 * {
@@ -34,14 +37,14 @@ main {
   grid-template-rows: auto auto 1fr;
   height: 100vh;
   width: 100%;
-  gap: 12px;
+  gap: var(--gap);
 }
 
 .header-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--gap);
   grid-column: 1;
   grid-row: 1;
 }
@@ -53,11 +56,9 @@ h1 {
   flex: 1;
   cursor: pointer;
   user-select: none;
-  transition: color 0.2s;
+  transition: color var(--transition-speed-normal);
 }
-.material-symbols-outlined {
-  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
-}
+
 h1:hover {
   color: var(--accent);
 }
@@ -69,7 +70,7 @@ h1:hover {
   text-decoration: none;
   padding: 8px;
   border-radius: 4px;
-  transition: opacity 0.2s, background 0.2s;
+  transition: opacity var(--transition-speed-normal);
 }
 
 .github-link:hover {
@@ -97,7 +98,7 @@ h1:hover {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--gap);
   align-items: center;
   padding: 8px;
   background: rgba(0, 0, 0, 0.3);
@@ -117,8 +118,6 @@ h1:hover {
 
 #searchInputWrapper {
   position: relative;
-  flex: 1;
-  min-width: 150px;
   max-width: 400px;
   display: flex;
   align-items: center;
@@ -136,34 +135,6 @@ h1:hover {
 
 #search::placeholder {
   color: var(--muted);
-}
-
-.search-icon-btn {
-  position: absolute;
-  right: 4px;
-  padding: 6px;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: color 0.2s;
-}
-
-.search-icon-btn:hover {
-  color: #fff;
-  background: transparent;
-  box-shadow: none;
-}
-
-.search-icon-btn:active {
-  color: #fff;
-  background: transparent;
-  box-shadow: none;
-  transform: none;
 }
 
 #actorFilterWrapper {
@@ -184,7 +155,7 @@ h1:hover {
   justify-content: space-between;
   align-items: center;
   text-align: left;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-speed-normal);
 }
 
 #actorFilterBtn:hover {
@@ -215,7 +186,7 @@ h1:hover {
   border: 1px solid var(--card-border);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 8;
   max-height: 400px;
   display: flex;
   flex-direction: column;
@@ -261,10 +232,6 @@ h1:hover {
   color: #fff;
 }
 
-.sidebar-overlay {
-  display: none;
-}
-
 .filter-actions {
   padding: 8px;
   border-bottom: 1px solid var(--card-border);
@@ -280,7 +247,7 @@ h1:hover {
   padding: 6px 8px;
   cursor: pointer;
   border-radius: 3px;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-speed-normal);
   user-select: none;
 }
 
@@ -309,14 +276,120 @@ h1:hover {
   font-size: 13px;
 }
 
-.toggle-slider {
-  position: relative;
-  width: 44px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  transition: background 0.3s;
-  flex-shrink: 0;
+.sidebar {
+  display: block !important;
+  position: fixed !important;
+  top: 0;
+  width: 85%;
+
+  max-width: 320px;
+  height: 100vh;
+  background: var(--bg);
+
+  transition: 0.3s ease;
+  z-index: 15;
+
+  overflow-y: auto;
+  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 4;
+  backdrop-filter: blur(2px);
+}
+
+.sidebar-close {
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-size: medium;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity var(--transition-speed-normal);
+}
+
+.sidebar-close:hover {
+  opacity: 1;
+}
+
+.sidebar-right {
+  right: -100%;
+  .sidebar-close {
+    align-self: flex-start;
+  }
+}
+
+.sidebar-right.open {
+  right: 0;
+}
+
+.sidebar-left {
+  left: -100%;
+  .sidebar-close {
+    align-self: flex-start;
+  }
+}
+
+.sidebar-left.open {
+  left: 0;
+}
+
+.sidebar .scrolling-card {
+  flex: 1;
+  margin: 0 16px 16px 16px;
+  overflow-y: auto;
+}
+
+.sidebar-toggle-btn {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  padding: 12px 8px;
+  cursor: pointer;
+  z-index: 3;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--fg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  .toggle-icon {
+    font-size: 1.2rem;
+    writing-mode: horizontal-tb;
+  }
+  .toggle-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--hover-bg);
+}
+
+.sidebar-toggle-left {
+  left: 0;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+
+.sidebar-toggle-right {
+  right: 0;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
 }
 
 .toggle-slider::before {
@@ -328,7 +401,6 @@ h1:hover {
   top: 2px;
   background: #fff;
   border-radius: 50%;
-  transition: transform 0.3s;
 }
 
 .toggle-label {
@@ -336,6 +408,7 @@ h1:hover {
   color: #fff;
   white-space: nowrap;
 }
+
 .action-btn {
   padding: 6px 12px;
   background: var(--accent);
@@ -345,7 +418,7 @@ h1:hover {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-speed-normal);
 }
 
 .action-btn:hover {
@@ -407,7 +480,7 @@ h1:hover {
   justify-content: space-between;
   align-items: center;
   text-align: left;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-speed-normal);
 }
 
 #typeFilterBtn:hover {
@@ -446,7 +519,6 @@ h1:hover {
   height: 20px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  transition: background 0.3s;
   flex-shrink: 0;
 }
 
@@ -459,7 +531,6 @@ h1:hover {
   top: 2px;
   background: #fff;
   border-radius: 50%;
-  transition: transform 0.3s;
 }
 
 .search-option-toggle input[type="checkbox"]:checked + .toggle-slider {
@@ -506,7 +577,6 @@ h1:hover {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
   white-space: nowrap;
 }
 
@@ -538,7 +608,7 @@ h1:hover {
   justify-content: space-between;
   align-items: center;
   text-align: left;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-speed-normal);
 }
 
 #conversationFilterBtn:hover {
@@ -554,7 +624,7 @@ h1:hover {
 #browser {
   display: grid;
   grid-template-columns: 280px 1fr 280px;
-  gap: 12px;
+  gap: var(--gap);
   grid-column: 1;
   grid-row: 3;
   min-height: 0;
@@ -596,7 +666,6 @@ h1:hover {
   cursor: pointer;
   flex-shrink: 0;
   user-select: none;
-  transition: all 0.2s;
 }
 
 .help-icon:hover,
@@ -718,63 +787,51 @@ h1:hover {
   border-radius: 4px;
 }
 
-#convoSearchInput {
-  padding: 6px 8px;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-  color: #fff;
-  border-radius: 4px;
-  font-size: 13px;
-}
+.search-container {
+  .search-input {
+    flex: 1;
+    padding: 12px 48px 12px 16px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: #fff;
+    border-radius: 4px;
+  }
+  .search-input::placeholder {
+    color: var(--muted);
+  }
+  .search-icon {
+    position: absolute;
+    right: 4px;
+    padding: 6px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color var(--color-transition);
+  }
 
-#convoSearchInput::placeholder {
-  color: var(--muted);
+  .search-icon:hover {
+    color: #fff;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .search-icon:active {
+    color: #fff;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
 }
 
 #convoTypeFilterRow {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-}
-
-.convo__type__filter {
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-  color: #fff;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.convo__type__filter:hover {
-  background: var(--panel);
-}
-
-.convo__type__filter.active {
-  background: var(--secondary);
-  border-color: var(--secondary);
-  color: #fff;
-}
-
-.convo__type__filter[data-type="orb"].active {
-  background: #4ac6aa;
-  border-color: #4ac6aa;
-  color: #000;
-}
-
-.convo__type__filter[data-type="task"].active {
-  background: #d7421c;
-  border-color: #d7421c;
-  color: #fff;
-}
-
-.convo__type__filter[data-type="flow"].active {
-  background: #666;
-  border-color: #666;
-  color: #fff;
 }
 
 .tree-control-btn-row {
@@ -793,7 +850,6 @@ h1:hover {
   color: #fff;
   border-radius: 3px;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .tree-control-btn:hover {
@@ -883,7 +939,6 @@ h1:hover {
   border: 1px solid var(--card-border);
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
   flex-shrink: 0;
   user-select: none;
   -webkit-user-select: none;
@@ -1048,7 +1103,7 @@ h1:hover {
   outline: none;
   padding: 8px 0;
   font-size: 14px;
-  transition: color 0.2s;
+  transition: color var(--color-transition);
 }
 
 #moreDetails summary:hover {
@@ -1057,7 +1112,7 @@ h1:hover {
 }
 
 #entryDetails {
-  gap: 12px;
+  gap: var(--gap);
   padding-right: 8px;
 }
 
@@ -1161,7 +1216,7 @@ button {
   padding: 8px 16px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  transition: background-color var(--transition-speed-normal), box-shadow var(--transition-speed-normal);
   white-space: nowrap;
   user-select: none;
   -webkit-user-select: none;
@@ -1170,7 +1225,7 @@ button {
 #convoSearchHomeButton:hover {
   background: var(--secondary);
   color: #ffffff;
-  fill:white;
+  fill: white;
   box-shadow: 0 2px 8px rgba(34, 106, 168, 0.3);
 }
 button:hover {
@@ -1187,7 +1242,7 @@ button:disabled {
 a {
   color: var(--accent);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--transition-speed-normal);
 }
 
 a:hover {
@@ -1223,7 +1278,7 @@ a:hover {
   background: var(--card-bg);
   color: #fff;
   border-radius: 4px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow var(--transition-speed-normal);
 }
 
 #actorFilter:hover {
@@ -1284,7 +1339,7 @@ a:hover {
   padding: 8px 12px;
   cursor: pointer;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-speed-normal);
 }
 
 .leaf-result .label:hover {
@@ -1310,147 +1365,6 @@ a:hover {
 .highlighted_term {
   font-weight: 700 !important;
   color: var(--accent) !important;
-}
-
-.sidebar {
-  position: fixed;
-  top: 0;
-  width: 320px;
-  height: 100vh;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 900;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s ease;
-}
-
-.sidebar-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 150;
-  backdrop-filter: blur(2px);
-}
-
-.sidebar-right {
-  right: 0;
-  transform: translateX(100%);
-  .sidebar-close {
-    align-self: flex-start;
-  }
-}
-
-.sidebar-right.open {
-  transform: translateX(0);
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.sidebar-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.sidebar-close {
-  background: none;
-  border: none;
-  color: var(--fg);
-  font-size: medium;
-  cursor: pointer;
-  padding: 4px 8px;
-  line-height: 1;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.sidebar-close:hover {
-  opacity: 1;
-}
-
-.sidebar #tabletConvoSearch {
-  padding: 6px 8px;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-  color: #fff;
-  border-radius: 4px;
-  font-size: 13px;
-}
-
-.sidebar .scrolling-card {
-  flex: 1;
-  margin: 0 16px 16px 16px;
-  overflow-y: auto;
-}
-
-.sidebar #historyNavigationButtonContainer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.sidebar #historyNavigationButtonContainer button {
-  flex: 1;
-}
-
-.sidebar-toggle-btn {
-  position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  padding: 12px 8px;
-  cursor: pointer;
-  z-index: 899;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.85rem;
-  color: var(--fg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: background 0.2s;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-}
-
-.sidebar-toggle-btn:hover {
-  background: var(--hover-bg);
-}
-
-.sidebar-toggle-left {
-  left: 0;
-  border-left: none;
-  border-radius: 0 8px 8px 0;
-}
-
-.sidebar-toggle-right {
-  right: 0;
-  border-right: none;
-  border-radius: 8px 0 0 8px;
-}
-
-.sidebar-toggle-btn .toggle-icon {
-  font-size: 1.2rem;
-  writing-mode: horizontal-tb;
-}
-
-.sidebar-toggle-btn .toggle-label {
-  font-size: 0.75rem;
-  font-weight: 500;
 }
 
 .yellow-highlighting {
@@ -1493,52 +1407,13 @@ a:hover {
     grid-template-rows: auto auto 1fr;
   }
 
-  .sidebar-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 150;
-    backdrop-filter: blur(2px);
-  }
-
-  #conversations-section {
-    display: block !important;
-    position: fixed !important;
-    top: 0;
-    left: -100% !important;
-    width: 85%;
-    max-width: 320px;
-    height: 100vh;
-    background: var(--bg);
-    z-index: 200;
-    transition: left 0.3s ease-out;
-    overflow-y: auto;
-    box-shadow: 4px 0 8px rgba(0, 0, 0, 0.5);
-  }
-
-  #conversations-section h3 {
-    .sidebar-close {
-      display: flex;
-    }
-  }
-
-  #conversations-section.open {
-    left: 0 !important;
-  }
-
   #conversations-section h3 {
     margin: 0;
     padding: 16px;
     background: var(--panel);
     position: sticky;
     top: 0;
-    z-index: 10;
-    .sidebar-close {
-      align-self: flex-end;
-    }
+    z-index: 6;
   }
 
   #history-section {
@@ -1576,7 +1451,7 @@ a:hover {
   #controls {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: var(--gap);
     padding: 12px;
   }
 
@@ -1699,6 +1574,7 @@ a:hover {
 
   #searchBtn {
     width: 100%;
+    justify-content: end;
   }
 
   #actorFilter {
@@ -1796,7 +1672,7 @@ a:hover {
     right: 0;
     bottom: 0;
     background: var(--bg);
-    z-index: 2000;
+    z-index: 10;
     display: none;
   }
 
@@ -1835,7 +1711,7 @@ a:hover {
   .mobile-search-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--gap);
     padding: 8px 12px;
     background: var(--panel);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -1853,23 +1729,7 @@ a:hover {
     margin: -4px 0;
   }
 
-  #mobileSearchInput {
-    flex: 1;
-    width: 100%;
-    padding: 12px 48px 12px 16px;
-    border: none;
-    background: var(--card-bg);
-    color: #fff;
-    border-radius: 24px;
-    font-size: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-
-  #mobileSearchInput::placeholder {
-    color: var(--muted);
-  }
-
-  .mobile-search-icon-btn {
+  .mobile-search-icon {
     position: absolute;
     right: 8px;
     padding: 8px;
@@ -1881,16 +1741,16 @@ a:hover {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: color 0.2s;
+    transition: color var(--transition-speed-normal);
   }
 
-  .mobile-search-icon-btn:hover {
+  .mobile-search-icon:hover {
     background: transparent;
     box-shadow: none;
     color: #fff;
   }
 
-  .mobile-search-icon-btn:active {
+  .mobile-search-icon:active {
     background: transparent;
     box-shadow: none;
     color: #fff;
@@ -1937,7 +1797,7 @@ a:hover {
   .mobile-option-toggle {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--gap);
     cursor: pointer;
     user-select: none;
     position: relative;
@@ -2002,7 +1862,6 @@ a:hover {
     font-size: 14px;
     white-space: nowrap;
     cursor: pointer;
-    transition: background 0.2s;
   }
 
   .mobile-filter-chip:active {
@@ -2020,7 +1879,6 @@ a:hover {
     font-size: 14px;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 0.2s;
   }
 
   .mobile-filter-clear:active {
@@ -2056,7 +1914,7 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: var(--gap);
     padding: 40px 20px;
     color: var(--accent);
     font-size: 15px;
@@ -2071,7 +1929,7 @@ a:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 7;
   }
 
   .mobile-filter-header h3 {
@@ -2106,7 +1964,6 @@ a:hover {
     padding: 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     cursor: pointer;
-    transition: background 0.15s;
     background: transparent;
   }
 
@@ -2158,7 +2015,7 @@ a:hover {
     padding: 12px 16px;
     background: var(--panel);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    gap: 12px;
+    gap: var(--gap);
     flex-shrink: 0;
   }
 
@@ -2237,7 +2094,6 @@ a:hover {
     padding: 16px 12px;
     cursor: pointer;
     border-radius: 8px;
-    transition: background 0.15s;
   }
 
   .mobile-checkbox-item:active {
@@ -2316,13 +2172,13 @@ a:hover {
   .mobile-header {
     display: flex !important;
     align-items: center;
-    gap: 12px;
+    gap: var(--gap);
     padding: 8px 12px;
     background: var(--panel);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 8;
     grid-row: 1;
   }
 
@@ -2380,6 +2236,7 @@ a:hover {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
+  #searchInput,
   #convoSearchInput {
     padding: 10px 12px;
     font-size: 15px;
@@ -2467,7 +2324,6 @@ a:hover {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
   }
 
   .mobile-nav-btn:active {
@@ -2531,10 +2387,6 @@ a:hover {
     padding: 4px 8px;
     font-size: 11px;
     border-radius: 3px;
-  }
-
-  #searchBtn {
-    min-width: 50px;
   }
 
   #actorFilter {

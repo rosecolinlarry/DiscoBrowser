@@ -6,16 +6,15 @@ import { $ } from "./ui.js";
 import * as UI from "./ui.js";
 
 const searchBarEl = $("searchBar"); // Item to move
-const searchInputWrapper = $('searchInputWrapper')
-const wholeWordsFilterWrapper = $('wholeWordsFilterWrapper')
-const actorFilterWrapper = $('actorFilterWrapper')
-const typeFilterWrapper = $('typeFilterWrapper')
-const clearFilterWrapper = $('clearFilterWrapper')
+const searchInputWrapper = $("searchInputWrapper");
+const wholeWordsFilterWrapper = $("wholeWordsFilterWrapper");
+const actorFilterWrapper = $("actorFilterWrapper");
+const typeFilterWrapper = $("typeFilterWrapper");
+const clearFilterWrapper = $("clearFilterWrapper");
 
 const controlsEl = $("controls"); // Desktop Container
 const mobileHeaderEl = $("mobileHeader"); // Mobile Container
 const searchScreenControlsEl = $("searchScreenControls"); // Mobile Search Screen Container
-
 
 const wholeWordsContainer = $("wholeWordsContainer"); // Item to move
 const mobileSearchOptionsContainer = $("mobileSearchOptions"); // Mobile Container
@@ -61,15 +60,15 @@ const mobileHomeButtonEl = $("convoSearchHomeButton");
 
 const mobileSidebarToggle = $("mobileSidebarToggle");
 
-const conversationsSection = $("conversations-section"); // Item to move
-const historySection = $("history-section"); // Item to move
+const conversationsSection = $("conversations-section");
+const entriesSection = $("entries-section");
+const historySection = $("history-section");
 
 const convoToggle = $("convoToggle");
 const browserEl = $("browser"); // Desktop and Tablet Container
 
-const historySidebarToggle = $("historySidebarToggle");
-const historySidebar = $("historySidebar");
-const historySidebarClose = $("historySidebarClose");
+const historySectionToggle = $("historySectionToggle");
+const historySectionClose = $("historySectionClose");
 const chatLog = $("chatLog");
 
 // Search option elements
@@ -218,7 +217,6 @@ async function boot() {
     searchBtn.addEventListener("click", handleSearchInputTrigger);
     searchInput.addEventListener("click", handleSearchInputTrigger);
     searchInput.addEventListener("keydown", handleSearchInputTrigger);
-    
   }
 
   // Whole words toggle - trigger search when changed
@@ -323,44 +321,45 @@ const desktopMediaQuery = window.matchMedia("(min-width: 1025px)");
 
 // Runs when the media query status changes
 function handleMediaQueryChange() {
-  setUpSidePanes()
-  setUpSearchBarFilters()
+  setUpSidePanes();
+  setUpSearchBarFilters();
 }
 
 function setUpSidePanes() {
   closeAllSidebars();
   if (desktopMediaQuery.matches) {
-    toggleElementVisibilityById("historySidebarToggle", false);
+    toggleElementVisibilityById("historySectionToggle", false);
     toggleElementVisibilityById("convoToggle", false);
-    browserEl.prepend(conversationsSection);
-    browserEl.append(historySection);
+    historySection.classList.remove("sidebar");
+    conversationsSection.classList.remove("sidebar");
   } else if (tabletMediaQuery.matches) {
-    toggleElementVisibilityById("historySidebarToggle", true);
+    toggleElementVisibilityById("historySectionToggle", true);
     toggleElementVisibilityById("convoToggle", true);
-    historySidebar.appendChild(historySection);
+    historySection.classList.add("sidebar");
+    conversationsSection.classList.add("sidebar");
   } else if (mobileMediaQuery.matches) {
-    toggleElementVisibilityById("historySidebarToggle", true);
+    toggleElementVisibilityById("historySectionToggle", true);
     toggleElementVisibilityById("convoToggle", false);
-    browserEl.prepend(conversationsSection);
-    historySidebar.append(historySection);
+    historySection.classList.add("sidebar");
+    conversationsSection.classList.add("sidebar");
   }
 }
 
 function setUpSearchBarFilters() {
-  if(desktopMediaQuery.matches || tabletMediaQuery.matches) {
-    searchBarEl.appendChild(searchInputWrapper)
-    searchBarEl.appendChild(wholeWordsFilterWrapper)
-    searchBarEl.appendChild(actorFilterWrapper)
-    searchBarEl.appendChild(typeFilterWrapper)
-    searchBarEl.appendChild(clearFilterWrapper)
+  if (desktopMediaQuery.matches || tabletMediaQuery.matches) {
+    searchBarEl.appendChild(searchInputWrapper);
+    searchBarEl.appendChild(wholeWordsFilterWrapper);
+    searchBarEl.appendChild(actorFilterWrapper);
+    searchBarEl.appendChild(typeFilterWrapper);
+    searchBarEl.appendChild(clearFilterWrapper);
 
-    controlsEl.appendChild(searchBarEl)
-    controlsEl.appendChild(searchLoader)
+    controlsEl.appendChild(searchBarEl);
+    controlsEl.appendChild(searchLoader);
   }
-  if(mobileMediaQuery.matches) {
-    moveSearchInputToMobileHeader()
+  if (mobileMediaQuery.matches) {
+    moveSearchInputToMobileHeader();
   }
-} 
+}
 // Add the event listener to the MediaQueryList object
 // The 'change' event fires when the matching status of the media query changes
 desktopMediaQuery.addEventListener("change", handleMediaQueryChange);
@@ -377,7 +376,7 @@ function toggleElementVisibilityById(id, showElement) {
 
 function setUpSidebarToggles() {
   convoToggle.addEventListener("click", openConversationSection);
-  historySidebarToggle.addEventListener("click", openHistorySidebar);
+  historySectionToggle.addEventListener("click", openHistorySection);
   sidebarOverlay.addEventListener("click", closeAllSidebars);
 }
 
@@ -899,25 +898,39 @@ function updateTypeFilterLabel() {
   }
 }
 
-function openHistorySidebar() {
-  if (historySidebar) {
-    historySidebar.classList.add("open");
-    historySidebar.style.display = "";
-  }
-  if (historySidebarClose) {
-    historySidebarClose.addEventListener("click", closeHistorySidebar);
+function openConversationSection() {
+  if (conversationsSection) {
+    conversationsSection.classList.add("open");
   }
   if (sidebarOverlay) {
     sidebarOverlay.style.display = "block";
   }
+  if (convoToggle) {
+    convoToggle.style.display = "none";
+  }
 }
 
-function closeHistorySidebar() {
-  if (historySidebar) {
-    historySidebar.classList.remove("open");
+function openHistorySection() {
+  if (historySection) {
+    historySection.classList.add("open");
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "block";
+  }
+  if (historySectionToggle) {
+    historySectionToggle.style.display = "none";
+  }
+}
+
+function closeHistorySection() {
+  if (historySection) {
+    historySection.classList.remove("open");
   }
   if (sidebarOverlay) {
     sidebarOverlay.style.display = "none";
+  }
+  if (historySectionToggle) {
+    historySectionToggle.style.display = "";
   }
 }
 
@@ -928,16 +941,8 @@ function closeConversationSection() {
   if (sidebarOverlay) {
     sidebarOverlay.style.display = "none";
   }
-}
-
-function openConversationSection(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  if (conversationsSection) {
-    conversationsSection.classList.add("open");
-  }
-  if (sidebarOverlay) {
-    sidebarOverlay.style.display = "block";
+  if (convoToggle && tabletMediaQuery.matches) {
+    convoToggle.style.display = "";
   }
 }
 
@@ -945,21 +950,21 @@ function closeSearchScreen() {
   if (mobileSearchScreen) {
     mobileSearchScreen.style.display = "none";
   }
-  moveSearchInputToMobileHeader()
+  moveSearchInputToMobileHeader();
 }
 
 function moveSearchInputToMobileHeader() {
-    if(mobileHeaderEl && mobileMediaQuery.matches) {
-      mobileHeaderEl.appendChild(mobileSidebarToggle);
-      mobileHeaderEl.appendChild(searchBarEl);
-      mobileHeaderEl.appendChild(mobileHomeButtonEl);
-    }
+  if (mobileHeaderEl && mobileMediaQuery.matches) {
+    mobileHeaderEl.appendChild(mobileSidebarToggle);
+    mobileHeaderEl.appendChild(searchInputWrapper);
+    mobileHeaderEl.appendChild(mobileHomeButtonEl);
+  }
 }
 
 function moveSearchInputToSearchScreen() {
   if (mobileSearchScreen && mobileMediaQuery.matches) {
     mobileSearchScreen.style.display = "block";
-    searchScreenControlsEl.appendChild(searchBarEl);
+    searchScreenControlsEl.appendChild(searchInputWrapper);
     searchInput.focus();
   }
 }
@@ -970,7 +975,7 @@ function openSearchScreen() {
   if (!isHandlingPopState) {
     pushHistoryState("search");
   }
-  moveSearchInputToSearchScreen()
+  moveSearchInputToSearchScreen();
 }
 
 // Setup clear filters button
@@ -2311,7 +2316,7 @@ function updateMobileNavButtons() {
 
 function closeAllSidebars() {
   closeConversationSection();
-  closeHistorySidebar();
+  closeHistorySection();
   closeSearchScreen();
 }
 
