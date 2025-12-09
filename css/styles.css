@@ -1149,6 +1149,7 @@ a:hover {
 .sidebar-toggle-btn .toggle-icon {
   font-size: 1.2rem;
   writing-mode: horizontal-tb;
+  display: none;
 }
 
 .sidebar-toggle-btn .toggle-label {
@@ -1229,10 +1230,6 @@ a:hover {
     flex: 1;
   }
 
-  .filter-dropdown-wrapper {
-    min-width: 0;
-    flex: 1;
-  }
 
   .clear-filters-btn {
     flex: 0 0 auto;
