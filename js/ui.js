@@ -25,39 +25,52 @@ export function createCardItem(titleText, convoId, entryId, contentText, allowHt
   titleText = parseSpeakerFromTitle(getStringOrDefault(titleText))
   titleText = `${titleId} ${titleText}`
   contentText = getStringOrDefault(contentText)
+  // Build a richer card/result item structure
+  const el = document.createElement('div');
+  el.className = 'result-item card card-item';
+  el.style.cursor = 'pointer';
 
-  const el = document.createElement("div");
-  el.className = "card-item";
-  el.style.cursor = "pointer";
+  // Header (title + meta)
+  const header = document.createElement('div');
+  header.className = 'result-header card-header';
 
-  const title = document.createElement("div");
-  title.className = "card-title";
-  
-  // Create title text span
-  const titleSpan = document.createElement("span");
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'result-title card-title';
+  const titleSpan = document.createElement('span');
   if (allowHtml) titleSpan.innerHTML = titleText;
   else titleSpan.textContent = titleText;
-  title.appendChild(titleSpan);
-  
-  // Add type badge if provided (right-aligned)
+  titleDiv.appendChild(titleSpan);
+
+  const metaDiv = document.createElement('div');
+  metaDiv.className = 'result-meta card-meta';
+  const idSpan = document.createElement('span');
+  idSpan.className = 'small-muted';
+  idSpan.textContent = `${convoId || ''}:${entryId || ''}`;
+  metaDiv.appendChild(idSpan);
+
+  // Type badge (if non-flow)
   if (convoType && convoType !== 'flow') {
-    const badge = document.createElement("span");
+    const badge = document.createElement('span');
     badge.className = `type-badge type-${convoType}`;
-    badge.textContent = convoType;
-    title.appendChild(badge);
+    badge.textContent = convoType.toUpperCase();
+    metaDiv.appendChild(badge);
   }
 
-  const text = document.createElement("div");
-  text.className = "card-text";
+  header.appendChild(titleDiv);
+  header.appendChild(metaDiv);
+
+  const body = document.createElement('div');
+  body.className = 'result-snippet card-body';
   if (allowHtml) {
-    text.innerHTML = contentText;
-    processExternalLinks(text);
+    body.innerHTML = contentText;
+    processExternalLinks(body);
   } else {
-    text.textContent = contentText;
+    body.textContent = contentText;
   }
 
-  el.appendChild(title);
-  el.appendChild(text);
+  el.appendChild(header);
+  el.appendChild(body);
+
   return el;
 }
 
@@ -113,14 +126,19 @@ export function renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoTy
   dialoguetext = getStringOrDefault(dialoguetext, "<i>No dialogue.</i>");
   title = getStringOrDefault(parseSpeakerFromTitle(title), "<i>No title.</i>");
   
-  const typeBadge = convoType !== 'flow' 
-    ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>` 
+  const typeBadge = convoType !== 'flow'
+    ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>`
     : '';
-  
+
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
-  entryOverviewEl.innerHTML = `<div class="current-item"><strong class="speaker">${title}</strong>${typeBadge}</div>
-    <div class="dialogue-text">${dialoguetext}</div>`;
+
+  entryOverviewEl.innerHTML = `
+    <div class="card-header">
+      <div class="card-title"><strong class="speaker">${title}</strong></div>
+      <div class="card-meta">${typeBadge}</div>
+    </div>
+    <div class="card-body dialogue-text">${dialoguetext}</div>`;
   processExternalLinks(entryOverviewEl);
 }
 
@@ -135,15 +153,15 @@ export function renderConversationOverview(entryOverviewEl, conversation) {
     "<i>No conversation description.</i>"
   );
   const convoType = conversation.type || 'flow';
-  const typeBadge = convoType !== 'flow' 
-    ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>` 
-    : '';
+  const typeBadge = convoType !== 'flow' ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>` : '';
 
   entryOverviewEl.innerHTML = `
-    <div class="current-item">
-      <strong class="speaker">Conversation #${conversation.id}</strong>${typeBadge}
-      <div>
-        <strong>Title:</strong> ${displayTitle}</div>
+    <div class="card-header">
+      <div class="card-title"><strong class="speaker">Conversation #${conversation.id}</strong></div>
+      <div class="card-meta">${typeBadge}</div>
+    </div>
+    <div class="card-body">
+      <div><strong>Title:</strong> ${displayTitle}</div>
       <div class="dialogue-text">${description}</div>
     </div>`;
   processExternalLinks(entryOverviewEl);

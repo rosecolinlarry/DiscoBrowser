@@ -1566,6 +1566,9 @@ async function showEntryDetails(
 ) {
   if (!DB || !entryDetailsEl) return;
 
+  // Fetch core row early so it can be referenced by cached fallback values
+  const entry = DB.getEntry(convoId, entryId);
+
   // Check cache only if viewing the original (no alternate selected)
   if (!selectedAlternateCondition && !selectedAlternateLine) {
     const cached = DB.getCachedEntry(convoId, entryId);
@@ -1581,9 +1584,6 @@ async function showEntryDetails(
       return;
     }
   }
-
-  // core row
-  const entry = DB.getEntry(convoId, entryId);
   if (!entry) {
     entryDetailsEl.textContent = "(not found)";
     return;
