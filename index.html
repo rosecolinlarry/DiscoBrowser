@@ -16,7 +16,7 @@
     <div class="mobile-search-header">
       <button id="mobileSearchBack" class="mobile-back-btn">←</button>
       <div class="mobile-search-input-wrapper">
-        <input id="mobileSearchInput" type="text" placeholder="Search text..." />
+        <input id="mobileSearchInput" class="search-input" type="text" placeholder="Search text..." />
         <button id="mobileSearchIconBtn" class="mobile-search-icon-btn">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
             <path
@@ -134,11 +134,11 @@
   <main>
 
     <!-- Conversation Sidebar -->
-    <div id="convoSidebar" class="sidebar sidebar-left" style="display: none;">
+    <div id="convoSidebar" class="sidebar sidebar-left">
     </div>
 
     <!-- History Sidebar -->
-    <div id="historySidebar" class="sidebar sidebar-right" style="display: none;">
+    <div id="historySidebar" class="sidebar sidebar-right">
     </div>
 
     <!-- Sidebar Toggle Buttons -->
@@ -189,30 +189,30 @@
         </a></div>
     </div>
 
-    <section id="controls">
-      <div id="search-bar">
-        <label class="mobile-hide" for="search">Search lines:</label>
-        <div class="search-input-wrapper">
-          <input id="search" class="desktop-search" placeholder="Search text..." />
+    <section id="controls" class="control-bar">
+      <div id="search-bar"  class="search-controls mobile-hide">
+        <label class="search-input-wrapper">
+          <span>Search lines</span>
+          <input id="search" class="desktop-search search-input" placeholder="Search text..." />
           <button id="searchBtn" class="search-icon-btn mobile-hide" title="Search">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path
                 d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
             </svg>
           </button>
-        </div>
-        <label class="search-option-toggle mobile-hide">
+        </label>
+        <label class="toggle-wrapper mobile-hide">
+          <span class="toggle-label">Whole Words</span>
           <input type="checkbox" id="wholeWordsCheckbox" />
           <span class="toggle-slider"></span>
-          <span class="toggle-label">Whole Words</span>
         </label>
-        <div id="actor-filter-wrapper">
-          <button id="actorFilterBtn" type="button">
+        <div id="actor-filter-wrapper" class="filter-dropdown-wrapper">
+          <button id="actorFilterBtn" class="filter-dropdown-button" type="button">
             <span id="actorFilterLabel" class="filter-label">All Actors</span>
             <span class="dropdown-arrow">▼</span>
           </button>
-          <div id="actorFilterDropdown" class="filter-dropdown" style="display: none;">
-            <input id="actorSearch" type="text" placeholder="Search actors..." />
+          <div id="actorFilterDropdown" class="filter-dropdown">
+            <input id="actorSearch" class="search-input" type="text" placeholder="Search actors..." />
             <div class="filter-actions">
               <label class="checkbox-item select-all">
                 <input type="checkbox" id="selectAllActors" />
@@ -226,12 +226,12 @@
             </div>
           </div>
         </div>
-        <div id="type-filter-wrapper">
-          <button id="typeFilterBtn" type="button">
+        <div id="type-filter-wrapper" class="filter-dropdown-wrapper">
+          <button id="typeFilterBtn" class="filter-dropdown-button" type="button">
             <span id="typeFilterLabel" class="filter-label">All Types</span>
             <span class="dropdown-arrow">▼</span>
           </button>
-          <div id="typeFilterDropdown" class="filter-dropdown" style="display: none;">
+          <div id="typeFilterDropdown" class="filter-dropdown">
             <div class="filter-actions">
               <label class="checkbox-item select-all">
                 <input type="checkbox" id="selectAllTypes" checked />
@@ -269,18 +269,22 @@
       <div class="muted-text mobile-hide">
     </section>
 
-    <div id="browser">
-      <section id="convo-section" class="section">
-        <h3 style="display: flex; justify-content: space-between;">
-          <div>
-          Conversations
-          <span class="help-icon"
-            title="Conversation Types:&#10;• FLOW - Conversations with NPCs&#10;• ORB - Thoughts from interacting with the environment&#10;• TASK - Player's quest log">?</span>
+    <div id="browser" class="browser-grid">
+      <section id="convoSection" class="section convo-section card">
+        <div>
+          <div class="sidebar-header">
+          <h3>
+            Conversations
+            <span class="help-icon"
+              title="Conversation Types:&#10;• FLOW - Conversations with NPCs&#10;• ORB - Thoughts from interacting with the environment&#10;• TASK - Player's quest log">?</span>
+          </h3>
+          <div id="convoSidebarClose">
+            <span class="sidebar-close">⨉</span>
           </div>
-          <div id="convoSidebarClose"><span class="sidebar-close">⨉</span></div>
-        </h3>
-        <div id="convoFilterContainer">
-          <input id="convoSearchInput" class="search-bar" type="text" placeholder="Filter by title or ID..." />
+          </div>
+        </div>
+        <div id="convoFilterContainer" class="convo-filter-container">
+          <input id="convoSearchInput" class="search-input" type="text" placeholder="Filter by title or ID..." />
           <div id="convoTypeFilterRow" class="tree-control-btn-row radio-button-group">
             <button class="tree-control-btn radio-button active" data-type="all">All</button>
             <button class="tree-control-btn radio-button type-badge type-flow" data-type="flow">Flow</button>
@@ -292,19 +296,19 @@
           <button id="expandAllBtn" class="tree-control-btn" title="Expand all conversations">Expand All</button>
           <button id="collapseAllBtn" class="tree-control-btn" title="Collapse all conversations">Collapse All</button>
         </div>
-        <div id="convoList" class="scrolling-card tree">(loading...)</div>
+        <div id="convoList" class="convo-list scrolling-card tree">(loading...)</div>
       </section>
-      <section id="entries-section" class="section">
+      <section id="entries-section" class="section entries-section">
         <!-- Homepage (shown by default) -->
         <div id="homePageContainer" class="card home-page-card">
-          <div style="display: flex; flex-direction: column; justify-content: space-between; align-items: baseline;">
+          <div>
             <div>
               <h2>Welcome to Disco Browser</h2>
             </div>
-            <div id="inspired-by-blurb" style="font-size: small; display: flex; margin-top: 0px;">
-              Inspired by
-              <a href="https://fayde.co.uk/" target="_blank" rel="noopener noreferrer" style="padding-left: 2pt;">FAYDE
-                Playback Experiment: On-Air</a>
+            <div id="inspired-by-blurb" class="small-text">
+              <span>Inspired by
+              <a href="https://fayde.co.uk/" target="_blank" rel="noopener noreferrer">FAYDE
+                Playback Experiment: On-Air</a></span> 
             </div>
           </div>
           <p>This is an interactive browser for <em>Disco Elysium</em> dialogue trees. Explore
@@ -360,11 +364,11 @@
         </div>
 
         <!-- Dialogue content (hidden by default) -->
-        <div id="dialogueContent" style="display: none;">
+        <div id="dialogueContent" class="dialogue-content" style="display: none;">
           <h3>Dialogue</h3>
-          <div id="currentEntryContainer" class="card">
+          <div id="currentEntryContainer" class="card current-entry-card">
             <div id="entryOverview">(select an entry)</div>
-            <details id="moreDetails">
+            <details id="moreDetails" class="more-details details">
               <summary>More Details</summary>
               <div id="entryDetails">(select an entry)</div>
             </details>
@@ -377,15 +381,15 @@
           </div>
         </div>
       </section>
-      <section id="history-section" class="section">
+      <section id="historySection" class="section history-section">
         <h4 style="display: flex; justify-content: space-between; align-items: center;">
           History
             <div id="historySidebarClose"><span class="sidebar-close">⨉</span></div>
         </h4>
-        <div id="chatLog" class="scrolling-card" title="Click an entry to jump back to that point">
+        <div id="chatLog" class="scrolling-card chat-log" title="Click an entry to jump back to that point">
           (navigation log)
         </div>
-        <div id="backButtonContainer">
+        <div id="backButtonContainer" class="button-row">
           <button id="backBtn" title="Go back to previous entry">
             ← Back
           </button>
