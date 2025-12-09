@@ -305,8 +305,6 @@ section {
 
 .details-table td {
   color: #eaeaea;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New",
-    monospace;
   white-space: pre-wrap;
 }
 
@@ -314,7 +312,7 @@ section {
   font-weight: 700;
   margin-top: 12px;
   margin-bottom: 6px;
-  color: var(--secondary);
+  color: var(--accent);
 }
 
 .sidebar-overlay {
@@ -944,7 +942,6 @@ section {
   margin-top: 8px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
 }
 
 .more-details summary {
