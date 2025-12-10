@@ -270,24 +270,23 @@ async function boot() {
 }
 
 function handleMediaQueryChange() {
+  closeAllSidebars();
+  closeMobileSearchScreen();
   if (desktopMediaQuery.matches) {
-    closeAllSidebars();
     toggleElementVisibilityById("historySidebarToggle", false);
     toggleElementVisibilityById("convoSidebarToggle", false);
-    browserEl.prepend(convoSection);
-    browserEl.appendChild(historySection);
+    browserEl?.prepend(convoSection);
+    browserEl?.appendChild(historySection);
   } else if (tabletMediaQuery.matches) {
-    closeAllSidebars();
     toggleElementVisibilityById("historySidebarToggle", true);
     toggleElementVisibilityById("convoSidebarToggle", true);
-    historySidebar.appendChild(historySection);
-    convoSidebar.appendChild(convoSection);
+    historySidebar?.appendChild(historySection);
+    convoSidebar?.appendChild(convoSection);
   } else if (mobileMediaQuery.matches) {
-    closeAllSidebars();
     toggleElementVisibilityById("historySidebarToggle", true);
     toggleElementVisibilityById("convoSidebarToggle", false);
-    historySidebar.append(historySection);
-    convoSidebar.appendChild(convoSection);
+    historySidebar?.append(historySection);
+    convoSidebar?.appendChild(convoSection);
   }
 }
 
@@ -578,7 +577,9 @@ async function handleMoreDetailsClicked() {
 }
 
 function closeAllDropdowns() {
-  document.querySelectorAll('.filter-dropdown.show').forEach((e) => { e.classList.remove('show') }) 
+  document.querySelectorAll(".filter-dropdown.show").forEach((e) => {
+    e.classList.remove("show");
+  });
 }
 
 function setUpFilterDropdowns() {
@@ -905,6 +906,12 @@ function openConversationSection() {
   }
 }
 
+function closeMobileSearchScreen() {
+  if (mobileSearchScreen) {
+    mobileSearchScreen.style.display = "none";
+  }
+}
+
 // Setup clear filters button
 function setupClearFiltersButton() {
   if (!clearFiltersBtn) return;
@@ -1179,9 +1186,7 @@ function setupBrowserHistory() {
     const state = event.state;
 
     // Always close mobile search screen if it's open (when navigating via back button)
-    if (mobileSearchScreen && mobileSearchScreen.style.display === "block") {
-      mobileSearchScreen.style.display = "none";
-    }
+    closeMobileSearchScreen();
 
     if (!state || state.view === "home") {
       // Go back to home view
@@ -1295,9 +1300,7 @@ function goToHomeView() {
   }
 
   // Close mobile search if open
-  if (mobileSearchScreen) {
-    mobileSearchScreen.style.display = "none";
-  }
+  closeMobileSearchScreen();
 
   updateBackButtonState();
 }
@@ -1661,7 +1664,7 @@ function searchDialogues(q, resetSearch = true) {
       : Array.from(selectedActorIds);
 
   if (resetSearch) {
-    if (searchLoader) searchLoader.style.display = "flex";
+    searchLoader?.classList.remove("hidden");
 
     // Hide homepage, show dialogue content for search
     const homePageContainer = document.getElementById("homePageContainer");
@@ -1676,7 +1679,7 @@ function searchDialogues(q, resetSearch = true) {
 
     // Hide current entry and make search take full space
     if (currentEntryContainerEl) currentEntryContainerEl.style.display = "none";
-    const entryListContainer = entryListEl.closest(".entry-list");
+    const entryListContainer = entryListEl?.closest(".entry-list");
     if (entryListContainer) {
       entryListContainer.classList.add("full-height");
       entryListContainer.classList.remove("compact");
@@ -1800,23 +1803,11 @@ function searchDialogues(q, resetSearch = true) {
     currentSearchOffset += res.length;
 
     // Remove any existing loading indicator
-    const oldLoadingIndicator = entryListEl.querySelector(
-      ".search-loading-indicator"
-    );
-    if (oldLoadingIndicator) {
-      oldLoadingIndicator.remove();
-    }
+    searchLoader?.classList.add("hidden");
 
     // Add loading indicator if there are more results in the database and we got results this time
     if (res.length > 0 && currentSearchOffset < currentSearchTotal) {
-      const loadingIndicator = document.createElement("div");
-      loadingIndicator.className = "search-loading-indicator";
-      loadingIndicator.textContent = "Loading more...";
-      loadingIndicator.style.padding = "12px";
-      loadingIndicator.style.textAlign = "center";
-      loadingIndicator.style.fontStyle = "italic";
-      loadingIndicator.style.color = "#666";
-      entryListEl.appendChild(loadingIndicator);
+      searchLoader?.classList.remove("hidden");
     }
   } catch (e) {
     console.error("Search error", e);
@@ -1825,7 +1816,7 @@ function searchDialogues(q, resetSearch = true) {
     }
   } finally {
     isLoadingMore = false;
-    if (searchLoader) searchLoader.style.display = "none";
+    searchLoader?.classList.add("hidden");
   }
 }
 
@@ -1846,12 +1837,8 @@ function setupSearchInfiniteScroll() {
       !isLoadingMore &&
       currentSearchOffset < currentSearchTotal
     ) {
-      // Remove loading indicator
-      const loadingIndicator = entryListEl.querySelector(
-        ".search-loading-indicator"
-      );
-      if (loadingIndicator) loadingIndicator.remove();
-
+      // Hide search indicator
+      searchLoader?.classList.add("hidden");
       // Load more results
       searchDialogues(currentSearchQuery, false);
     }
@@ -1876,11 +1863,7 @@ function setupMobileSearchInfiniteScroll() {
       mobileSearchOffset < mobileSearchTotal
     ) {
       // Remove loading indicator
-      const loadingIndicator = mobileSearchResults.querySelector(
-        ".mobile-search-loading-indicator"
-      );
-      if (loadingIndicator) loadingIndicator.remove();
-
+      mobileSearchLoader?.classList.add("hidden");
       // Load more results
       performMobileSearch(false);
     }
@@ -2096,7 +2079,7 @@ function closeAllSidebars() {
 }
 
 function performMobileSearch(resetSearch = true) {
-  const query = mobileSearchInput.value.trim();
+  const query = mobileSearchInput?.value?.trim() ?? "";
 
   if (resetSearch) {
     // Starting a new search
@@ -2107,9 +2090,10 @@ function performMobileSearch(resetSearch = true) {
         ? null
         : Array.from(mobileSelectedActorIds);
     mobileSearchOffset = 0;
-
-    mobileSearchLoader.style.display = "flex";
-    mobileSearchResults.innerHTML = "";
+    mobileSearchLoader?.classList.remove("hidden");
+    if (mobileSearchResults) {
+      mobileSearchResults.innerHTML = "";
+    }
   }
 
   if (isMobileLoadingMore) return;
@@ -2144,7 +2128,7 @@ function performMobileSearch(resetSearch = true) {
       });
     }
 
-    mobileSearchLoader.style.display = "none";
+    mobileSearchLoader?.classList.add("hidden");
 
     if (resetSearch) {
       mobileSearchFilteredCount = 0;
@@ -2223,7 +2207,7 @@ function performMobileSearch(resetSearch = true) {
         }
 
         // Close mobile search and return to main view
-        mobileSearchScreen.style.display = "none";
+        closeMobileSearchScreen();
       });
 
       mobileSearchResults.appendChild(div);
@@ -2233,34 +2217,22 @@ function performMobileSearch(resetSearch = true) {
     mobileSearchOffset += results.length;
 
     // Remove any existing loading indicator
-    const oldLoadingIndicator = mobileSearchResults.querySelector(
-      ".mobile-search-loading-indicator"
-    );
-    if (oldLoadingIndicator) {
-      oldLoadingIndicator.remove();
-    }
+    mobileSearchLoader?.classList.add("hidden");
 
     // Add loading indicator if there are more results in the database and we got results this time
     if (results.length > 0 && mobileSearchOffset < mobileSearchTotal) {
-      const loadingIndicator = document.createElement("div");
-      loadingIndicator.className = "mobile-search-loading-indicator";
-      loadingIndicator.textContent = "Loading more...";
-      loadingIndicator.style.padding = "12px";
-      loadingIndicator.style.textAlign = "center";
-      loadingIndicator.style.fontStyle = "italic";
-      loadingIndicator.style.color = "#666";
-      mobileSearchResults.appendChild(loadingIndicator);
+      mobileSearchLoader?.classList.remove("hidden");
     }
   } catch (e) {
     console.error("Mobile search error:", e);
-    mobileSearchLoader.style.display = "none";
+    mobileSearchLoader?.classList.add("hidden");
     if (resetSearch) {
       mobileSearchResults.innerHTML =
         '<div class="mobile-search-prompt">Error performing search</div>';
     }
   } finally {
     isMobileLoadingMore = false;
-    mobileSearchLoader.style.display = "none";
+    mobileSearchLoader?.classList.add("hidden");
   }
 }
 

@@ -247,7 +247,7 @@ section {
 
 .type-badge.type-active {
   background-color: var(--card-bg);
-  color: #fff
+  color: #fff;
 }
 
 .type-badge.type-active:hover {
@@ -1009,20 +1009,24 @@ a:hover {
   text-decoration: underline;
 }
 
-.search-loader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.loader {
   color: var(--accent);
-  font-size: 13px;
+  font-size: medium;
+  width: fit-content;
+  font-family: monospace;
+  clip-path: inset(0 3ch 0 0);
+  animation: l4 1s steps(4) infinite;
 }
-
-.spinner {
-  display: inline-block;
-  border: 2px solid rgba(34, 106, 168, 0.3);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.loader.hidden {
+  display: none;
+}
+.loader:before {
+  content: "Loading...";
+}
+@keyframes l4 {
+  to {
+    clip-path: inset(0 -1ch 0 0);
+  }
 }
 
 .muted-text {
@@ -1234,7 +1238,6 @@ a:hover {
     max-width: none;
     flex: 1;
   }
-
 
   .clear-filters-btn {
     flex: 0 0 auto;

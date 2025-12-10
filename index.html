@@ -57,10 +57,7 @@
 
     <div id="mobileSearchCount" class="mobile-search-count" style="display: none;"></div>
 
-    <div class="mobile-search-loader" id="mobileSearchLoader" style="display: none;">
-      <span class="spinner"></span>
-      <span>Searching...</span>
-    </div>
+    <div class="loader hidden" id="mobileSearchLoader"></div>
 
     <div id="mobileSearchResults" class="mobile-search-results">
       <div class="mobile-search-prompt">Enter a search term to find dialogues</div>
@@ -261,10 +258,7 @@
       </div>
       </div>
       </div>
-      <div id="searchLoader" class="search-loader" style="display: none">
-        <span class="spinner"></span>
-        <span>Searching...</span>
-      </div>
+      <div id="searchLoader" class="loader hidden"></div>
       </div>
       <div class="muted-text mobile-hide">
     </section>
@@ -296,7 +290,7 @@
           <button id="expandAllBtn" class="tree-control-btn" title="Expand all conversations">Expand All</button>
           <button id="collapseAllBtn" class="tree-control-btn" title="Collapse all conversations">Collapse All</button>
         </div>
-        <div id="convoList" class="convo-list scrolling-card tree">(loading...)</div>
+        <div id="convoList" class="convo-list scrolling-card tree"><div class="loader"></div></div>
       </section>
       <section id="entries-section" class="section entries-section">
         <!-- Homepage (shown by default) -->
