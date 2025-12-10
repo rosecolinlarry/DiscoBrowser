@@ -1946,7 +1946,7 @@ function setupMobileSearch() {
       if (!isHandlingPopState) {
         pushHistoryState("search");
       }
-      mobileSearchScreen.style.display = "block";
+      mobileSearchScreen.style.display = "flex";
       mobileSearchInput.focus();
     });
   }

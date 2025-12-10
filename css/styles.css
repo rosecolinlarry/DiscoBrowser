@@ -91,6 +91,7 @@ h1:hover {
 section {
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
 }
 
 .search-controls {
@@ -298,7 +299,6 @@ section {
 
 .details-table th {
   text-align: left;
-  font-weight: 700;
   color: var(--muted);
   width: 35%;
 }
@@ -309,7 +309,6 @@ section {
 }
 
 .details-section-header {
-  font-weight: 700;
   margin-top: 12px;
   margin-bottom: 6px;
   color: var(--accent);
@@ -737,6 +736,14 @@ section {
   border-color: var(--accent);
 }
 
+.tree-control-btn.type-badge.type-task:hover {
+  border-color: var(--secondary);
+}
+
+.tree-control-btn.type-badge.type-orb:hover {
+  color: white;
+}
+
 .tree-control-btn:active {
   transform: scale(0.98);
 }
@@ -1035,7 +1042,7 @@ a:hover {
   position: fixed;
   display: flex;
   box-sizing: border-box;
-  height: 100vh;
+  height: 100%;
   background: var(--card-bg);
   border: 1px solid var(--border);
   width: 280px;
@@ -1044,6 +1051,7 @@ a:hover {
   flex-direction: column;
   transition: transform 0.3s ease-in-out;
   background: var(--bg);
+  text-align: center;
   overflow-y: auto;
 
   .sidebar-header {
