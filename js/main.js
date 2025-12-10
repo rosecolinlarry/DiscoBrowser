@@ -495,6 +495,9 @@ function createFilteredLeafItem(match, searchText, tree) {
     titleSpan.textContent = match?.title;
   }
 
+  if(!titleSpan.textContent.endsWith(` #${label.dataset.convoId}`)) {
+      titleSpan.textContent += ` #${label.dataset.convoId}`
+  }
   label.appendChild(titleSpan);
 
   // Add type badge
