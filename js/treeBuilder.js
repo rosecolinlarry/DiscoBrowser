@@ -278,6 +278,9 @@ export function renderTree(container, rootObj, opts = {}) {
         const fullTitle = titleMap[cid] || `(id ${cid})`;
         const finalSegment = getLastSegment(fullTitle);
         leafLabel.textContent = finalSegment;
+        if(!leafLabel.textContent.endsWith(` #${cid}`)) {
+            leafLabel.textContent += ` #${cid}`
+        }
         
         // Add type badge and highlight for conversation leaves
         const convoType = convoTypeById[cid] || 'flow';

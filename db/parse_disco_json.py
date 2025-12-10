@@ -432,7 +432,7 @@ class DiscoDBParser:
 
                 if display_condition_main is not None or done_condition_main is not None or cancel_condition_main is not None or task_reward is not None or task_timed is not None:
                     convo_type = 'task'
-                if (placement is not None and placement != "") or (title is not None and (str(title).startswith("Arx - EasterEggs") or str(title).startswith("Helen - EasterEggs") or str(title).startswith("LAIR ORB / footprints"))):
+                if ((placement is not None and placement != "") or (title is not None and (str(title).upper().startswith("ARX - EASTEREGGS") or str(title).upper().startswith("HELEN - EASTEREGGS") or str(title).upper().startswith("LAIR ORB / FOOTPRINTS"))) and (not str(title).upper().startswith("BOARDWALK / PAYPHONE"))):
                     convo_type = 'orb'  # includes orbs with and without subsequent dialogues
 
                 convo_data = {
