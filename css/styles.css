@@ -769,7 +769,6 @@ section {
 }
 
 .tree .toggle {
-  width: 16px;
   display: inline-block;
   text-align: center;
   color: var(--accent);
@@ -1055,7 +1054,6 @@ a:hover {
   flex-direction: column;
   transition: transform 0.3s ease-in-out;
   background: var(--bg);
-  text-align: center;
   overflow-y: auto;
 
   .sidebar-header {
@@ -2071,6 +2069,8 @@ a:hover {
 .result-item {
   display: flex;
   flex-direction: column;
+  word-wrap: always;
+  word-break: break-word;
   gap: 6px;
   padding: 10px;
   border-radius: 8px;
