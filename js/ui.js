@@ -486,12 +486,12 @@ export function highlightTerms(text, query, hasQuotedPhrases = false) {
     // Split text by matches
     const parts = text.split(re);
     
-    // Escape HTML and wrap matches in <strong> tags
+    // Escape HTML and wrap matches in <mark> tags
     return parts.map(part => {
       // Check if this part matches any of the terms (case-insensitive)
       const isMatch = allTerms.some(term => part.toLowerCase() === term.toLowerCase());
       if (isMatch) {
-        return "<strong class='highlighted_term'>" + escapeHtml(part) + "</strong>";
+        return "<mark class='highlighted-term'>" + escapeHtml(part) + "</mark>";
       }
       return escapeHtml(part);
     }).join("");
@@ -512,12 +512,12 @@ export function highlightTerms(text, query, hasQuotedPhrases = false) {
   // Split text by matches to preserve both matched and unmatched parts
   const parts = text.split(re);
   
-  // Escape HTML and wrap matches in <strong> tags
+  // Escape HTML and wrap matches in <mark> tags
   return parts.map((part, i) => {
     // Check if this part matches any of the search terms (case-insensitive)
     const isMatch = terms.some(term => part.toLowerCase() === term.toLowerCase());
     if (isMatch) {
-      return "<strong class='highlighted_term'>" + escapeHtml(part) + "</strong>";
+      return "<mark class='highlighted-term'>" + escapeHtml(part) + "</mark>";
     }
     return escapeHtml(part);
   }).join("");
