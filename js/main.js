@@ -229,7 +229,7 @@ function applySettings() {
 
   // Advanced search UI visibility
   if (advancedSearchRow) {
-    advancedSearchRow.style.display = (appSettings.enableAdvancedSearch && !mobileMediaQuery.matches()) ? '' : 'none'
+    advancedSearchRow.style.display = appSettings.enableAdvancedSearch ? '' : 'none'
   }
   if (advancedSearchToggle) {
     advancedSearchToggle.checked = appSettings.enableAdvancedSearch
@@ -252,7 +252,7 @@ function updateSettingsUI() {
   if (useOriginalTitlesCheckbox) useOriginalTitlesCheckbox.checked = appSettings.useOriginalTitles
   if (enableAdvancedSearchCheckbox) enableAdvancedSearchCheckbox.checked = appSettings.enableAdvancedSearch
   if (advancedSearchToggle) advancedSearchToggle.checked = appSettings.enableAdvancedSearch
-  if (advancedSearchRow) advancedSearchRow.style.display = (appSettings.enableAdvancedSearch && !mobileMediaQuery.matches()) ? '' : 'none'
+  if (advancedSearchRow) advancedSearchRow.style.display = appSettings.enableAdvancedSearch ? '' : 'none'
   if (includeVariablesCheckbox) includeVariablesCheckbox.checked = appSettings.includeVariables
   if (includeDialogueCheckbox) includeDialogueCheckbox.checked = appSettings.includeDialogue
   if (selectAllVariableSearch) selectAllVariableSearch.checked = appSettings.includeDialogue && appSettings.includeVariables
