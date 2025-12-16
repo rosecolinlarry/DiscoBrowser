@@ -4,6 +4,10 @@ import * as DB from './db.js'
 import { buildTitleTree, renderTree } from './treeBuilder.js'
 import { $ } from './ui.js'
 import * as UI from './ui.js'
+import { injectIconTemplates } from './icons.js'
+
+// Inject icon templates as soon as the module loads
+injectIconTemplates()
 
 const searchInput = $('search')
 const searchBtn = $('searchBtn')
@@ -18,6 +22,7 @@ const typeFilterBtn = $('typeFilterBtn')
 const typeFilterLabel = $('typeFilterLabel')
 const typeFilterDropdown = $('typeFilterDropdown')
 const typeCheckboxList = $('typeCheckboxList')
+const variableSearchCheckboxList = $('variableSearchCheckboxList')
 const selectAllTypes = $('selectAllTypes')
 const searchLoader = $('searchLoader')
 const convoListEl = $('convoList')
@@ -77,13 +82,42 @@ const mobileConvoFilterScreen = $('mobileConvoFilterScreen')
 const mobileActorFilterScreen = $('mobileActorFilterScreen')
 const mobileTypeFilterSheet = $('mobileTypeFilterSheet')
 const mobileWholeWordsCheckbox = $('mobileWholeWordsCheckbox')
-const mobileHomeButtonEl = $('convoSearchHomeButton')
+const mobileNavBtn = $('mobileNavBtn')
+const mobileNavOverlay = $('mobileNavOverlay')
+const mobileNavPanel = $('mobileNavPanel')
+const mobileNavHome = $('mobileNavHome')
+const mobileNavSettings = $('mobileNavSettings')
+const mobileNavSearch = $('mobileNavSearch')
 const mobileSidebarToggle = $('mobileSidebarToggle')
 const mobileClearSearchBtn = $('mobileSearchClearIcon')
 
 // Tree control elements
 const expandAllBtn = $('expandAllBtn')
 const collapseAllBtn = $('collapseAllBtn')
+const resetLayoutBtn = $('resetLayoutBtn')
+
+// Settings elements
+const settingsBtn = $('settingsBtn')
+const settingsModalOverlay = $('settingsModalOverlay')
+const settingsModalClose = $('settingsModalClose')
+const resetDesktopLayoutCheckbox = $('resetDesktopLayoutCheckbox')
+const disableColumnResizingCheckbox = $('disableColumnResizingCheckbox')
+const alwaysShowMoreDetailsCheckbox = $('alwaysShowMoreDetailsCheckbox')
+const showHiddenCheckbox = $('showHiddenCheckbox')
+const turnOffAnimationsCheckbox = $('turnOffAnimationsCheckbox')
+const useOriginalTitlesCheckbox = $('useOriginalTitlesCheckbox')
+const enableAdvancedSearchCheckbox = $('enableAdvancedSearchCheckbox')
+const saveSettingsBtn = $('saveSettingsBtn')
+const restoreDefaultSettingsBtn = $('restoreDefaultSettingsBtn')
+// Advanced search UI
+const advancedSearchToggle = $('advancedSearchToggle')
+const advancedSearchRow = $('advancedSearchRow')
+const variableSearchBtn = $('variableSearchBtn')
+const variableSearchDropdown = $('variableSearchDropdown')
+const variableSearchLabel = $('variableSearchLabel')
+const selectAllVariableSearch = $('selectAllVariableSearch')
+const includeVariablesCheckbox = $('includeVariablesCheckbox')
+const includeDialogueCheckbox = $('includeDialogueCheckbox')
 
 // Clear filters button
 const clearFiltersBtn = $('clearFiltersBtn')
@@ -131,36 +165,303 @@ let isMobileLoadingMore = false
 let currentAppState = 'home' // 'home', 'conversation', 'search'
 let isHandlingPopState = false
 
-// Define the media query that determines "mobile mode"
+// Settings state
+const SETTINGS_STORAGE_KEY = 'discobrowser_settings'
+let appSettings = {
+  resetDesktopLayout: false,
+  disableColumnResizing: false,
+  showHidden: false,
+  turnOffAnimations: false,
+  alwaysShowMoreDetails: false,
+  useOriginalTitles: false,
+  enableAdvancedSearch: true,
+  includeVariables: true,
+  includeDialogue: true
+}
+
+// Settings management functions
+function loadSettingsFromStorage() {
+  try {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      appSettings = { ...appSettings, ...parsed }
+    }
+  } catch (e) {
+    console.error('Failed to load settings from storage', e)
+  }
+}
+
+function getConversationsForTree() {
+  const allConvos = DB.getAllConversations()
+  if (appSettings.showHidden) {
+    // Also include hidden conversations
+    const hiddenConvos = DB.execRows(
+      `SELECT id, displayTitle, type FROM conversations WHERE isHidden == 1 ORDER BY displayTitle;`
+    )
+    const merged = [...allConvos, ...hiddenConvos]
+    return merged.map(c => ({
+      ...c,
+      displayTitle: appSettings.useOriginalTitles ? (c.title || c.displayTitle) : c.displayTitle
+    }))
+  }
+  return allConvos.map(c => ({
+    ...c,
+    displayTitle: appSettings.useOriginalTitles ? (c.title || c.displayTitle) : c.displayTitle
+  }))
+}
+
+function saveSettingsToStorage() {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(appSettings))
+  } catch (e) {
+    console.error('Failed to save settings to storage', e)
+  }
+}
+
+function applySettings() {
+  // Apply animations toggle
+  if (appSettings.turnOffAnimations) {
+    document.body.classList.add('animations-disabled')
+  } else {
+    document.body.classList.remove('animations-disabled')
+  }
+
+  // Advanced search UI visibility
+  if (advancedSearchRow) {
+    advancedSearchRow.style.display = appSettings.enableAdvancedSearch ? '' : 'none'
+  }
+  if (advancedSearchToggle) {
+    advancedSearchToggle.checked = appSettings.enableAdvancedSearch
+  }
+  if (enableAdvancedSearchCheckbox) {
+    enableAdvancedSearchCheckbox.checked = appSettings.enableAdvancedSearch
+  }
+
+  // Apply column resizing toggle - handled in initializeResizableGrid
+  // Apply show hidden toggle - handled when building tree
+  // Apply reset desktop layout - this is a one-time action, not persistent
+}
+
+function updateSettingsUI() {
+  if (resetDesktopLayoutCheckbox) resetDesktopLayoutCheckbox.checked = appSettings.resetDesktopLayout
+  if (disableColumnResizingCheckbox) disableColumnResizingCheckbox.checked = appSettings.disableColumnResizing
+  if (alwaysShowMoreDetailsCheckbox) alwaysShowMoreDetailsCheckbox.checked = appSettings.alwaysShowMoreDetails
+  if (showHiddenCheckbox) showHiddenCheckbox.checked = appSettings.showHidden
+  if (turnOffAnimationsCheckbox) turnOffAnimationsCheckbox.checked = appSettings.turnOffAnimations
+  if (useOriginalTitlesCheckbox) useOriginalTitlesCheckbox.checked = appSettings.useOriginalTitles
+  if (enableAdvancedSearchCheckbox) enableAdvancedSearchCheckbox.checked = appSettings.enableAdvancedSearch
+  if (advancedSearchToggle) advancedSearchToggle.checked = appSettings.enableAdvancedSearch
+  if (advancedSearchRow) advancedSearchRow.style.display = appSettings.enableAdvancedSearch ? '' : 'none'
+  if (includeVariablesCheckbox) includeVariablesCheckbox.checked = appSettings.includeVariables
+  if (includeDialogueCheckbox) includeDialogueCheckbox.checked = appSettings.includeDialogue
+  if (selectAllVariableSearch) selectAllVariableSearch.checked = appSettings.includeDialogue && appSettings.includeVariables
+  updateVariableSearchLabel()
+}
+
+function setupSettingsModal() {
+  // Open settings modal
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      updateSettingsUI()
+      settingsModalOverlay.style.display = 'flex'
+    })
+  }
+
+  // Close settings modal
+  if (settingsModalClose) {
+    settingsModalClose.addEventListener('click', () => {
+      settingsModalOverlay.style.display = 'none'
+    })
+  }
+
+  // Close modal when clicking overlay
+  if (settingsModalOverlay) {
+    settingsModalOverlay.addEventListener('click', (e) => {
+      if (e.target === settingsModalOverlay) {
+        settingsModalOverlay.style.display = 'none'
+      }
+    })
+  }
+
+  // Handle save settings
+  if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener('click', () => {
+      // Update settings from checkbox values
+      appSettings.resetDesktopLayout = resetDesktopLayoutCheckbox?.checked || false
+      appSettings.disableColumnResizing = disableColumnResizingCheckbox?.checked || false
+      appSettings.alwaysShowMoreDetails = alwaysShowMoreDetailsCheckbox?.checked || false
+      appSettings.showHidden = showHiddenCheckbox?.checked || false
+      appSettings.turnOffAnimations = turnOffAnimationsCheckbox?.checked || false
+      appSettings.useOriginalTitles = useOriginalTitlesCheckbox?.checked || false
+      appSettings.enableAdvancedSearch = enableAdvancedSearchCheckbox?.checked ?? true
+      appSettings.includeVariables = includeVariablesCheckbox?.checked ?? true
+      appSettings.includeDialogue = includeDialogueCheckbox?.checked ?? true
+      appSettings.selectAllVariableSearch = selectAllVariableSearch?.checked || (includeVariablesCheckbox?.checked && includeDialogueCheckbox?.checked)
+
+      // Apply settings
+      applySettings()
+      saveSettingsToStorage()
+
+      // Handle reset layout if checked
+      if (appSettings.resetDesktopLayout) {
+        const browserGrid = $('browser')
+        const defaultColumns = '280px 1fr 280px'
+        browserGrid.style.gridTemplateColumns = defaultColumns
+        updateHandlePositions()
+        localStorage.removeItem('discobrowser_grid_columns')
+        appSettings.resetDesktopLayout = false
+        resetDesktopLayoutCheckbox.checked = false
+      }
+
+      // Update resize handles visibility/functionality
+      updateResizeHandles()
+
+      // Rebuild tree to reflect hidden/title settings
+      const convos = getConversationsForTree()
+      conversationTree = buildTitleTree(convos)
+      renderTree(convoListEl, conversationTree)
+      if (currentConvoId !== null) {
+        highlightConversationInTree(currentConvoId)
+      }
+
+      // Save and close modal
+      saveSettingsToStorage()
+      settingsModalOverlay.style.display = 'none'
+    })
+  }
+
+  // Restore default settings
+  if (restoreDefaultSettingsBtn) {
+    restoreDefaultSettingsBtn.addEventListener('click', () => {
+      appSettings = {
+        resetDesktopLayout: false,
+        disableColumnResizing: false,
+        showHidden: false,
+        turnOffAnimations: false,
+        alwaysShowMoreDetails: false,
+        useOriginalTitles: false,
+        includeVariables: true,
+        includeDialogue: true
+      }
+      updateSettingsUI()
+    })
+  }
+
+  // Advanced search toggle show/hide
+  if (advancedSearchToggle && advancedSearchRow) {
+    advancedSearchToggle.addEventListener('change', () => {
+      appSettings.enableAdvancedSearch = !!advancedSearchToggle.checked
+      applySettings()
+      saveSettingsToStorage()
+    })
+  }
+
+  // Settings modal Advanced Search toggle sync
+  if (enableAdvancedSearchCheckbox) {
+    enableAdvancedSearchCheckbox.addEventListener('change', (e) => {
+      appSettings.enableAdvancedSearch = !!e.target.checked
+      applySettings()
+      saveSettingsToStorage()
+    })
+  }
+
+  // Variable search checkboxes update label and save settings
+  if (includeVariablesCheckbox) {
+    includeVariablesCheckbox.addEventListener('change', (e) => {
+      updateVariableSearchLabel(e)
+      saveSettingsToStorage()
+    })
+  }
+  if (includeDialogueCheckbox) {
+    includeDialogueCheckbox.addEventListener('change', (e) => {
+      updateVariableSearchLabel(e)
+      saveSettingsToStorage()
+    })
+  }
+  if (selectAllVariableSearch) {
+    selectAllVariableSearch.addEventListener('change', (e) => {
+      updateVariableSearchLabel(e)
+      saveSettingsToStorage()
+    })
+  }
+}
+
+function selectAllVariableSearchOptions(checked) {
+  includeVariablesCheckbox.checked = checked
+  includeDialogueCheckbox.checked = checked
+  selectAllVariableSearch.checked = checked
+  selectAllVariableSearch.indeterminate = false
+  selectAllVariableSearch.dispatchEvent(new Event('change'))
+}
+
+function updateVariableSearchLabel(e) {
+  let text = 'Include Variables'
+  let includeVars = includeVariablesCheckbox?.checked ?? appSettings.includeVariables ?? true
+  let includeDial = includeDialogueCheckbox?.checked ?? appSettings.includeDialogue ?? true
+  let includeAll = selectAllVariableSearch?.checked ?? (appSettings.includeDialogue && appSettings.includeVariables) ?? true
+
+  if (e && e.target === selectAllVariableSearch) {
+    includeAll = selectAllVariableSearch.checked
+    includeVars = includeAll
+    includeDial = includeAll
+  }
+  else if (e && (e.target === includeVariablesCheckbox)) {
+    includeVars = includeVariablesCheckbox?.checked ?? true
+    includeAll = includeVars && includeDial
+  }
+  else if (e && (e.target === includeDialogueCheckbox)) {
+    includeDial = includeDialogueCheckbox?.checked ?? true
+    includeAll = includeVars && includeDial
+  }
+  selectAllVariableSearch.checked = includeAll
+  selectAllVariableSearch.indeterminate = includeVars !== includeDial
+  includeDialogueCheckbox.checked = includeDial
+  includeVariablesCheckbox.checked = includeVars
+
+  appSettings.includeVariables = includeVars
+  appSettings.includeDialogue = includeDial
+
+  text = includeVars && includeDial ? 'Include Variables' : (includeVars ? 'Variables only' : (includeDial ? 'Dialogue only' : 'None'))
+  if (variableSearchLabel) variableSearchLabel.textContent = text
+}
+
+function updateResizeHandles() {
+  const leftHandle = document.querySelector('.resize-handle-left')
+  const rightHandle = document.querySelector('.resize-handle-right')
+
+  if (appSettings.disableColumnResizing) {
+    if (leftHandle) leftHandle.classList.add('disabled')
+    if (rightHandle) rightHandle.classList.add('disabled')
+  } else {
+    if (leftHandle) leftHandle.classList.remove('disabled')
+    if (rightHandle) rightHandle.classList.remove('disabled')
+  }
+}
+
+function updateHandlePositions() {
+  const browserGrid = $('browser')
+  const columns = (browserGrid.style.gridTemplateColumns || '280px 1fr 280px').split(' ').map(s => s.trim())
+  const col1 = columns[0]
+  const col3 = columns[2]
+  browserGrid.style.setProperty('--handle-left-pos', `calc(${col1} - 4px)`)
+  browserGrid.style.setProperty('--handle-right-pos', `calc(${col3} - 4px)`)
+}
+
 const mobileMediaQuery = window.matchMedia('(max-width: 768px)')
-const tabletMediaQuery = window.matchMedia(
-  '(min-width: 769px) and (max-width: 1024px)'
-)
+const tabletMediaQuery = window.matchMedia('(min-width: 769px) and (max-width: 1024px)')
 const desktopMediaQuery = window.matchMedia('(min-width: 1025px)')
 
-function setUpMediaQueries () {
+function setUpMediaQueries() {
   desktopMediaQuery.addEventListener('change', handleMediaQueryChange)
   tabletMediaQuery.addEventListener('change', handleMediaQueryChange)
   mobileMediaQuery.addEventListener('change', handleMediaQueryChange)
   handleMediaQueryChange()
 }
 
-async function boot () {
-  setUpMediaQueries()
-
-  const SQL = await loadSqlJs()
-  await DB.initDatabase(SQL, 'db/discobase.sqlite3')
-
-  // load conversations & populate actor dropdown
-  const convos = DB.getAllConversations()
-
-  // Build tree and render (includes all types: flow, orb, task)
-  conversationTree = buildTitleTree(convos)
-  renderTree(convoListEl, conversationTree)
-
-  // Set up conversation filter
-  setupConversationFilter()
-
+function setUpConvoListEvents() {
+  if (!convoListEl) return;
   // event delegation: clicks in convoList
   convoListEl.addEventListener('click', (e) => {
     const target = e.target.closest('[data-convo-id]')
@@ -182,16 +483,46 @@ async function boot () {
     loadEntriesForConversation(convoId, true)
     highlightConversationInTree(convoId)
   })
+}
+
+function setUpChatLogEvents() {
+  if (!chatLogEl) return;
+  chatLogEl.addEventListener('navigateToConversation', (e) => {
+    const convoId = e.detail.convoId
+    loadEntriesForConversation(convoId, true)
+    highlightConversationInTree(convoId)
+  })
+}
+
+async function boot() {
+  // Initialize icons when DOM is ready
+  document.addEventListener('DOMContentLoaded', initializeIcons)
+
+  setUpMediaQueries()
+
+  // Load settings from localStorage
+  loadSettingsFromStorage()
+  applySettings()
+
+  const SQL = await loadSqlJs()
+  await DB.initDatabase(SQL, 'db/discobase.sqlite3')
+
+  // load conversations & populate actor dropdown
+  const convos = getConversationsForTree()
+
+  // Build tree and render (includes all types: flow, orb, task)
+  conversationTree = buildTitleTree(convos)
+  renderTree(convoListEl, conversationTree)
+
+  // Set up conversation filter
+  setupConversationFilter()
+  // Set up conversation list events
+  setUpConvoListEvents()
 
   // Handle navigateToConversation events from history dividers
-  if (chatLogEl) {
-    chatLogEl.addEventListener('navigateToConversation', (e) => {
-      const convoId = e.detail.convoId
-      loadEntriesForConversation(convoId, true)
-      highlightConversationInTree(convoId)
-    })
-  }
+  setUpChatLogEvents()
 
+  // Set up filter dropdowns to open and close
   setUpFilterDropdowns()
 
   // actor dropdown
@@ -256,6 +587,9 @@ async function boot () {
   setupMobileSidebar()
   setUpSidebarToggles()
 
+  // Setup mobile navigation panel
+  setupMobileNavigation()
+
   // Setup mobile search
   setupMobileSearch()
   setupClearSearchInput()
@@ -270,9 +604,139 @@ async function boot () {
 
   // Set up conversation type modal
   setupConversationTypesModal()
+
+  // Initialize resizable grid
+  initializeResizableGrid()
+
+  // Set up settings modal
+  setupSettingsModal()
 }
 
-function handleMediaQueryChange () {
+function initializeResizableGrid() {
+  const browserGrid = $('browser')
+  if (!browserGrid || !desktopMediaQuery.matches) return
+
+  const convoSection = browserGrid.querySelector('.convo-section')
+  const entriesSection = browserGrid.querySelector('.entries-section')
+  const historySection = browserGrid.children[2]
+
+  if (!convoSection || !entriesSection || !historySection) return
+
+  // Store grid column widths in local storage
+  const STORAGE_KEY = 'discobrowser_grid_columns'
+  const defaultColumns = '280px 1fr 280px'
+  const savedColumns = localStorage.getItem(STORAGE_KEY)
+
+  if (savedColumns) {
+    try {
+      const columns = JSON.parse(savedColumns)
+      browserGrid.style.gridTemplateColumns = columns.join(' ')
+    } catch (e) {
+      console.error('Failed to restore grid columns', e)
+      browserGrid.style.gridTemplateColumns = defaultColumns
+    }
+  } else {
+    // Set default columns on first load / hard refresh
+    browserGrid.style.gridTemplateColumns = defaultColumns
+  }
+
+  // Create resize handles
+  const leftHandle = document.createElement('div')
+  leftHandle.className = 'resize-handle resize-handle-left'
+  leftHandle.title = 'Drag to resize sections'
+
+  const rightHandle = document.createElement('div')
+  rightHandle.className = 'resize-handle resize-handle-right'
+  rightHandle.title = 'Drag to resize sections'
+
+  // Append handles to grid
+  browserGrid.appendChild(leftHandle)
+  browserGrid.appendChild(rightHandle)
+
+  // Helper function to update handle positions
+  function updateHandlePositions() {
+    const columns = (browserGrid.style.gridTemplateColumns || '280px 1fr 280px').split(' ').map(s => s.trim())
+    const col1 = columns[0]
+    const col3 = columns[2]
+    browserGrid.style.setProperty('--handle-left-pos', `calc(${col1} - 4px)`)
+    browserGrid.style.setProperty('--handle-right-pos', `calc(${col3} - 4px)`)
+  }
+
+  // Initialize handle positions
+  updateHandlePositions()
+
+  // Apply disabled state if column resizing is disabled
+  if (appSettings.disableColumnResizing) {
+    leftHandle.classList.add('disabled')
+    rightHandle.classList.add('disabled')
+  }
+
+  // Left handle: resize convo and entries sections
+  leftHandle.addEventListener('mousedown', (e) => {
+    if (appSettings.disableColumnResizing) return
+    e.preventDefault()
+    const startX = e.clientX
+    const startColumns = (browserGrid.style.gridTemplateColumns || '280px 1fr 280px').split(' ').map(s => s.trim())
+    const initialCol1 = parseFloat(startColumns[0])
+
+    function handleMouseMove(moveEvent) {
+      const deltaX = moveEvent.clientX - startX
+      const col1 = Math.max(200, Math.min(500, initialCol1 + deltaX))
+      const newColumns = `${col1}px 1fr ${startColumns[2]}`
+      browserGrid.style.gridTemplateColumns = newColumns
+      updateHandlePositions()
+    }
+
+    function handleMouseUp() {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      const currentColumns = browserGrid.style.gridTemplateColumns
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentColumns.split(' ').map(s => s.trim())))
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  })
+
+  // Right handle: resize entries and history sections
+  rightHandle.addEventListener('mousedown', (e) => {
+    if (appSettings.disableColumnResizing) return
+    e.preventDefault()
+    const startX = e.clientX
+    const startColumns = (browserGrid.style.gridTemplateColumns || '280px 1fr 280px').split(' ').map(s => s.trim())
+    const initialCol3 = parseFloat(startColumns[2])
+
+    function handleMouseMove(moveEvent) {
+      const deltaX = moveEvent.clientX - startX
+      const col3 = Math.max(200, Math.min(500, initialCol3 - deltaX))
+      const newColumns = `${startColumns[0]} 1fr ${col3}px`
+      browserGrid.style.gridTemplateColumns = newColumns
+      updateHandlePositions()
+    }
+
+    function handleMouseUp() {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      const currentColumns = browserGrid.style.gridTemplateColumns
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentColumns.split(' ').map(s => s.trim())))
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  })
+
+  // Add reset layout button handler
+  if (resetLayoutBtn) {
+    resetLayoutBtn.addEventListener('click', () => {
+      const defaultColumns = '280px 1fr 280px'
+      browserGrid.style.gridTemplateColumns = defaultColumns
+      updateHandlePositions()
+      localStorage.removeItem(STORAGE_KEY)
+    })
+  }
+}
+
+function handleMediaQueryChange() {
   closeAllSidebars()
   closeMobileSearchScreen()
   if (desktopMediaQuery.matches) {
@@ -293,26 +757,18 @@ function handleMediaQueryChange () {
   }
 }
 
-function toggleElementVisibilityById (id, showElement) {
+function toggleElementVisibilityById(id, showElement) {
   const el = $(id)
   el.style.display = showElement ? '' : 'none'
 }
 
-function setUpSidebarToggles () {
+function setUpSidebarToggles() {
   convoSidebarToggle.addEventListener('click', openConversationSection)
   historySidebarToggle.addEventListener('click', openHistorySidebar)
   sidebarOverlay.addEventListener('click', closeAllSidebars)
 }
 
-function setupConversationFilter () {
-  // Mobile home button
-  if (mobileHomeButtonEl) {
-    mobileHomeButtonEl.addEventListener('click', () => {
-      closeAllSidebars()
-      goToHomeView()
-    })
-  }
-
+function setupConversationFilter() {
   // Text search filter
   if (convoSearchInput) {
     convoSearchInput.addEventListener('input', () => {
@@ -349,44 +805,106 @@ function setupConversationFilter () {
   }
 }
 
-function expandAllTreeNodes () {
+function updateTreeControlButtons(enableButtons) {
+  if (expandAllBtn) {
+    expandAllBtn.disabled = !enableButtons
+  }
+  if (collapseAllBtn) {
+    collapseAllBtn.disabled = !enableButtons
+  }
+}
+
+function setToggleIcon(toggleEl, expanded) {
+  if (!toggleEl) return
+
+  // Only update toggles that are meant to expand/collapse
+  if (toggleEl.dataset && toggleEl.dataset.canToggle === 'false') return
+
+  const templateId = 'icon-chevron-right-template';
+  const template = document.getElementById(templateId)
+
+  const clone = template.content.cloneNode(true)
+  const svg = clone.querySelector('svg')
+  if (svg) {
+    svg.setAttribute('width', '18px')
+    svg.setAttribute('height', '18px')
+  }
+
+  toggleEl.innerHTML = ''
+  toggleEl.appendChild(clone)
+
+  // Update rotation class for animation
+  toggleEl.classList.toggle('toggle-expanded', expanded)
+}
+
+function expandAllTreeNodes() {
   const allNodes = convoListEl.querySelectorAll('.node')
   allNodes.forEach((node) => {
     const toggle = node.querySelector('.toggle')
-    if (toggle && toggle.textContent && !node.classList.contains('expanded')) {
+    if (toggle && toggle.dataset.canToggle === 'true' && !node.classList.contains('expanded')) {
       node.classList.add('expanded')
-      toggle.textContent = '▾'
+      setToggleIcon(toggle, true)
     }
   })
 }
 
-function collapseAllTreeNodes () {
+function collapseAllTreeNodes() {
   const allNodes = convoListEl.querySelectorAll('.node')
   allNodes.forEach((node) => {
     if (node.classList.contains('expanded')) {
       const toggle = node.querySelector('.toggle')
       node.classList.remove('expanded')
-      if (toggle) {
-        toggle.textContent = '▸'
+      if (toggle && toggle.dataset.canToggle === 'true') {
+        setToggleIcon(toggle, false)
       }
     }
   })
 }
 
-function filterConversationTree () {
+function filterConversationTree() {
   let searchText
   if (!conversationTree) return
   searchText = convoSearchInput?.value?.toLowerCase().trim() ?? ''
 
-  // If no filters active, render the original tree
-  if (!searchText && activeTypeFilter === 'all') {
-    renderTree(convoListEl, conversationTree)
+  // If no text search is active
+  if (!searchText) {
+    // Show full tree when all types selected
+    if (activeTypeFilter === 'all') {
+      renderTree(convoListEl, conversationTree)
+      updateTreeControlButtons(true)
+      if (currentConvoId !== null) {
+        highlightConversationInTree(currentConvoId)
+      }
+      return
+    }
+
+    // Build a filtered tree for the selected type
+    const { convoTitleById, convoTypeById } = conversationTree
+    const filteredRows = Object.keys(convoTitleById)
+      .map((idStr) => {
+        const id = Number(idStr)
+        return {
+          id,
+          displayTitle: convoTitleById[id],
+          type: convoTypeById[id] || 'flow',
+        }
+      })
+      .filter((row) => row.type === activeTypeFilter)
+
+    if (filteredRows.length === 0) {
+      convoListEl.innerHTML = '(no conversations for selected type)'
+      updateTreeControlButtons(false)
+      return
+    }
+
+    const filteredTree = buildTitleTree(filteredRows)
+    renderTree(convoListEl, filteredTree)
+    updateTreeControlButtons(true)
     if (currentConvoId !== null) {
       highlightConversationInTree(currentConvoId)
     }
     return
   }
-  // TODO KA Do not render as flat list if the filter is just on convo type
 
   // Get all matching conversation leaves
   const matches = []
@@ -400,6 +918,7 @@ function filterConversationTree () {
 
   // Clear and render matching results directly as a flat list
   convoListEl.innerHTML = ''
+  updateTreeControlButtons(false)
 
   if (matches.length === 0) {
     const noResults = document.createElement('div')
@@ -416,7 +935,7 @@ function filterConversationTree () {
   })
 }
 
-function collectMatchingLeaves (node, searchText, typeFilter, matches, tree) {
+function collectMatchingLeaves(node, searchText, typeFilter, matches, tree) {
   // Check if this node has conversation IDs
   if (node.convoIds && node.convoIds.length > 0) {
     node.convoIds.forEach((cid) => {
@@ -459,7 +978,7 @@ function collectMatchingLeaves (node, searchText, typeFilter, matches, tree) {
   }
 }
 
-function createFilteredLeafItem (match, searchText, tree) {
+function createFilteredLeafItem(match, searchText, tree) {
   const wrapper = document.createElement('div')
   wrapper.className = 'node leaf-result'
 
@@ -474,32 +993,23 @@ function createFilteredLeafItem (match, searchText, tree) {
 
   const titleSpan = document.createElement('span')
 
-  // Highlight matching text
+  // Highlight matching text (supports quoted phrases and multi-word queries)
   if (searchText) {
-    const titleLower = match?.title?.toLowerCase()
-    const index = titleLower.indexOf(searchText)
-    if (index !== -1) {
-      const before = match?.title?.substring(0, index)
-      const highlighted = match?.title?.substring(
-        index,
-        index + searchText.length
-      )
-      const after = match?.title?.substring(index + searchText.length)
-
-      titleSpan.innerHTML = `${escapeHtml(
-        before
-      )}<mark class="yellow-highlighting">${escapeHtml(
-        highlighted
-      )}</mark>${escapeHtml(after)}`
-    } else {
-      titleSpan.textContent = match?.title
-    }
+    const hasQuotedPhrases = /"[^"]+"/g.test(searchText)
+    titleSpan.innerHTML = UI.highlightTerms(
+      match?.title || '',
+      searchText,
+      hasQuotedPhrases
+    )
   } else {
     titleSpan.textContent = match?.title
   }
 
-  if (!titleSpan.textContent.endsWith(` #${label.dataset.convoId}`)) {
-    titleSpan.textContent += ` #${label.dataset.convoId}`
+  // Append convo ID without overwriting HTML
+  const titleText = titleSpan.textContent || match?.title || ''
+  if (!titleText.endsWith(` #${label.dataset.convoId}`)) {
+    const idNode = document.createTextNode(` #${label.dataset.convoId}`)
+    titleSpan.appendChild(idNode)
   }
   label.appendChild(titleSpan)
 
@@ -532,13 +1042,13 @@ function createFilteredLeafItem (match, searchText, tree) {
   return wrapper
 }
 
-function escapeHtml (text) {
+function escapeHtml(text) {
   const div = document.createElement('div')
   div.textContent = text
   return div.innerHTML
 }
 
-async function handleMoreDetailsClicked () {
+async function handleMoreDetailsClicked() {
   if (moreDetailsEl.open && currentConvoId && currentEntryId) {
     await showEntryDetails(
       currentConvoId,
@@ -582,13 +1092,13 @@ async function handleMoreDetailsClicked () {
   }
 }
 
-function closeAllDropdowns () {
+function closeAllDropdowns() {
   document.querySelectorAll('.filter-dropdown.show').forEach((e) => {
     e.classList.remove('show')
   })
 }
 
-function setUpFilterDropdowns () {
+function setUpFilterDropdowns() {
   const dropdownButtons = document.querySelectorAll(
     '.search-controls .filter-dropdown-button'
   )
@@ -622,7 +1132,8 @@ function setUpFilterDropdowns () {
   })
 }
 
-async function populateActorDropdown () {
+
+async function populateActorDropdown() {
   allActors = DB.getDistinctActors()
   filteredActors = [...allActors]
 
@@ -678,7 +1189,7 @@ async function populateActorDropdown () {
   renderActorCheckboxes(allActors)
 }
 
-function filterActors () {
+function filterActors() {
   const searchText = actorSearchInput
     ? actorSearchInput.value.toLowerCase().trim()
     : ''
@@ -698,7 +1209,7 @@ function filterActors () {
   updateSelectAllState()
 }
 
-function renderActorCheckboxes (actors) {
+function renderActorCheckboxes(actors) {
   actorCheckboxList.innerHTML = ''
 
   actors.forEach((actor) => {
@@ -732,7 +1243,7 @@ function renderActorCheckboxes (actors) {
   updateSelectAllState()
 }
 
-function updateSelectAllState () {
+function updateSelectAllState() {
   if (!selectAllActors) return
 
   const visibleCheckboxes = actorCheckboxList.querySelectorAll(
@@ -751,7 +1262,7 @@ function updateSelectAllState () {
   selectAllActors.indeterminate = !allSelected && someSelected
 }
 
-function updateActorFilterLabel () {
+function updateActorFilterLabel() {
   if (!actorFilterLabel) return
 
   if (
@@ -768,7 +1279,7 @@ function updateActorFilterLabel () {
   }
 }
 
-function triggerSearch () {
+function triggerSearch() {
   if (searchInput.value) {
     // Always reset search when filters change to clear old results
     // But only push history state if not already in search view
@@ -787,7 +1298,7 @@ function triggerSearch () {
 }
 
 // Setup type filter
-function setupTypeFilter () {
+function setupTypeFilter() {
   if (!typeFilterBtn || !typeFilterDropdown) return
 
   // Select All checkbox
@@ -837,7 +1348,7 @@ function setupTypeFilter () {
   updateTypeFilterLabel()
 }
 
-function updateTypeSelectAllState () {
+function updateTypeSelectAllState() {
   if (!selectAllTypes) return
 
   const typeCheckboxes = typeCheckboxList.querySelectorAll(
@@ -853,7 +1364,7 @@ function updateTypeSelectAllState () {
   selectAllTypes.indeterminate = !allSelected && someSelected
 }
 
-function updateTypeFilterLabel () {
+function updateTypeFilterLabel() {
   if (!typeFilterLabel) return
 
   if (selectedTypeIds.size === 0 || selectedTypeIds.size === 3) {
@@ -866,7 +1377,7 @@ function updateTypeFilterLabel () {
   }
 }
 
-function openHistorySidebar () {
+function openHistorySidebar() {
   if (historySidebar) {
     historySidebar.classList.add('open')
     historySidebar.style.display = ''
@@ -880,7 +1391,7 @@ function openHistorySidebar () {
   }
 }
 
-function closeHistorySidebar () {
+function closeHistorySidebar() {
   if (historySidebar) {
     historySidebar.classList.remove('open')
   }
@@ -889,7 +1400,7 @@ function closeHistorySidebar () {
   }
 }
 
-function closeConversationSection () {
+function closeConversationSection() {
   if (convoSidebar) {
     convoSidebar.classList.remove('open')
   }
@@ -898,7 +1409,7 @@ function closeConversationSection () {
   }
 }
 
-function openConversationSection () {
+function openConversationSection() {
   if (convoSidebar) {
     convoSidebar.classList.add('open')
     convoSidebar.style.display = ''
@@ -912,14 +1423,14 @@ function openConversationSection () {
   }
 }
 
-function closeMobileSearchScreen () {
+function closeMobileSearchScreen() {
   if (mobileSearchScreen) {
     mobileSearchScreen.style.display = 'none'
   }
 }
 
 // Setup clear filters button
-function setupClearFiltersButton () {
+function setupClearFiltersButton() {
   if (!clearFiltersBtn) return
 
   clearFiltersBtn.addEventListener('click', () => {
@@ -958,13 +1469,21 @@ function setupClearFiltersButton () {
     }
     updateTypeFilterLabel()
 
+    // Reset whole words checkbox
+    if (wholeWordsCheckbox) {
+      wholeWordsCheckbox.checked = false
+    }
+
+    // Reset include variables filter - select all
+    selectAllVariableSearchOptions(true);
+
     // Trigger search with cleared filters
     triggerSearch()
   })
 }
 
 // Expand and highlight conversation in the conversation tree
-function highlightConversationInTree (convoId) {
+function highlightConversationInTree(convoId) {
   // Remove highlight from all labels (both leaf and node labels)
   const allLabels = convoListEl.querySelectorAll('.label.selected')
   allLabels.forEach((label) => {
@@ -986,8 +1505,8 @@ function highlightConversationInTree (convoId) {
       node.classList.add('expanded')
       // Update toggle text
       const toggle = node.querySelector(':scope > .label > .toggle')
-      if (toggle && toggle.textContent === '▸') {
-        toggle.textContent = '▾'
+      if (toggle) {
+        setToggleIcon(toggle, true)
       }
 
       // Move up one level
@@ -997,7 +1516,7 @@ function highlightConversationInTree (convoId) {
 }
 
 /* Load entries listing for conversation */
-function loadEntriesForConversation (convoId, resetHistory = false) {
+function loadEntriesForConversation(convoId, resetHistory = false) {
   convoId = UI.getParsedIntOrDefault(convoId)
 
   // If we're coming from home (no current conversation), ensure home state exists
@@ -1080,7 +1599,7 @@ function loadEntriesForConversation (convoId, resetHistory = false) {
     moreDetailsEl.style.display = 'none'
   }
 
-  // Check conversation type - orbs and tasks don't have meaningful entries
+  // Check conversation type - orbs and tasks often don't have meaningful entries
   const convoType = conversation?.type || 'flow'
 
   entryListHeaderEl.textContent = 'Next Dialogue Options'
@@ -1097,9 +1616,8 @@ function loadEntriesForConversation (convoId, resetHistory = false) {
     message.className = 'hint-text'
     message.style.fontStyle = 'italic'
     message.style.padding = '12px'
-    message.innerHTML = `This is ${
-      convoType === 'orb' ? 'an' : 'a'
-    } <strong>${convoType.toUpperCase()}</strong> and does not have dialogue options.`
+    message.innerHTML = `This is ${convoType === 'orb' ? 'an' : 'a'
+      } <strong>${convoType.toUpperCase()}</strong> and does not have dialogue options.`
     entryListEl.appendChild(message)
     return
   }
@@ -1150,7 +1668,7 @@ function loadEntriesForConversation (convoId, resetHistory = false) {
   })
 }
 
-function goBackHomeWithBrowserHistory () {
+function goBackHomeWithBrowserHistory() {
   // Use browser history to go back to home
   if (currentConvoId !== null || currentAppState !== 'home') {
     window.history.pushState({ view: 'home' }, '', window.location.pathname)
@@ -1159,14 +1677,13 @@ function goBackHomeWithBrowserHistory () {
 }
 
 /* Navigation / history functions */
-function updateBackButtonState () {
+function updateBackButtonState() {
   if (!backBtn) return
   backBtn.disabled = navigationHistory.length <= 1
   if (backStatus) {
     if (navigationHistory.length > 1) {
-      backStatus.textContent = `(${navigationHistory.length - 1} step${
-        navigationHistory.length - 1 !== 1 ? 's' : ''
-      })`
+      backStatus.textContent = `(${navigationHistory.length - 1} step${navigationHistory.length - 1 !== 1 ? 's' : ''
+        })`
     } else {
       backStatus.textContent = '(none)'
     }
@@ -1174,7 +1691,7 @@ function updateBackButtonState () {
 }
 
 // Modal: Conversation Types on mobile
-function setupConversationTypesModal () {
+function setupConversationTypesModal() {
   const helpIcon = document.querySelector('.help-icon')
   const overlay = document.getElementById('conversationTypesModalOverlay')
   const closeBtn = document.getElementById('conversationTypesModalClose')
@@ -1223,7 +1740,7 @@ function setupConversationTypesModal () {
 }
 
 // Browser History Management
-function setupBrowserHistory () {
+function setupBrowserHistory() {
   // Set initial state
   window.history.replaceState({ view: 'home' }, '', window.location.pathname)
   currentAppState = 'home'
@@ -1301,7 +1818,7 @@ function setupBrowserHistory () {
   })
 }
 
-function pushHistoryState (view, data = {}) {
+function pushHistoryState(view, data = {}) {
   if (isHandlingPopState) return
 
   const state = { view, ...data }
@@ -1309,7 +1826,7 @@ function pushHistoryState (view, data = {}) {
   window.history.pushState(state, '', window.location.pathname)
 }
 
-function goToHomeView () {
+function goToHomeView() {
   // Clear current conversation
   currentConvoId = null
   currentEntryId = null
@@ -1356,7 +1873,7 @@ function goToHomeView () {
 }
 
 /* Jump back to a specific point in history by removing all entries after it */
-async function jumpToHistoryPoint (targetIndex) {
+async function jumpToHistoryPoint(targetIndex) {
   if (targetIndex < 0 || targetIndex >= navigationHistory.length) return
 
   // If clicking on the last item, do nothing (it's the current entry)
@@ -1425,7 +1942,7 @@ async function jumpToHistoryPoint (targetIndex) {
 }
 
 /* Jump to conversation root */
-function jumpToConversationRoot () {
+function jumpToConversationRoot() {
   if (currentConvoId === null) return
 
   // Clear all entries except the first one (conversation root)
@@ -1444,7 +1961,7 @@ function jumpToConversationRoot () {
 }
 
 /* navigateToEntry simplified */
-async function navigateToEntry (
+async function navigateToEntry(
   convoId,
   entryId,
   addToHistory = true,
@@ -1494,6 +2011,12 @@ async function navigateToEntry (
     currentEntryContainerEl.style.overflowY = 'auto'
     currentEntryContainerEl.style.display = 'flex'
     currentEntryContainerEl.style.visibility = 'visible'
+  }
+
+  // Auto-open More Details if setting enabled
+  if (moreDetailsEl && appSettings.alwaysShowMoreDetails) {
+    moreDetailsEl.open = true
+    moreDetailsEl.style.display = 'block'
   }
 
   // Also restore entry list layout when navigating from search
@@ -1606,7 +2129,7 @@ async function navigateToEntry (
 }
 
 /* Show entry details (optimized) */
-async function showEntryDetails (
+async function showEntryDetails(
   convoId,
   entryId,
   selectedAlternateCondition = null,
@@ -1688,7 +2211,7 @@ async function showEntryDetails (
 }
 
 /* Search */
-function searchDialogues (q, resetSearch = true) {
+function searchDialogues(q, resetSearch = true) {
   const trimmedQ = q.trim()
 
   if (resetSearch) {
@@ -1752,6 +2275,34 @@ function searchDialogues (q, resetSearch = true) {
 
     const { results: res, total } = response
     currentSearchTotal = total
+
+    // Advanced search: include/only variables via dropdown selection
+    let variableResults = []
+    if (appSettings.includeVariables) {
+      const varResp = DB.searchVariables(currentSearchQuery, searchResultLimit, currentSearchOffset, wholeWordsCheckbox?.checked || false)
+      variableResults = varResp.results
+      if (!appSettings.includeDialogue) {
+        // Render variables only
+        entryListHeaderEl.textContent = 'Search Results (Variables)'
+        entryListEl.innerHTML = ''
+        variableResults.forEach(v => {
+          const div = document.createElement('div')
+          div.className = 'card-item result-item'
+          const title = document.createElement('div')
+          title.className = 'card-title'
+          title.textContent = v.name || `(variable #${v.id})`
+          const body = document.createElement('div')
+          body.className = 'card-body'
+          body.textContent = v.description || '(no description)'
+          div.appendChild(title)
+          div.appendChild(body)
+          entryListEl.appendChild(div)
+        })
+        isLoadingMore = false
+        searchLoader?.classList.add('hidden')
+        return
+      }
+    }
 
     // Filter by conversation type if not all types selected
     let filteredResults = res
@@ -1844,6 +2395,23 @@ function searchDialogues (q, resetSearch = true) {
       entryListEl.appendChild(div)
     })
 
+    // Include variables appended (when include mode)
+    if (appSettings.includeVariables && appSettings.includeDialogue && variableResults.length) {
+      variableResults.forEach(v => {
+        const div = document.createElement('div')
+        div.className = 'card-item result-item'
+        const title = document.createElement('div')
+        title.className = 'card-title'
+        title.textContent = v.name || `(variable #${v.id})`
+        const body = document.createElement('div')
+        body.className = 'card-body'
+        body.textContent = v.description || '(no description)'
+        div.appendChild(title)
+        div.appendChild(body)
+        entryListEl.appendChild(div)
+      })
+    }
+
     // Update offset for next load (based on database results, not filtered)
     currentSearchOffset += res.length
 
@@ -1866,7 +2434,7 @@ function searchDialogues (q, resetSearch = true) {
 }
 
 // Setup infinite scroll for search results
-function setupSearchInfiniteScroll () {
+function setupSearchInfiniteScroll() {
   if (!entryListEl) return
 
   entryListEl.addEventListener('scroll', () => {
@@ -1891,7 +2459,7 @@ function setupSearchInfiniteScroll () {
 }
 
 // Setup infinite scroll for mobile search results
-function setupMobileSearchInfiniteScroll () {
+function setupMobileSearchInfiniteScroll() {
   if (!mobileSearchResults) return
 
   mobileSearchResults.addEventListener('scroll', () => {
@@ -1915,7 +2483,7 @@ function setupMobileSearchInfiniteScroll () {
   })
 }
 
-function loadChildOptions (convoId, entryId) {
+function loadChildOptions(convoId, entryId) {
   try {
     entryListHeaderEl.textContent = 'Next Dialogue Options'
     entryListEl.innerHTML = ''
@@ -1966,7 +2534,7 @@ function loadChildOptions (convoId, entryId) {
 }
 
 /* Mobile Search Functions */
-function setupClearSearchInput () {
+function setupClearSearchInput() {
   if (!mobileSearchInput || !mobileClearSearchBtn) return
 
   mobileClearSearchBtn.addEventListener('click', () => {
@@ -1976,7 +2544,7 @@ function setupClearSearchInput () {
   })
 }
 
-function setupMobileSearch () {
+function setupMobileSearch() {
   // Open mobile search screen
   mobileSearchInput.addEventListener('input', () => {
     if (mobileSearchInput.value.trim().length > 0) {
@@ -2082,7 +2650,7 @@ function setupMobileSearch () {
   setupMobileTypeFilter()
 }
 
-function setupMobileSidebar () {
+function setupMobileSidebar() {
   // Open sidebar
   if (mobileSidebarToggle) {
     mobileSidebarToggle.addEventListener('click', openConversationSection)
@@ -2110,7 +2678,56 @@ function setupMobileSidebar () {
   }
 }
 
-function updateMobileNavButtons () {
+function setupMobileNavigation() {
+  if (!mobileNavBtn || !mobileNavPanel || !mobileNavOverlay) return
+
+  // Open navigation panel
+  mobileNavBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    mobileNavOverlay.style.display = 'block'
+    mobileNavPanel.style.display = 'flex'
+  })
+
+  // Close navigation panel when clicking overlay
+  mobileNavOverlay.addEventListener('click', () => {
+    mobileNavOverlay.style.display = 'none'
+    mobileNavPanel.style.display = 'none'
+  })
+
+  // Home navigation
+  if (mobileNavHome) {
+    mobileNavHome.addEventListener('click', (e) => {
+      e.preventDefault()
+      goBackHomeWithBrowserHistory()
+      mobileNavOverlay.style.display = 'none'
+      mobileNavPanel.style.display = 'none'
+    })
+  }
+
+  // Settings navigation
+  if (mobileNavSettings) {
+    mobileNavSettings.addEventListener('click', (e) => {
+      e.preventDefault()
+      if (settingsBtn) settingsBtn.click()
+      mobileNavOverlay.style.display = 'none'
+      mobileNavPanel.style.display = 'none'
+    })
+  }
+
+  // Search navigation
+  if (mobileNavSearch) {
+    mobileNavSearch.addEventListener('click', (e) => {
+      e.preventDefault()
+      if (mobileSearchTrigger) {
+        mobileSearchTrigger.click()
+      }
+      mobileNavOverlay.style.display = 'none'
+      mobileNavPanel.style.display = 'none'
+    })
+  }
+}
+
+function updateMobileNavButtons() {
   if (!backBtn || !convoRootBtn) return
 
   // Show back button if we have navigation history OR if we're not on home view
@@ -2127,12 +2744,12 @@ function updateMobileNavButtons () {
   }
 }
 
-function closeAllSidebars () {
+function closeAllSidebars() {
   closeConversationSection()
   closeHistorySidebar()
 }
 
-function performMobileSearch (resetSearch = true) {
+function performMobileSearch(resetSearch = true) {
   const query = mobileSearchInput?.value?.trim() ?? ''
   mobileSearchTrigger.value = query
   if (resetSearch) {
@@ -2140,7 +2757,7 @@ function performMobileSearch (resetSearch = true) {
     mobileSearchQuery = query
     mobileSearchActorIds =
       mobileSelectedActorIds.size === 0 ||
-      mobileSelectedActorIds.size === allActors.length
+        mobileSelectedActorIds.size === allActors.length
         ? null
         : Array.from(mobileSelectedActorIds)
     mobileSearchOffset = 0
@@ -2154,6 +2771,35 @@ function performMobileSearch (resetSearch = true) {
   isMobileLoadingMore = true
 
   try {
+    
+    // Advanced search: include/only variables via dropdown selection
+    let variableResults = []
+    if (appSettings.includeVariables) {
+      const varResp = DB.searchVariables(currentSearchQuery, searchResultLimit, currentSearchOffset, wholeWordsCheckbox?.checked || false)
+      variableResults = varResp.results
+      if (!appSettings.includeDialogue) {
+        // Render variables only
+        entryListHeaderEl.textContent = 'Search Results (Variables)'
+        entryListEl.innerHTML = ''
+        variableResults.forEach(v => {
+          const div = document.createElement('div')
+          div.className = 'card-item result-item'
+          const title = document.createElement('div')
+          title.className = 'card-title'
+          title.textContent = v.name || `(variable #${v.id})`
+          const body = document.createElement('div')
+          body.className = 'card-body'
+          body.textContent = v.description || '(no description)'
+          div.appendChild(title)
+          div.appendChild(body)
+          entryListEl.appendChild(div)
+        })
+        isLoadingMore = false
+        searchLoader?.classList.add('hidden')
+        return
+      }
+    }
+
     const response = DB.searchDialogues(
       mobileSearchQuery,
       searchResultLimit,
@@ -2188,7 +2834,7 @@ function performMobileSearch (resetSearch = true) {
       mobileSearchFilteredCount = 0
     }
 
-    if (resetSearch && filteredResults.length === 0) {
+    if (resetSearch && filteredResults.length === 0 && variableResults.length === 0) {
       mobileSearchResults.innerHTML =
         '<div class="mobile-search-prompt">No results found</div>'
       if (mobileSearchCount) {
@@ -2211,6 +2857,29 @@ function performMobileSearch (resetSearch = true) {
       }
       mobileSearchCount.style.display = 'block'
     }
+
+    // Append variables to results if includeVariables && includeDialogue
+      variableResults.forEach((v) => {
+        const hasQuotedPhrases = /"[^"]+"/g.test(mobileSearchQuery)
+        const highlightedName = UI.highlightTerms(v.name || '', mobileSearchQuery, hasQuotedPhrases)
+        const highlightedDesc = UI.highlightTerms(v.description || '', mobileSearchQuery, hasQuotedPhrases)
+
+        const div = document.createElement('div')
+        div.className = 'card-item result-item'
+        div.style.cursor = 'default'
+
+        const title = document.createElement('div')
+        title.className = 'card-title'
+        title.innerHTML = highlightedName || '(variable)'
+
+        const body = document.createElement('div')
+        body.className = 'card-body'
+        body.innerHTML = highlightedDesc || '(no description)'
+
+        div.appendChild(title)
+        div.appendChild(body)
+        mobileSearchResults.appendChild(div)
+      })
 
     filteredResults.forEach((r) => {
       // Check if query contains any quoted phrases
@@ -2290,7 +2959,7 @@ function performMobileSearch (resetSearch = true) {
   }
 }
 
-function showMobileConvoFilter () {
+function showMobileConvoFilter() {
   if (!mobileConvoFilterScreen) return
 
   if (window.refreshMobileConvoList) {
@@ -2299,7 +2968,7 @@ function showMobileConvoFilter () {
   mobileConvoFilterScreen.style.display = 'block'
 }
 
-function showMobileActorFilter () {
+function showMobileActorFilter() {
   if (!mobileActorFilterScreen) return
 
   // Reset temporary selection to current selection when opening
@@ -2314,14 +2983,14 @@ function showMobileActorFilter () {
   mobileActorFilterScreen.style.display = 'block'
 }
 
-function showMobileTypeFilter () {
+function showMobileTypeFilter() {
   if (!mobileTypeFilterSheet) return
 
   mobileTypeFilterSheet.style.display = 'block'
   mobileTypeFilterSheet.classList.add('active')
 }
 
-function setupMobileConvoFilter () {
+function setupMobileConvoFilter() {
   const backBtn = $('mobileConvoFilterBack')
   const searchInput = $('mobileConvoFilterSearch')
   const listContainer = $('mobileConvoFilterList')
@@ -2371,7 +3040,7 @@ function setupMobileConvoFilter () {
   }
 
   // Render conversation list
-  function renderConvoList (conversations) {
+  function renderConvoList(conversations) {
     listContainer.innerHTML = ''
     filteredConvos = conversations
 
@@ -2457,7 +3126,7 @@ function setupMobileConvoFilter () {
   })
 }
 
-function updateMobileConvoFilterLabel () {
+function updateMobileConvoFilterLabel() {
   if (!mobileConvoFilterValue) return
 
   if (mobileSelectedConvoIds.size === 0) {
@@ -2475,7 +3144,7 @@ function updateMobileConvoFilterLabel () {
 }
 
 // Render mobile actor list (used by setupMobileActorFilter and showMobileActorFilter)
-function renderActorListForMobile (actors) {
+function renderActorListForMobile(actors) {
   const listContainer = $('mobileActorFilterList')
   const selectAllCheckbox = $('mobileActorSelectAll')
 
@@ -2531,7 +3200,7 @@ function renderActorListForMobile (actors) {
   })
 }
 
-function setupMobileActorFilter () {
+function setupMobileActorFilter() {
   const backBtn = $('mobileActorFilterBack')
   const searchInput = $('mobileActorFilterSearch')
   const selectAllCheckbox = $('mobileActorSelectAll')
@@ -2597,7 +3266,7 @@ function setupMobileActorFilter () {
   })
 }
 
-function updateMobileActorFilterLabel () {
+function updateMobileActorFilterLabel() {
   if (!mobileActorFilterValue) return
 
   if (mobileSelectedActorIds.size === 0) {
@@ -2611,7 +3280,7 @@ function updateMobileActorFilterLabel () {
   }
 }
 
-function updateMobileTypeFilterLabel () {
+function updateMobileTypeFilterLabel() {
   if (!mobileTypeFilterValue) return
 
   if (mobileSelectedTypes.has('all') || mobileSelectedTypes.size === 0) {
@@ -2625,7 +3294,7 @@ function updateMobileTypeFilterLabel () {
   }
 }
 
-function setupMobileTypeFilter () {
+function setupMobileTypeFilter() {
   // Skip setup if required elements are missing (indicates refactored HTML)
   if (!mobileTypeFilterSheet) return
 
@@ -2697,6 +3366,33 @@ function setupMobileTypeFilter () {
 
     // Perform search if there's a query
     if (mobileSearchInput.value.trim()) performMobileSearch()
+  })
+}
+
+/* Icon Initialization */
+function initializeIcons() {
+  // Helper function to clone and size an icon template
+  function getIcon(templateId, width = '30px', height = '30px') {
+    const template = document.getElementById(templateId)
+    const clone = template.content.cloneNode(true)
+    const svg = clone.querySelector('svg')
+    svg.setAttribute('width', width)
+    svg.setAttribute('height', height)
+    return clone
+  }
+
+  // Apply icons for any placeholder with data-icon-template
+  const dataPlaceholders = document.querySelectorAll(
+    '.icon-placeholder[data-icon-template]'
+  )
+
+  dataPlaceholders.forEach((placeholder) => {
+    const templateId = placeholder.dataset.iconTemplate
+    if (!templateId) return
+    const iconWidth = placeholder.dataset.iconWidth || placeholder.dataset.iconSize || '30px'
+    const iconHeight = placeholder.dataset.iconHeight || placeholder.dataset.iconSize || iconWidth
+    const iconClone = getIcon(templateId, iconWidth, iconHeight)
+    placeholder.replaceWith(...iconClone.childNodes)
   })
 }
 

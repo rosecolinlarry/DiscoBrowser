@@ -539,3 +539,56 @@ export function clearCacheForEntry(convoId, entryId) {
 export function clearCaches() {
   entryCache.clear();
 }
+
+// Advanced search: variables
+export function searchVariables(q, limit = 1000, offset = 0, wholeWords = false) {
+  const raw = (q || "").trim();
+  if (!raw) {
+    return { results: [], total: 0 };
+  }
+
+  const quotedPhrases = [];
+  const quotedPhrasesRegex = /"([^"]+)"/g;
+  let match;
+  while ((match = quotedPhrasesRegex.exec(raw)) !== null) {
+    quotedPhrases.push(match[1]);
+  }
+
+  const remainingText = raw.replace(/"[^"]+"/g, "").trim();
+  const words = remainingText ? remainingText.split(/\s+/) : [];
+
+  let where = "";
+  const conditions = [];
+
+  quotedPhrases.forEach((phrase) => {
+    const safe = phrase.replace(/'/g, "''");
+    conditions.push(`(name LIKE '%${safe}%' OR description LIKE '%${safe}%')`);
+  });
+
+  words.forEach((word) => {
+    const safe = word.replace(/'/g, "''");
+    if (wholeWords) {
+      conditions.push(`(name LIKE '% ${safe} %' OR description LIKE '% ${safe} %' OR name='${safe}' OR description='${safe}')`);
+    } else {
+      conditions.push(`(name LIKE '%${safe}%' OR description LIKE '%${safe}%')`);
+    }
+  });
+
+  if (conditions.length > 0) {
+    where = conditions.join(" AND ");
+  } else {
+    where = "1=1";
+  }
+
+  const limitClause = ` LIMIT ${limit} OFFSET ${offset}`;
+  const countSQL = `SELECT COUNT(*) as count FROM variables WHERE ${where};`;
+  const total = execRowsFirstOrDefault(countSQL)?.count || 0;
+  const sql = `SELECT id, name, description FROM variables WHERE ${where} ORDER BY name ${limitClause};`;
+  const results = execRows(sql).map(v => ({
+    variable: true,
+    id: v.id,
+    name: v.name,
+    description: v.description
+  }));
+  return { results, total };
+}

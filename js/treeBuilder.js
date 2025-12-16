@@ -103,6 +103,26 @@ function computeSizesIterative(root) {
 }
 
 // Render tree with all data loaded. container must be a block element.
+function setToggleIcon(toggleEl, expanded) {
+  if (!toggleEl) return;
+
+  const templateId = 'icon-chevron-right-template';
+  const template = document.getElementById(templateId);
+
+  const clone = template.content.cloneNode(true);
+  const svg = clone.querySelector('svg');
+  if (svg) {
+    svg.setAttribute('width', '18px');
+    svg.setAttribute('height', '18px');
+  }
+
+  toggleEl.innerHTML = '';
+  toggleEl.appendChild(clone);
+  
+  // Update rotation class for animation
+  toggleEl.classList.toggle('toggle-expanded', expanded);
+}
+
 export function renderTree(container, rootObj, opts = {}) {
   container.innerHTML = "";
   container.classList.add("tree");
@@ -158,10 +178,15 @@ export function renderTree(container, rootObj, opts = {}) {
 
     const toggle = document.createElement("span");
     toggle.className = "toggle";
-    toggle.textContent = nodeObj._subtreeSize > 1 && !hasCollapsedLeaf ? "▸" : "";
+    const shouldShowToggle = nodeObj._subtreeSize > 1 && !hasCollapsedLeaf;
+    toggle.dataset.canToggle = shouldShowToggle ? 'true' : 'false';
+    if (shouldShowToggle) {
+      setToggleIcon(toggle, false);
+    }
     label.appendChild(toggle);
 
     const titleSpan = document.createElement("span");
+    titleSpan.className = "tree-title";
     titleSpan.textContent = name;
     label.appendChild(titleSpan);
 
@@ -235,7 +260,7 @@ export function renderTree(container, rootObj, opts = {}) {
 
       // For non-leaf nodes, toggle expand/collapse
       const isExpanded = wrapper.classList.toggle("expanded");
-      toggle.textContent = isExpanded ? "▾" : "▸";
+      setToggleIcon(toggle, isExpanded);
     });
 
     return wrapper;
@@ -277,10 +302,15 @@ export function renderTree(container, rootObj, opts = {}) {
         leafLabel.style.cursor = "pointer";
         const fullTitle = titleMap[cid] || `(id ${cid})`;
         const finalSegment = getLastSegment(fullTitle);
-        leafLabel.textContent = finalSegment;
-        if(!leafLabel.textContent.endsWith(` #${cid}`)) {
-            leafLabel.textContent += ` #${cid}`
+        
+        // Wrap title text in a span for ellipsis overflow
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "tree-title";
+        titleSpan.textContent = finalSegment;
+        if(!titleSpan.textContent.endsWith(` #${cid}`)) {
+            titleSpan.textContent += ` #${cid}`
         }
+        leafLabel.appendChild(titleSpan);
         
         // Add type badge and highlight for conversation leaves
         const convoType = convoTypeById[cid] || 'flow';
