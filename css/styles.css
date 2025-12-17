@@ -596,11 +596,11 @@ section {
 .clear-filters-btn {
     padding: 8px 16px;
     border: 1px solid var(--card-border);
-    background: var(--card-bg);
+    box-sizing: border-box;
+    background: transparent;
     color: #fff;
     border-radius: 4px;
     font-size: 13px;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
