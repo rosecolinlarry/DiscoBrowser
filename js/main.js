@@ -2777,27 +2777,6 @@ function performMobileSearch(resetSearch = true) {
     if (appSettings.includeVariables) {
       const varResp = DB.searchVariables(currentSearchQuery, searchResultLimit, currentSearchOffset, wholeWordsCheckbox?.checked || false)
       variableResults = varResp.results
-      if (!appSettings.includeDialogue) {
-        // Render variables only
-        entryListHeaderEl.textContent = 'Search Results (Variables)'
-        entryListEl.innerHTML = ''
-        variableResults.forEach(v => {
-          const div = document.createElement('div')
-          div.className = 'card-item result-item'
-          const title = document.createElement('div')
-          title.className = 'card-title'
-          title.textContent = v.name || `(variable #${v.id})`
-          const body = document.createElement('div')
-          body.className = 'card-body'
-          body.textContent = v.description || '(no description)'
-          div.appendChild(title)
-          div.appendChild(body)
-          entryListEl.appendChild(div)
-        })
-        isLoadingMore = false
-        searchLoader?.classList.add('hidden')
-        return
-      }
     }
 
     const response = DB.searchDialogues(
