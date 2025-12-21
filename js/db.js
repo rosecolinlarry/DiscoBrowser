@@ -90,7 +90,7 @@ export function prepareAndAll(stmtSql, params = []) {
 /* Conversations list */
 export function getAllConversations() {
   return execRows(
-    `SELECT id, displayTitle, type FROM conversations WHERE isHidden == 0 ORDER BY displayTitle;`
+    `SELECT id, title, type FROM conversations WHERE isHidden == 0 ORDER BY title;`
   );
 }
 
@@ -116,7 +116,7 @@ export function getActorNameById(actorId) {
 export function getConversationById(convoId) {
   if (convoId) {
     return execRowsFirstOrDefault(
-      `SELECT id, displayTitle, description, actor, conversant, type 
+      `SELECT id, title, description, actor, conversant, type 
         FROM conversations 
         WHERE id=${convoId};`
     );
@@ -365,16 +365,16 @@ export function searchDialogues(
           description LIKE '%${safeC}${safe} %' OR 
           description LIKE '% ${safe} %' OR 
           description LIKE '${safe}' OR 
-          displayTitle LIKE '%${safeC}${safe}${safeC}%' OR 
-          displayTitle LIKE '% ${safe}${safeC}%' OR 
-          displayTitle LIKE '%${safeC}${safe} %' OR 
-          displayTitle LIKE '% ${safe} %' OR
-          displayTitle LIKE '${safe}'
+          title LIKE '%${safeC}${safe}${safeC}%' OR 
+          title LIKE '% ${safe}${safeC}%' OR 
+          title LIKE '%${safeC}${safe} %' OR 
+          title LIKE '% ${safe} %' OR
+          title LIKE '${safe}'
             )`);
         });
       } else {
         dialoguesConditions.push(
-          `(description LIKE '%${safe}%' OR displayTitle LIKE '%${safe}%')`
+          `(description LIKE '%${safe}%' OR title LIKE '%${safe}%')`
         );
       }
     });
@@ -414,7 +414,7 @@ export function searchDialogues(
   const dialoguesCount = execRowsFirstOrDefault(dialoguesCountSQL)?.count || 0;
 
   const dialoguesSQL = `
-    SELECT id as conversationid, id, description as dialoguetext, displayTitle, actor 
+    SELECT id as conversationid, id, description as dialoguetext, title, actor 
       FROM conversations 
       WHERE ${dialoguesWhere} 
       ORDER BY id 
@@ -540,7 +540,6 @@ export function clearCaches() {
   entryCache.clear();
 }
 
-// Advanced search: variables
 export function searchVariables(q, limit = 1000, offset = 0, wholeWords = false) {
   const raw = (q || "").trim();
   if (!raw) {

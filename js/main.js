@@ -11,9 +11,7 @@ injectIconTemplates();
 
 const searchInput = $("search");
 const searchBtn = $("searchBtn");
-const actorFilterBtn = $("actorFilterBtn");
 const actorFilterLabel = $("actorFilterLabel");
-const actorFilterDropdown = $("actorFilterDropdown");
 const actorSearchInput = $("actorSearch");
 const actorCheckboxList = $("actorCheckboxList");
 const selectAllActors = $("selectAllActors");
@@ -22,7 +20,6 @@ const typeFilterBtn = $("typeFilterBtn");
 const typeFilterLabel = $("typeFilterLabel");
 const typeFilterDropdown = $("typeFilterDropdown");
 const typeCheckboxList = $("typeCheckboxList");
-const variableSearchCheckboxList = $("variableSearchCheckboxList");
 const selectAllTypes = $("selectAllTypes");
 const searchLoader = $("searchLoader");
 const convoListEl = $("convoList");
@@ -82,14 +79,15 @@ const mobileConvoFilterScreen = $("mobileConvoFilterScreen");
 const mobileActorFilterScreen = $("mobileActorFilterScreen");
 const mobileTypeFilterSheet = $("mobileTypeFilterSheet");
 const mobileWholeWordsCheckbox = $("mobileWholeWordsCheckbox");
-const mobileNavBtn = $("mobileNavBtn");
-const mobileNavOverlay = $("mobileNavOverlay");
+const mobileSidebarToggle = $("mobileSidebarToggle");
+const mobileClearSearchBtn = $("mobileSearchClearIcon");
+
+// Mobile nav menu buttons
 const mobileNavPanel = $("mobileNavPanel");
+const mobileNavBtn = $("mobileNavBtn");
 const mobileNavHome = $("mobileNavHome");
 const mobileNavSettings = $("mobileNavSettings");
 const mobileNavSearch = $("mobileNavSearch");
-const mobileSidebarToggle = $("mobileSidebarToggle");
-const mobileClearSearchBtn = $("mobileSearchClearIcon");
 
 // Tree control elements
 const expandAllBtn = $("expandAllBtn");
@@ -105,19 +103,8 @@ const disableColumnResizingCheckbox = $("disableColumnResizingCheckbox");
 const alwaysShowMoreDetailsCheckbox = $("alwaysShowMoreDetailsCheckbox");
 const showHiddenCheckbox = $("showHiddenCheckbox");
 const turnOffAnimationsCheckbox = $("turnOffAnimationsCheckbox");
-const useOriginalTitlesCheckbox = $("useOriginalTitlesCheckbox");
-const enableAdvancedSearchCheckbox = $("enableAdvancedSearchCheckbox");
 const saveSettingsBtn = $("saveSettingsBtn");
 const restoreDefaultSettingsBtn = $("restoreDefaultSettingsBtn");
-// Advanced search UI
-const advancedSearchToggle = $("advancedSearchToggle");
-const advancedSearchRow = $("advancedSearchRow");
-const variableSearchBtn = $("variableSearchBtn");
-const variableSearchDropdown = $("variableSearchDropdown");
-const variableSearchLabel = $("variableSearchLabel");
-const selectAllVariableSearch = $("selectAllVariableSearch");
-const includeVariablesCheckbox = $("includeVariablesCheckbox");
-const includeDialogueCheckbox = $("includeDialogueCheckbox");
 
 // Clear filters button
 const clearFiltersBtn = $("clearFiltersBtn");
@@ -165,6 +152,9 @@ let isMobileLoadingMore = false;
 let currentAppState = "home"; // 'home', 'conversation', 'search'
 let isHandlingPopState = false;
 
+// Browser Grid
+const browserGrid = $("browser");
+
 // Settings state
 const SETTINGS_STORAGE_KEY = "discobrowser_settings";
 let appSettings = {
@@ -173,11 +163,10 @@ let appSettings = {
   showHidden: false,
   turnOffAnimations: false,
   alwaysShowMoreDetails: false,
-  useOriginalTitles: false,
-  enableAdvancedSearch: true,
-  includeVariables: true,
-  includeDialogue: true,
 };
+
+const defaultColumns = "352px 1fr 280px";
+const STORAGE_KEY = "discobrowser_grid_columns";
 
 // Settings management functions
 function loadSettingsFromStorage() {
@@ -197,21 +186,17 @@ function getConversationsForTree() {
   if (appSettings.showHidden) {
     // Also include hidden conversations
     const hiddenConvos = DB.execRows(
-      `SELECT id, displayTitle, type FROM conversations WHERE isHidden == 1 ORDER BY displayTitle;`
+      `SELECT id, title, type FROM conversations WHERE isHidden == 1 ORDER BY title;`
     );
     const merged = [...allConvos, ...hiddenConvos];
     return merged.map((c) => ({
       ...c,
-      displayTitle: appSettings.useOriginalTitles
-        ? c.title || c.displayTitle
-        : c.displayTitle,
+      title: c.title,
     }));
   }
   return allConvos.map((c) => ({
     ...c,
-    displayTitle: appSettings.useOriginalTitles
-      ? c.title || c.displayTitle
-      : c.displayTitle,
+    title: c.title,
   }));
 }
 
@@ -226,9 +211,7 @@ function saveSettingsToStorage() {
 function applySettings() {
   // Apply animations toggle
   updateAnimationsToggle();
-  // Advanced search UI visibility
-  updateAdvancedSearchUi();
-
+  updateResizeHandles();
   // Apply column resizing toggle - handled in initializeResizableGrid
   // Apply show hidden toggle - handled when building tree
   // Apply reset desktop layout - this is a one-time action, not persistent
@@ -242,20 +225,6 @@ function updateAnimationsToggle() {
   }
 }
 
-function updateAdvancedSearchUi() {
-  if (advancedSearchRow && !mobileMediaQuery.matches) {
-    advancedSearchRow.style.display = appSettings.enableAdvancedSearch
-      ? ""
-      : "none";
-  }
-  if (advancedSearchToggle) {
-    advancedSearchToggle.checked = appSettings.enableAdvancedSearch;
-  }
-  if (enableAdvancedSearchCheckbox) {
-    enableAdvancedSearchCheckbox.checked = appSettings.enableAdvancedSearch;
-  }
-}
-
 function updateSettingsUI() {
   if (resetDesktopLayoutCheckbox)
     resetDesktopLayoutCheckbox.checked = appSettings.resetDesktopLayout;
@@ -266,36 +235,24 @@ function updateSettingsUI() {
   if (showHiddenCheckbox) showHiddenCheckbox.checked = appSettings.showHidden;
   if (turnOffAnimationsCheckbox)
     turnOffAnimationsCheckbox.checked = appSettings.turnOffAnimations;
-  if (useOriginalTitlesCheckbox)
-    useOriginalTitlesCheckbox.checked = appSettings.useOriginalTitles;
-  if (enableAdvancedSearchCheckbox)
-    enableAdvancedSearchCheckbox.checked = appSettings.enableAdvancedSearch;
-  if (advancedSearchToggle)
-    advancedSearchToggle.checked = appSettings.enableAdvancedSearch;
-  if (advancedSearchRow)
-    advancedSearchRow.style.display =
-      appSettings.enableAdvancedSearch && !mobileMediaQuery.matches
-        ? ""
-        : "none";
-  if (includeVariablesCheckbox)
-    includeVariablesCheckbox.checked = appSettings.includeVariables;
-  if (includeDialogueCheckbox)
-    includeDialogueCheckbox.checked = appSettings.includeDialogue;
-  if (selectAllVariableSearch)
-    selectAllVariableSearch.checked =
-      appSettings.includeDialogue && appSettings.includeVariables;
-  updateVariableSearchLabel();
+}
+
+function openSettingsModal(e) {
+    e.stopPropagation();
+    updateSettingsUI();
+    settingsModalOverlay.style.display = "flex";
+}
+
+function setupMobileNavMenu() {
+  mobileNavHome.addEventListener('click', goBackHomeWithBrowserHistory);
+  mobileNavSettings.addEventListener('click', openSettingsModal);
+  mobileNavSearch.addEventListener("click", openMobileSearchScreen);
 }
 
 function setupSettingsModal() {
   // Open settings modal
-  if (settingsBtn) {
-    settingsBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      updateSettingsUI();
-      settingsModalOverlay.style.display = "flex";
-    });
-  }
+  
+    settingsBtn.addEventListener("click", openSettingsModal);
 
   // Close settings modal
   if (settingsModalClose) {
@@ -326,15 +283,6 @@ function setupSettingsModal() {
       appSettings.showHidden = showHiddenCheckbox?.checked || false;
       appSettings.turnOffAnimations =
         turnOffAnimationsCheckbox?.checked || false;
-      appSettings.useOriginalTitles =
-        useOriginalTitlesCheckbox?.checked || false;
-      appSettings.enableAdvancedSearch =
-        enableAdvancedSearchCheckbox?.checked ?? true;
-      appSettings.includeVariables = includeVariablesCheckbox?.checked ?? true;
-      appSettings.includeDialogue = includeDialogueCheckbox?.checked ?? true;
-      appSettings.selectAllVariableSearch =
-        selectAllVariableSearch?.checked ||
-        (includeVariablesCheckbox?.checked && includeDialogueCheckbox?.checked);
 
       // Apply settings
       applySettings();
@@ -342,11 +290,9 @@ function setupSettingsModal() {
 
       // Handle reset layout if checked
       if (appSettings.resetDesktopLayout) {
-        const browserGrid = $("browser");
-        const defaultColumns = "280px 1fr 280px";
         browserGrid.style.gridTemplateColumns = defaultColumns;
         updateHandlePositions();
-        localStorage.removeItem("discobrowser_grid_columns");
+        localStorage.removeItem(STORAGE_KEY);
         appSettings.resetDesktopLayout = false;
         resetDesktopLayoutCheckbox.checked = false;
       }
@@ -377,107 +323,21 @@ function setupSettingsModal() {
         showHidden: false,
         turnOffAnimations: false,
         alwaysShowMoreDetails: false,
-        useOriginalTitles: false,
-        includeVariables: true,
-        includeDialogue: true,
       };
       updateSettingsUI();
     });
   }
-
-  // Advanced search toggle show/hide
-  if (advancedSearchToggle && advancedSearchRow) {
-    advancedSearchToggle.addEventListener("change", () => {
-      appSettings.enableAdvancedSearch = !!advancedSearchToggle.checked;
-      applySettings();
-      saveSettingsToStorage();
-    });
-  }
-
-  // Settings modal Advanced Search toggle sync
-  if (enableAdvancedSearchCheckbox) {
-    enableAdvancedSearchCheckbox.addEventListener("change", (e) => {
-      appSettings.enableAdvancedSearch = !!e.target.checked;
-      applySettings();
-      saveSettingsToStorage();
-    });
-  }
-
-  // Variable search checkboxes update label and save settings
-  if (includeVariablesCheckbox) {
-    includeVariablesCheckbox.addEventListener("change", (e) => {
-      updateVariableSearchLabel(e);
-      saveSettingsToStorage();
-    });
-  }
-  if (includeDialogueCheckbox) {
-    includeDialogueCheckbox.addEventListener("change", (e) => {
-      updateVariableSearchLabel(e);
-      saveSettingsToStorage();
-    });
-  }
-  if (selectAllVariableSearch) {
-    selectAllVariableSearch.addEventListener("change", (e) => {
-      updateVariableSearchLabel(e);
-      saveSettingsToStorage();
-    });
-  }
-}
-
-function selectAllVariableSearchOptions(checked) {
-  includeVariablesCheckbox.checked = checked;
-  includeDialogueCheckbox.checked = checked;
-  selectAllVariableSearch.checked = checked;
-  selectAllVariableSearch.indeterminate = false;
-  selectAllVariableSearch.dispatchEvent(new Event("change"));
-}
-
-function updateVariableSearchLabel(e) {
-  let text = "Include Variables";
-  let includeVars =
-    includeVariablesCheckbox?.checked ?? appSettings.includeVariables ?? true;
-  let includeDial =
-    includeDialogueCheckbox?.checked ?? appSettings.includeDialogue ?? true;
-  let includeAll =
-    selectAllVariableSearch?.checked ??
-    (appSettings.includeDialogue && appSettings.includeVariables) ??
-    true;
-
-  if (e && e.target === selectAllVariableSearch) {
-    includeAll = selectAllVariableSearch.checked;
-    includeVars = includeAll;
-    includeDial = includeAll;
-  } else if (e && e.target === includeVariablesCheckbox) {
-    includeVars = includeVariablesCheckbox?.checked ?? true;
-    includeAll = includeVars && includeDial;
-  } else if (e && e.target === includeDialogueCheckbox) {
-    includeDial = includeDialogueCheckbox?.checked ?? true;
-    includeAll = includeVars && includeDial;
-  }
-  selectAllVariableSearch.checked = includeAll;
-  selectAllVariableSearch.indeterminate = includeVars !== includeDial;
-  includeDialogueCheckbox.checked = includeDial;
-  includeVariablesCheckbox.checked = includeVars;
-
-  appSettings.includeVariables = includeVars;
-  appSettings.includeDialogue = includeDial;
-
-  text =
-    includeVars && includeDial
-      ? "Include Variables"
-      : includeVars
-      ? "Variables only"
-      : includeDial
-      ? "Dialogue only"
-      : "None";
-  if (variableSearchLabel) variableSearchLabel.textContent = text;
 }
 
 function updateResizeHandles() {
   const leftHandle = document.querySelector(".resize-handle-left");
   const rightHandle = document.querySelector(".resize-handle-right");
 
-  if (appSettings.disableColumnResizing) {
+  if (
+    appSettings.disableColumnResizing ||
+    mobileMediaQuery.matches ||
+    tabletMediaQuery.matches
+  ) {
     if (leftHandle) leftHandle.classList.add("disabled");
     if (rightHandle) rightHandle.classList.add("disabled");
   } else {
@@ -487,8 +347,7 @@ function updateResizeHandles() {
 }
 
 function updateHandlePositions() {
-  const browserGrid = $("browser");
-  const columns = (browserGrid.style.gridTemplateColumns || "280px 1fr 280px")
+  const columns = (browserGrid.style.gridTemplateColumns || defaultColumns)
     .split(" ")
     .map((s) => s.trim());
   const col1 = columns[0];
@@ -637,12 +496,12 @@ async function boot() {
   setupMobileSidebar();
   setUpSidebarToggles();
 
-  // Setup mobile navigation panel
-  setupMobileNavigation();
-
   // Setup mobile search
   setupMobileSearch();
   setupClearSearchInput();
+
+  // Set up mobile side menu
+  setupMobileNavMenu();
 
   // Initialize mobile filter labels
   updateMobileConvoFilterLabel();
@@ -662,21 +521,13 @@ async function boot() {
   setupSettingsModal();
 }
 
-function initializeResizableGrid() {
-  const browserGrid = $("browser");
-  if (!browserGrid || !desktopMediaQuery.matches) return;
+function updateResizableGrid() {
+  if (!browserGrid || !desktopMediaQuery.matches) {
+    browserGrid.style.removeProperty("gridTemplateColumns");
+  }
+}
 
-  const convoSection = browserGrid.querySelector(".convo-section");
-  const entriesSection = browserGrid.querySelector(".entries-section");
-  const historySection = browserGrid.children[2];
-
-  if (!convoSection || !entriesSection || !historySection) return;
-
-  // Store grid column widths in local storage
-  const STORAGE_KEY = "discobrowser_grid_columns";
-  const defaultColumns = "280px 1fr 280px";
-  const savedColumns = localStorage.getItem(STORAGE_KEY);
-
+function applySavedColumns(savedColumns) {
   if (savedColumns) {
     try {
       const columns = JSON.parse(savedColumns);
@@ -689,6 +540,21 @@ function initializeResizableGrid() {
     // Set default columns on first load / hard refresh
     browserGrid.style.gridTemplateColumns = defaultColumns;
   }
+}
+
+function initializeResizableGrid() {
+  if (!browserGrid || !desktopMediaQuery.matches) return;
+
+  const convoSection = browserGrid.querySelector(".convo-section");
+  const entriesSection = browserGrid.querySelector(".entries-section");
+  const historySection = browserGrid.children[2];
+
+  if (!convoSection || !entriesSection || !historySection) return;
+
+  // Store grid column widths in local storage
+  const savedColumns = localStorage.getItem(STORAGE_KEY);
+
+  applySavedColumns(savedColumns);
 
   // Create resize handles
   const leftHandle = document.createElement("div");
@@ -705,7 +571,7 @@ function initializeResizableGrid() {
 
   // Helper function to update handle positions
   function updateHandlePositions() {
-    const columns = (browserGrid.style.gridTemplateColumns || "280px 1fr 280px")
+    const columns = (browserGrid.style.gridTemplateColumns || defaultColumns)
       .split(" ")
       .map((s) => s.trim());
     const col1 = columns[0];
@@ -723,13 +589,19 @@ function initializeResizableGrid() {
     rightHandle.classList.add("disabled");
   }
 
+  setUpResizeHandleLeft(leftHandle);
+  setUpResizeHandleRight(rightHandle);
+  setupResetButton();
+}
+
+function setUpResizeHandleLeft(leftHandle) {
   // Left handle: resize convo and entries sections
   leftHandle.addEventListener("mousedown", (e) => {
     if (appSettings.disableColumnResizing) return;
     e.preventDefault();
     const startX = e.clientX;
     const startColumns = (
-      browserGrid.style.gridTemplateColumns || "280px 1fr 280px"
+      browserGrid.style.gridTemplateColumns || defaultColumns
     )
       .split(" ")
       .map((s) => s.trim());
@@ -756,14 +628,16 @@ function initializeResizableGrid() {
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
   });
+}
 
+function setUpResizeHandleRight(rightHandle) {
   // Right handle: resize entries and history sections
   rightHandle.addEventListener("mousedown", (e) => {
     if (appSettings.disableColumnResizing) return;
     e.preventDefault();
     const startX = e.clientX;
     const startColumns = (
-      browserGrid.style.gridTemplateColumns || "280px 1fr 280px"
+      browserGrid.style.gridTemplateColumns || defaultColumns
     )
       .split(" ")
       .map((s) => s.trim());
@@ -790,11 +664,12 @@ function initializeResizableGrid() {
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
   });
+}
 
+function setupResetButton() {
   // Add reset layout button handler
   if (resetLayoutBtn) {
     resetLayoutBtn.addEventListener("click", () => {
-      const defaultColumns = "280px 1fr 280px";
       browserGrid.style.gridTemplateColumns = defaultColumns;
       updateHandlePositions();
       localStorage.removeItem(STORAGE_KEY);
@@ -805,6 +680,7 @@ function initializeResizableGrid() {
 function handleMediaQueryChange() {
   closeAllSidebars();
   closeMobileSearchScreen();
+  closeAllModals();
   if (desktopMediaQuery.matches) {
     toggleElementVisibilityById("historySidebarToggle", false);
     toggleElementVisibilityById("convoSidebarToggle", false);
@@ -832,7 +708,9 @@ function toggleElementVisibilityById(id, showElement) {
 function setUpSidebarToggles() {
   convoSidebarToggle.addEventListener("click", openConversationSection);
   historySidebarToggle.addEventListener("click", openHistorySidebar);
+  mobileNavBtn.addEventListener("click", openMobileNavSidebar);
   sidebarOverlay.addEventListener("click", closeAllSidebars);
+  sidebarOverlay.addEventListener("click", closeAllModals);
 }
 
 function setupConversationFilter() {
@@ -956,7 +834,7 @@ function filterConversationTree() {
         const id = Number(idStr);
         return {
           id,
-          displayTitle: convoTitleById[id],
+          title: convoTitleById[id],
           type: convoTypeById[id] || "flow",
         };
       })
@@ -1020,21 +898,19 @@ function collectMatchingLeaves(node, searchText, typeFilter, matches, tree) {
 
       // Text filter
       if (searchText) {
-        const titleMatch = convo.displayTitle
-          .toLowerCase()
-          .includes(searchText);
+        const titleMatch = convo.title.toLowerCase().includes(searchText);
         const idMatch = cid.toString().includes(searchText);
         if (titleMatch || idMatch) {
           matches.push({
             convoId: cid,
-            title: convo.displayTitle,
+            title: convo.title,
             type: convo.type || "flow",
           });
         }
       } else {
         matches.push({
           convoId: cid,
-          title: convo.displayTitle,
+          title: convo.title,
           type: convo.type || "flow",
         });
       }
@@ -1544,9 +1420,6 @@ function setupClearFiltersButton() {
       wholeWordsCheckbox.checked = false;
     }
 
-    // Reset include variables filter - select all
-    selectAllVariableSearchOptions(true);
-
     // Trigger search with cleared filters
     triggerSearch();
   });
@@ -1675,24 +1548,6 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
   entryListHeaderEl.textContent = "Next Dialogue Options";
   entryListEl.innerHTML = "";
 
-  if (convoType === "orb" || convoType === "task") {
-    // Orbs and tasks don't have dialogue options - make the section compact
-    entryListEl.classList.add("compact");
-    // Expand the current entry container to use more space
-    if (currentEntryContainerEl) {
-      currentEntryContainerEl.classList.add("expanded");
-    }
-    const message = document.createElement("div");
-    message.className = "hint-text";
-    message.style.fontStyle = "italic";
-    message.style.padding = "12px";
-    message.innerHTML = `This is ${
-      convoType === "orb" ? "an" : "a"
-    } <strong>${convoType.toUpperCase()}</strong> and does not have dialogue options.`;
-    entryListEl.appendChild(message);
-    return;
-  }
-
   // For flows, remove compact class and expanded class
   entryListEl.classList.remove("compact");
   if (currentEntryContainerEl) {
@@ -1760,55 +1615,6 @@ function updateBackButtonState() {
       backStatus.textContent = "(none)";
     }
   }
-}
-
-// Modal: Conversation Types on mobile
-function setupConversationTypesModal() {
-  const helpIcon = document.querySelector(".help-icon");
-  const overlay = document.getElementById("conversationTypesModalOverlay");
-  const closeBtn = document.getElementById("conversationTypesModalClose");
-  if (!helpIcon || !overlay || !closeBtn) return;
-
-  const openModal = () => {
-    // Only on mobile or tablet
-    if (!mobileMediaQuery.matches && !tabletMediaQuery.matches) return;
-    overlay.style.display = "flex";
-    helpIcon.classList.add("active");
-  };
-
-  const closeModal = () => {
-    overlay.style.display = "none";
-    helpIcon.classList.remove("active");
-  };
-
-  helpIcon.addEventListener("click", (e) => {
-    // On mobile or tablet, show modal instead of relying on title tooltip
-    if (mobileMediaQuery.matches || tabletMediaQuery.matches) {
-      e.preventDefault();
-      e.stopPropagation();
-      openModal();
-    }
-  });
-
-  // Backdrop click to close
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) {
-      closeModal();
-    }
-  });
-
-  // Close button
-  closeBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    closeModal();
-  });
-
-  // ESC key to close
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.style.display !== "none") {
-      closeModal();
-    }
-  });
 }
 
 // Browser History Management
@@ -2254,7 +2060,7 @@ async function showEntryDetails(
     checks,
     parents,
     children,
-    conversationTitle: convoRow.displayTitle,
+    conversationTitle: convoRow.title,
     conversationDescription: convoRow.description,
     conversationActorId: convoRow.actor,
     conversationActorName: convoActorName,
@@ -2348,39 +2154,6 @@ function searchDialogues(q, resetSearch = true) {
     const { results: res, total } = response;
     currentSearchTotal = total;
 
-    // Advanced search: include/only variables via dropdown selection
-    let variableResults = [];
-    if (appSettings.includeVariables) {
-      const varResp = DB.searchVariables(
-        currentSearchQuery,
-        searchResultLimit,
-        currentSearchOffset,
-        wholeWordsCheckbox?.checked || false
-      );
-      variableResults = varResp.results;
-      if (!appSettings.includeDialogue) {
-        // Render variables only
-        entryListHeaderEl.textContent = "Search Results (Variables)";
-        entryListEl.innerHTML = "";
-        variableResults.forEach((v) => {
-          const div = document.createElement("div");
-          div.className = "card-item result-item";
-          const title = document.createElement("div");
-          title.className = "card-title";
-          title.textContent = v.name || `(variable #${v.id})`;
-          const body = document.createElement("div");
-          body.className = "card-body";
-          body.textContent = v.description || "(no description)";
-          div.appendChild(title);
-          div.appendChild(body);
-          entryListEl.appendChild(div);
-        });
-        isLoadingMore = false;
-        searchLoader?.classList.add("hidden");
-        return;
-      }
-    }
-
     // Filter by conversation type if not all types selected
     let filteredResults = res;
     if (selectedTypeIds.size > 0 && selectedTypeIds.size < 3) {
@@ -2450,48 +2223,18 @@ function searchDialogues(q, resetSearch = true) {
         const cid = UI.getParsedIntOrDefault(r.conversationid);
         const eid = UI.getParsedIntOrDefault(r.id);
 
-        // Check if this is an orb or task (conversationid === id means it's from dialogues table)
-        if (cid === eid) {
-          // This is an orb or task, just load the conversation root
-          loadEntriesForConversation(cid, true);
-          highlightConversationInTree(cid);
-        } else {
-          // This is a regular flow entry or alternate
-          navigationHistory = [{ convoId: cid, entryId: null }];
-          // If this is an alternate, pass the condition and alternate line
-          const alternateCondition = r.isAlternate
-            ? r.alternatecondition
-            : null;
-          const alternateLine = r.isAlternate ? r.dialoguetext : null;
-          navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
-          highlightConversationInTree(cid);
-        }
+        // This is a regular flow entry or alternate
+        navigationHistory = [{ convoId: cid, entryId: null }];
+        // If this is an alternate, pass the condition and alternate line
+        const alternateCondition = r.isAlternate ? r.alternatecondition : null;
+        const alternateLine = r.isAlternate ? r.dialoguetext : null;
+        navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+        highlightConversationInTree(cid);
 
         document.querySelector(".selected")?.scrollIntoView(true);
       });
       entryListEl.appendChild(div);
     });
-
-    // Include variables appended (when include mode)
-    if (
-      appSettings.includeVariables &&
-      appSettings.includeDialogue &&
-      variableResults.length
-    ) {
-      variableResults.forEach((v) => {
-        const div = document.createElement("div");
-        div.className = "card-item result-item";
-        const title = document.createElement("div");
-        title.className = "card-title";
-        title.textContent = v.name || `(variable #${v.id})`;
-        const body = document.createElement("div");
-        body.className = "card-body";
-        body.textContent = v.description || "(no description)";
-        div.appendChild(title);
-        div.appendChild(body);
-        entryListEl.appendChild(div);
-      });
-    }
 
     // Update offset for next load (based on database results, not filtered)
     currentSearchOffset += res.length;
@@ -2625,6 +2368,15 @@ function setupClearSearchInput() {
   });
 }
 
+function openMobileSearchScreen() {
+  // Push browser history state for mobile search
+  if (!isHandlingPopState) {
+    pushHistoryState("search");
+  }
+  mobileSearchScreen.style.display = "flex";
+  mobileSearchInput.focus();
+}
+
 function setupMobileSearch() {
   // Open mobile search screen
   mobileSearchInput.addEventListener("input", () => {
@@ -2633,16 +2385,7 @@ function setupMobileSearch() {
     }
   });
 
-  if (mobileSearchTrigger) {
-    mobileSearchTrigger.addEventListener("click", () => {
-      // Push browser history state for mobile search
-      if (!isHandlingPopState) {
-        pushHistoryState("search");
-      }
-      mobileSearchScreen.style.display = "flex";
-      mobileSearchInput.focus();
-    });
-  }
+  mobileSearchTrigger.addEventListener("click", openMobileSearchScreen);
 
   // Close mobile search screen
   if (mobileSearchBack) {
@@ -2759,53 +2502,55 @@ function setupMobileSidebar() {
   }
 }
 
-function setupMobileNavigation() {
-  if (!mobileNavBtn || !mobileNavPanel || !mobileNavOverlay) return;
+function openMobileNavSidebar() {
+  if (mobileNavPanel) {
+    mobileNavPanel.classList.add("open");
+    mobileNavPanel.style.display = "";
+    closeConversationSection();
+  }
+  if (mobileNavPanel) {
+    mobileNavPanel.addEventListener("click", closeMobileNavSidebar);
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "block";
+  }
+}
 
-  // Open navigation panel
-  mobileNavBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    mobileNavOverlay.style.display = "block";
-    mobileNavPanel.style.display = "flex";
+function closeMobileNavSidebar() {
+  if (mobileNavPanel) {
+    mobileNavPanel.classList.remove("open");
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "none";
+  }
+}
+
+function setupConversationTypesModal() {
+  const helpIcon = $("helpIcon");
+  const modal = $("conversationTypesModalOverlay");
+  const closeBtn = modal.querySelector(".modal-close");
+  const openModal = () => {
+    modal.classList.add("open");
+  };
+
+  const closeModal = () => {
+    modal.classList.remove("open");
+  };
+
+  helpIcon.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => {
+    if (e.target == modal) {
+      closeModal();
+    }
   });
 
-  // Close navigation panel when clicking overlay
-  mobileNavOverlay.addEventListener("click", () => {
-    mobileNavOverlay.style.display = "none";
-    mobileNavPanel.style.display = "none";
+  // ESC key to close
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.style.display !== "none") {
+      closeModal();
+    }
   });
-
-  // Home navigation
-  if (mobileNavHome) {
-    mobileNavHome.addEventListener("click", (e) => {
-      e.preventDefault();
-      goBackHomeWithBrowserHistory();
-      mobileNavOverlay.style.display = "none";
-      mobileNavPanel.style.display = "none";
-    });
-  }
-
-  // Settings navigation
-  if (mobileNavSettings) {
-    mobileNavSettings.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (settingsBtn) settingsBtn.click();
-      mobileNavOverlay.style.display = "none";
-      mobileNavPanel.style.display = "none";
-    });
-  }
-
-  // Search navigation
-  if (mobileNavSearch) {
-    mobileNavSearch.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (mobileSearchTrigger) {
-        mobileSearchTrigger.click();
-      }
-      mobileNavOverlay.style.display = "none";
-      mobileNavPanel.style.display = "none";
-    });
-  }
 }
 
 function updateMobileNavButtons() {
@@ -2826,8 +2571,16 @@ function updateMobileNavButtons() {
 }
 
 function closeAllSidebars() {
-  closeConversationSection();
-  closeHistorySidebar();
+  const modals = document.querySelectorAll(".sidebar.open");
+  modals.forEach((modal) => modal.classList.remove("open"));
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = "none";
+  }
+}
+
+function closeAllModals() {
+  const modals = document.querySelectorAll(".modal-overlay.open");
+  modals.forEach((modal) => modal.classList.remove("open"));
 }
 
 function performMobileSearch(resetSearch = true) {
@@ -2852,18 +2605,6 @@ function performMobileSearch(resetSearch = true) {
   isMobileLoadingMore = true;
 
   try {
-    // Advanced search: include/only variables via dropdown selection
-    let variableResults = [];
-    if (appSettings.includeVariables) {
-      const varResp = DB.searchVariables(
-        currentSearchQuery,
-        searchResultLimit,
-        currentSearchOffset,
-        wholeWordsCheckbox?.checked || false
-      );
-      variableResults = varResp.results;
-    }
-
     const response = DB.searchDialogues(
       mobileSearchQuery,
       searchResultLimit,
@@ -2898,11 +2639,7 @@ function performMobileSearch(resetSearch = true) {
       mobileSearchFilteredCount = 0;
     }
 
-    if (
-      resetSearch &&
-      filteredResults.length === 0 &&
-      variableResults.length === 0
-    ) {
+    if (resetSearch && filteredResults.length === 0) {
       mobileSearchResults.innerHTML =
         '<div class="mobile-search-prompt">No results found</div>';
       if (mobileSearchCount) {
@@ -2925,37 +2662,6 @@ function performMobileSearch(resetSearch = true) {
       }
       mobileSearchCount.style.display = "block";
     }
-
-    // Append variables to results if includeVariables && includeDialogue
-    variableResults.forEach((v) => {
-      const hasQuotedPhrases = /"[^"]+"/g.test(mobileSearchQuery);
-      const highlightedName = UI.highlightTerms(
-        v.name || "",
-        mobileSearchQuery,
-        hasQuotedPhrases
-      );
-      const highlightedDesc = UI.highlightTerms(
-        v.description || "",
-        mobileSearchQuery,
-        hasQuotedPhrases
-      );
-
-      const div = document.createElement("div");
-      div.className = "card-item result-item";
-      div.style.cursor = "default";
-
-      const title = document.createElement("div");
-      title.className = "card-title";
-      title.innerHTML = highlightedName || "(variable)";
-
-      const body = document.createElement("div");
-      body.className = "card-body";
-      body.innerHTML = highlightedDesc || "(no description)";
-
-      div.appendChild(title);
-      div.appendChild(body);
-      mobileSearchResults.appendChild(div);
-    });
 
     filteredResults.forEach((r) => {
       // Check if query contains any quoted phrases
@@ -2986,24 +2692,12 @@ function performMobileSearch(resetSearch = true) {
       );
 
       div.addEventListener("click", () => {
-        // Check if this is an orb/task (cid === eid means conversation root for orbs/tasks)
         const cid = UI.getParsedIntOrDefault(r.conversationid);
         const eid = r.id;
 
-        if (cid === eid) {
-          // This is an orb or task - load the conversation root
-
-          loadEntriesForConversation(cid, true);
-        } else {
-          // This is a regular dialogue entry or alternate
-          // If this is an alternate, pass the condition and alternate line
-
-          const alternateCondition = r.isAlternate
-            ? r.alternatecondition
-            : null;
-          const alternateLine = r.isAlternate ? r.dialoguetext : null;
-          navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
-        }
+        const alternateCondition = r.isAlternate ? r.alternatecondition : null;
+        const alternateLine = r.isAlternate ? r.dialoguetext : null;
+        navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
 
         // Close mobile search and return to main view
         closeMobileSearchScreen();
@@ -3139,7 +2833,7 @@ function setupMobileConvoFilter() {
       const isChecked = tempSelectedConvoIds.has(convo.id);
       item.innerHTML = `
         <input type="checkbox" ${isChecked ? "checked" : ""} />
-        <span>${convo.displayTitle || `Conversation ${convo.id}`}</span>
+        <span>${convo.title || `Conversation ${convo.id}`}</span>
       `;
       item.addEventListener("click", (e) => {
         if (e.target.tagName !== "INPUT") {
@@ -3193,7 +2887,7 @@ function setupMobileConvoFilter() {
 
     const filtered = allConvos.filter((c) => {
       return (
-        (c.displayTitle || "").toLowerCase().includes(query) ||
+        (c.title || "").toLowerCase().includes(query) ||
         c.id.toString().includes(query)
       );
     });
@@ -3212,7 +2906,7 @@ function updateMobileConvoFilterLabel() {
     const allConvos = DB.getAllConversations();
     const convo = allConvos.find((c) => c.id === convoId);
     mobileConvoFilterValue.textContent = convo
-      ? convo.displayTitle || `#${convo.id}`
+      ? convo.title || `#${convo.id}`
       : "1 Convo";
   } else {
     mobileConvoFilterValue.textContent = `${mobileSelectedConvoIds.size} Convos`;
