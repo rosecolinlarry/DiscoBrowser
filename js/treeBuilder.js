@@ -6,7 +6,7 @@ export function buildTitleTree(rows) {
   const convoTypeById = Object.create(null);
   rows.forEach((r) => {
     const id = r.id;
-    const raw = (r.displayTitle || `(id ${id})`).trim();
+    const raw = (r.title || `(id ${id})`).trim();
     convoTitleById[id] = raw;
     convoTypeById[id] = r.type || 'flow';
     const parts = raw.split("/").map((p) => p.trim());
@@ -188,6 +188,7 @@ export function renderTree(container, rootObj, opts = {}) {
     const titleSpan = document.createElement("span");
     titleSpan.className = "tree-title";
     titleSpan.textContent = name;
+    titleSpan.title = name;
     label.appendChild(titleSpan);
 
     // Determine the type(s) for this node and apply highlighting
