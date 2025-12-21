@@ -51,21 +51,6 @@ Note: There are some dialogue that is in the game files but not presented in gam
 - **Performance & caching**
   - Entry-level caching, batched queries, and lazy/iterative tree rendering to keep UI responsive.
 
-## Generating the Database
-
-To re-generate the sqlite3 file, extract the game file from the decompiled game and run the file `parse_disco_json.py` (update it to point to the paths of your files). Then run the scripts in `migrations` in order.
-
-### Getting the game data file
-
-Instructions for desktop downloaded via Steam.
-
-1. Install Disco Elysium
-2. Copy the `discoData` folder from your steam library game download location (e.g. `SteamLibrary\steamapps\common\Disco Elysium\disco_Data`
-3. Decompile the game with Asset Ripper
-4. From the extracted assets, find `\disco_Data\StreamingAssets\aa\StandaloneWindows64\MonoBehaviour\Disco Elysium.json`
-5. Run the parse_disco_json.py on the `Disco Elysium.json`
-6. Run the scripts in `migrations` in order.
-
 ## Installation & Usage
 
 - Place the conversation database file at discobase.sqlite3 (or update path in initDatabase).
@@ -78,48 +63,3 @@ Instructions for desktop downloaded via Steam.
 1. Search supports quoted phrases and multi-word queries; use the Whole Words option for stricter matches.
 2. Results show a snippet card (title + meta + highlighted snippet); clicking opens the entry overview and details.
 3. Conversation tree is built from conversation titles split on / and collapsed for readability.
-4. The app includes Google Analytics / Tag Manager scripts in index.html (opt out by removing the snippet if desired).
-
-
-## Roadmap & Future Work
-
-### What's Next
-
-- Improve styling
-  - Add color coding to the speaker's names
-  - Have the checkboxes in the settings modal and dropdown filters be consistent
-  - Improve overall UI/UX
-  - Consolidate the mobile UI and desktop UI elements
-- Sorting
-  - Add sorting to the search results
-  - Add sorting to the filter dropdowns
-    - Allow ordering actors by talkativeness
-- Searching
-  - Add ability to enter exact dialogue id and convo id
-- Variables
-  - Show variable descriptions on hover
-
-### Planned Future Work
-
-- Support translations
-  - Include the translated lines for the entries
-- Tasks
-  - Add subtasks
-  - Remove nesting when filtering only by tasks in the conversation view
-- Orbs
-  - Add location filter for orbs
-  - Add color coding to the orbs based on skill type
-- Variables
-  - Add ability to search by variables
-- Easier way to copy/paste entries
-
-### Potential Future Work
-
-- Permalinks / deep linking to conversation/entry
-- Keyboard navigation & improved accessibility (a11y)
-- Reinvestigate FTS5 searching and fuzzy search
-- Autocomplete for filters
-- Debounce searching
-- Add better game resemblance
-- Search query builder
-- Export features for search results
