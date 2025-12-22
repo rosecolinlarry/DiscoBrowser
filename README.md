@@ -2,6 +2,9 @@
 
 Heavily inspired by [FAYDE Playback Experiment: On-Air](https://fayde.co.uk/).
 
+# ⚠️ Disclaimer ⚠️
+
+This repo is to allow for free hosting with GitHub pages and is _not intended_ for code contributions from others. The code is quite messy, spaghetti, and definitely not clean code! I plan to continue cleaning and refining it as I go (for my own sanity) but with that being said, clone at your own risk!
 
 ## Overview
 
