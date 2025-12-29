@@ -12,13 +12,11 @@ Disco Browser is a lightweight, browser-based tool for exploring and searching D
 
 ## Screenshots
 
-### Desktop
+### Desktop View
+![Desktop-NextDialogueOptions](https://github.com/user-attachments/assets/9d2a6c70-ec6b-44bb-9a55-56eed7ce7c9c)
 
-<img width="1920" height="1032" alt="Desktop-NextDialogueOptions" src="https://github.com/user-attachments/assets/debc577f-81b2-41a8-916c-341f1a80918e" />
-
-### Mobile
-
-<img width="1344" height="806" alt="MobileView" src="https://github.com/user-attachments/assets/d7876d52-c7ea-4358-83fb-9e6299a5f2a1" />
+### Mobile View
+![MobileView](https://github.com/user-attachments/assets/ec99329c-ddca-4600-a767-88ac7c5e7a31)
 
 ## Purpose
 
