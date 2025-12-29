@@ -451,9 +451,11 @@ export function searchDialogues(
       const actorList = actorIds.map((id) => `'${id}'`).join(",");
       // For orbs and tasks, check both actor and conversant fields
       // Always include actor/conversant = 0 (unassigned orbs/tasks)
-      dialoguesWhere += ` AND (actor IN (${actorList}, '0') OR conversant IN (${actorList}, '0'))`;
+      const actorFilter = `(actor IN (${actorList}, '0') OR conversant IN (${actorList}, '0'))`;
+      dialoguesWhere = dialoguesWhere ? `${dialoguesWhere} AND ${actorFilter}` : actorFilter;
     } else if (typeof actorIds === "string" || typeof actorIds === "number") {
-      dialoguesWhere += ` AND (actor='${actorIds}' OR conversant='${actorIds}' OR actor='0' OR conversant='0')`;
+      const actorFilter = `(actor='${actorIds}' OR conversant='${actorIds}' OR actor='0' OR conversant='0')`;
+      dialoguesWhere = dialoguesWhere ? `${dialoguesWhere} AND ${actorFilter}` : actorFilter;
     }
   }
 
@@ -464,11 +466,18 @@ export function searchDialogues(
     conversationIds.length > 0
   ) {
     const convoList = conversationIds.map((id) => `'${id}'`).join(",");
-    dialoguesWhere += ` AND id IN (${convoList})`;
+    const convoFilter = `id IN (${convoList})`;
+    dialoguesWhere = dialoguesWhere ? `${dialoguesWhere} AND ${convoFilter}` : convoFilter;
   }
 
   if (!showHidden) {
-    dialoguesWhere += " AND isHidden != 1";
+    const hideHiddenFilter = "isHidden != 1";
+    dialoguesWhere = dialoguesWhere ? `${dialoguesWhere} AND ${hideHiddenFilter}` : hideHiddenFilter;
+  }
+
+  // If still no dialoguesWhere, default to all
+  if (!dialoguesWhere) {
+    dialoguesWhere = "1=1";
   }
 
   // Get count for dialogues
