@@ -21,7 +21,14 @@ function processExternalLinks(element) {
 export function createCardItem(titleText, convoId, entryId, contentText, allowHtml = false, convoType = null) {
   convoId = getParsedIntOrDefault(convoId, null)
   entryId = getParsedIntOrDefault(entryId, null)
-  const titleId = `${convoId || ""}:${entryId || ""}`
+  // Result card id in title
+  let titleId = "";
+  if(convoId && entryId) {
+    titleId = `${entryId}.`
+  }
+  else if(convoId) {
+    titleId = `${convoId}.`
+  }
   titleText = parseSpeakerFromTitle(getStringOrDefault(titleText))
   titleText = `${titleId} ${titleText}`
   contentText = getStringOrDefault(contentText)
@@ -45,7 +52,11 @@ export function createCardItem(titleText, convoId, entryId, contentText, allowHt
   metaDiv.className = 'result-meta card-meta';
   const idSpan = document.createElement('span');
   idSpan.classList.add('muted-text', 'small-text')
-  idSpan.textContent = `${convoId || ''}:${entryId || ''}`;
+  idSpan.textContent = `${convoId}`;
+  // Muted text in top right corner of card. Includes both convo and entry id
+  if(entryId) {
+    idSpan.textContent += `:${entryId}`;
+  }
   metaDiv.appendChild(idSpan);
 
   // Type badge (if non-flow)
@@ -122,10 +133,9 @@ export function appendHistoryItem(
   return item;
 }
 
-export function renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoType = 'flow') {
+export function renderCurrentEntry(entryOverviewEl, convoId, entryId, title, dialoguetext, convoType = 'flow') {
   dialoguetext = getStringOrDefault(dialoguetext, "<i>No dialogue.</i>");
-  title = getStringOrDefault(parseSpeakerFromTitle(title), "<i>No title.</i>");
-  
+  title = getStringOrDefault(parseSpeakerFromTitle(title), "Untitled");
   const typeBadge = convoType !== 'flow'
     ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>`
     : '';
@@ -134,9 +144,12 @@ export function renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoTy
   entryOverviewEl.className = "entry-item current-item";
 
   entryOverviewEl.innerHTML = `
+    <div class="card-meta">
+      <div class="dialogue-id">Conversation #${convoId} > Entry #${entryId}</div>
+      ${typeBadge}
+    </div>
     <div class="card-header">
-      <div class="card-title"><strong class="speaker">${title}</strong></div>
-      <div class="card-meta">${typeBadge}</div>
+      <div class="card-title dialogue-title">${title}</div>
     </div>
     <div class="card-body dialogue-text">${dialoguetext}</div>`;
   processExternalLinks(entryOverviewEl);
@@ -156,13 +169,15 @@ export function renderConversationOverview(entryOverviewEl, conversation) {
   const typeBadge = convoType !== 'flow' ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>` : '';
 
   entryOverviewEl.innerHTML = `
+    <div class="card-meta">
+      <div class="conversation-id">Conversation #${conversation.id}</div>
+      ${typeBadge}
+    </div>
     <div class="card-header">
-      <div class="card-title"><strong class="speaker">Conversation #${conversation.id}</strong></div>
-      <div class="card-meta">${typeBadge}</div>
+      <div class="card-title conversation-title">${title}</div>
     </div>
     <div class="card-body">
-      <div><strong>Title:</strong> ${title}</div>
-      <div class="dialogue-text">${description}</div>
+      <div class="conversation-description">${description}</div>
     </div>`;
   processExternalLinks(entryOverviewEl);
 }
@@ -177,6 +192,16 @@ export function parseSpeakerFromTitle(title) {
   )
     return splitTitle[0].trim();
   return title;
+}
+
+export function renderConvoDetails(containerEl, data) {
+  containerEl.innerHTML = "";
+  const wrapper = document.createElement("div");
+  wrapper.appendChild(createConvoTable(data));
+  if(data.type == 'task') {
+    wrapper.appendChild(createTaskTable(data.taskDetails));
+  }
+  containerEl.appendChild(wrapper);
 }
 
 export function renderEntryDetails(containerEl, data) {
@@ -350,6 +375,7 @@ function createEntryTable(data) {
     ["Entry Title", data.title],
     ["Entry Actor Id", data.actorId],
     ["Entry Actor Name", data.actorName],
+    ["Entry Is Hidden", data.isHidden ? 'Hidden' : 'Visible'],
   ];
 
   tableDiv.appendChild(buildTable(rows));
@@ -366,6 +392,33 @@ function createConvoTable(data) {
     ["Actor name", data.conversationActorName],
     ["Conversant Id", data.conversationConversantId],
     ["Conversant name", data.conversationConversantName],
+    ["Conversation Type", data.type],
+    ["Conversation Is Hidden", data.isHidden ? 'Hidden' : 'Visible'],
+    ["On Use", data.onUse],
+    ["Override Dialogue Condition", data.overrideDialogueCondition],
+    ["Alternate Orb Text", data.alternateOrbText],
+    ["Check Type", data.checkType],
+    ["Conversation Condition", data.condition],
+    ["Instruction", data.instruction],
+    ["Orb Placement", data.placement],
+    ["Difficulty", data.difficulty],
+    ["Total Entries", data.totalEntries]
+  ];
+
+  section.appendChild(buildTable(rows));
+  return section;
+}
+
+function createTaskTable(data) {
+  const section = createDetailsSectionHeader("Task Details");
+
+  const rows = [
+    ["Display Condition", data.displayConditionMain],
+    ["Done Condition", data.doneConditionMain],
+    ["Cancel Condition", data.cancelConditionMain],
+    ["Reward", data.taskReward],
+    ["Is Timed", data.taskTimed ? 'Timed' : 'Not Timed'],
+    ["Total Subtasks", data.totalSubtasks]
   ];
 
   section.appendChild(buildTable(rows));
@@ -410,10 +463,13 @@ function createPlaceholderItem() {
   return item;
 }
 
-function buildTable(rows) {
+function buildTable(rows, hideNone = true) {
   const t = document.createElement("table");
   t.className = "details-table";
   rows.forEach(([label, value]) => {
+    if(hideNone && !value) {
+      return;
+    }
     const tr = document.createElement("tr");
     const th = document.createElement("th");
     const td = document.createElement("td");

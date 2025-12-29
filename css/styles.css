@@ -1,4 +1,5 @@
 /* #region Global Styles and Settings */
+
 :root {
   --bg: #000000;
   --panel: #2e2424;
@@ -14,6 +15,11 @@
   --accent-glow: 0 2px 8px rgba(74, 198, 170, 0.2);
   --scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
   --scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.4);
+  --intellect: #5CC1D7;
+  --psyche: #7556CF;
+  --physique: #CB476A;
+  --motorics: #E3B734;
+  --speech: #CFD5BF;
 }
 
 html,
@@ -28,7 +34,42 @@ input {
 
 html {
   -webkit-tap-highlight-color: transparent;
+  font-size: 16px;
 }
+
+/* #region Fonts and Speaker Formatting */
+
+.color-int {
+  color: var(--intellect);
+}
+.color-psy {
+  color: var(--psyche);
+}
+.color-fys {
+  color: var(--physique);
+}
+.color-mot {
+  color: var(--motorics);
+}
+.color-you {
+  color: var(--speech);
+}
+
+.speaker,
+.dialogue-title
+.conversation-title {
+  text-transform: uppercase;
+  font-size: 24px;
+}
+.card-title.dialogue-title,
+.card-title.conversation-title {
+  font-family: "Roboto Condensed", sans-serif;
+  font-weight: bold;
+  font-size: 24px;
+}
+
+/* #endregion */
+
 /* Animations disabled class */
 body.animations-disabled,
 body.animations-disabled * {
@@ -145,7 +186,7 @@ body::-webkit-scrollbar-thumb:hover {
     background-color: var(--card-bg);
     color: #fff;
   }
-  
+
   &:hover {
     background-color: var(--card-bg);
     border-color: var(--teal);
@@ -159,7 +200,7 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: Segoe UI, system-ui, Roboto, Arial, sans-serif;
+  font-family: "Segoe UI", system-ui, Roboto, Arial, sans-serif;
   background: var(--bg);
   color: #ffffff;
 }
@@ -321,7 +362,6 @@ label {
   margin-right: 8px;
   line-height: 2;
 }
-
 
 .search-input:focus {
   border-color: var(--teal);
@@ -753,7 +793,6 @@ button.button-icon.help-button-icon {
 }
 
 .tree .toggle {
-  display: inline-block;
   text-align: center;
   color: var(--teal);
   font-weight: 700;
@@ -1015,7 +1054,7 @@ button.button-chip {
   border-radius: 24px;
   color: #fff;
   font-size: 14px;
-    transform: unset;
+  transform: unset;
 
   &:hover:disabled,
   &:disabled,
@@ -1210,7 +1249,7 @@ h1 {
 
 h1:hover {
   color: #cbfff3;
-  text-shadow: rgba(74, 198, 169, 0.9) 0px 0px 10px;
+  text-shadow: rgba(74, 198, 169, 0.9) 0 0 10px;
   transform: scale(1.02);
 }
 
@@ -1227,7 +1266,7 @@ h1:hover {
 
 .hint-text {
   color: var(--muted);
-  font-size: 13px;
+  font-size: inherit;
   font-style: italic;
   padding: 8px;
 }
@@ -2130,7 +2169,7 @@ a {
   }
 
   .card-title {
-    font-size: 13px;
+    font-size: inherit;
   }
 }
 /* #endregion */
@@ -2226,6 +2265,7 @@ a {
 }
 
 .card-meta {
+  justify-content: space-between;
   font-size: 12px;
   color: var(--muted);
   display: flex;
@@ -2234,7 +2274,6 @@ a {
 }
 
 .card-body {
-  font-size: 14px;
   color: #fff;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -2276,7 +2315,6 @@ a {
   padding: 14px;
   background: rgba(34, 106, 168, 0.1);
   text-align: left;
-  font-size: 14px;
   margin-bottom: 12px;
   flex: 1;
   min-height: 0;
@@ -2395,12 +2433,12 @@ a {
 .result-item .result-title {
   font-weight: 700;
   color: var(--disco-orange);
-  font-size: 13px;
+  font-size: inherit;
 }
 
 .result-item .result-snippet {
   color: #ddd;
-  font-size: 13px;
+  font-size: inherit;
   line-height: 1.4;
 }
 
@@ -2477,6 +2515,7 @@ a {
   width: 20px;
   height: 20px;
   border: 2px solid var(--muted);
+  box-sizing: border-box;
   border-radius: 4px;
   background: transparent;
   transition: all 0.2s ease;

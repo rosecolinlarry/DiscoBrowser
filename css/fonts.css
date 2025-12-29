@@ -1,0 +1,17 @@
+/* roboto-condensed-regular - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Roboto Condensed';
+  font-style: normal;
+  font-weight: bold;
+  src: url('../fonts/roboto-condensed-v31-latin-regular.woff2') format('woff2');
+}
+
+/* roboto-condensed-600 - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Roboto Condensed';
+  font-style: normal;
+  font-weight: normal;
+  src: url('../fonts/roboto-condensed-v31-latin-600.woff2') format('woff2');
+}

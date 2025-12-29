@@ -11,4 +11,5 @@ UPDATE conversations
 SET isHidden = 1
 WHERE (id = 1470 and title = 'Coop TEST')
 OR (id = 905 and title = 'unfinished orb')
-OR (id = 270 and title = 'TEST / END TITLES TEST FOR ROZZO');
+OR (id = 270 and title = 'TEST / END TITLES TEST FOR ROZZO')
+OR (id = 7 and title = 'Stage directions test dialogue');

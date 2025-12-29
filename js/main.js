@@ -186,7 +186,7 @@ function getConversationsForTree() {
   if (appSettings.showHidden) {
     // Also include hidden conversations
     const hiddenConvos = DB.execRows(
-      `SELECT id, title, type FROM conversations WHERE isHidden == 1 ORDER BY title;`
+      `SELECT id, title, type, isHidden FROM conversations WHERE isHidden == 1 ORDER BY title;`
     );
     const merged = [...allConvos, ...hiddenConvos];
     return merged.map((c) => ({
@@ -372,33 +372,33 @@ function setUpMediaQueries() {
 function setUpConvoListEvents() {
   if (!convoListEl) return;
   // event delegation: clicks in convoList
-  convoListEl.addEventListener("click", (e) => {
+  convoListEl.addEventListener("click", async (e) =>  {
     const target = e.target.closest("[data-convo-id]");
     if (target) {
       const convoId = UI.getParsedIntOrDefault(target.dataset.convoId);
-      loadEntriesForConversation(convoId, true);
+      await loadEntriesForConversation(convoId, true);
       return;
     }
     const topLabel = e.target.closest(".label");
     if (topLabel && topLabel.dataset.singleConvo) {
       const convoId = UI.getParsedIntOrDefault(topLabel.dataset.singleConvo);
-      loadEntriesForConversation(convoId, true);
+      await loadEntriesForConversation(convoId, true);
     }
   });
 
   // Handle custom convoLeafClick events from tree builder
-  convoListEl.addEventListener("convoLeafClick", (e) => {
+  convoListEl.addEventListener("convoLeafClick", async (e) => {
     const convoId = e.detail.convoId;
-    loadEntriesForConversation(convoId, true);
+    await loadEntriesForConversation(convoId, true);
     highlightConversationInTree(convoId);
   });
 }
 
 function setUpChatLogEvents() {
   if (!chatLogEl) return;
-  chatLogEl.addEventListener("navigateToConversation", (e) => {
+  chatLogEl.addEventListener("navigateToConversation", async (e) => {
     const convoId = e.detail.convoId;
-    loadEntriesForConversation(convoId, true);
+    await loadEntriesForConversation(convoId, true);
     highlightConversationInTree(convoId);
   });
 }
@@ -493,7 +493,7 @@ async function boot() {
   setupMobileSearchInfiniteScroll();
 
   // Setup mobile sidebar
-  setupMobileSidebar();
+  await setupMobileSidebar();
   setUpSidebarToggles();
 
   // Setup mobile search
@@ -814,7 +814,6 @@ function filterConversationTree() {
   let searchText;
   if (!conversationTree) return;
   searchText = convoSearchInput?.value?.toLowerCase().trim() ?? "";
-
   // If no text search is active
   if (!searchText) {
     // Show full tree when all types selected
@@ -989,20 +988,19 @@ function createFilteredLeafItem(match, searchText, tree) {
   return wrapper;
 }
 
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 async function handleMoreDetailsClicked() {
-  if (moreDetailsEl.open && currentConvoId && currentEntryId) {
-    await showEntryDetails(
-      currentConvoId,
-      currentEntryId,
-      currentAlternateCondition,
-      currentAlternateLine
-    );
+  if (moreDetailsEl.open) {
+    if(currentConvoId && currentEntryId) {
+      await showEntryDetails(
+        currentConvoId,
+        currentEntryId,
+        currentAlternateCondition,
+        currentAlternateLine
+      );
+    }
+    else if(currentConvoId) {
+      await showConvoDetails(currentConvoId);
+    }
     // Make dialogue options compact when More Details is expanded
     const entryListContainer = entryListEl?.closest(".entry-list");
     if (
@@ -1459,7 +1457,7 @@ function highlightConversationInTree(convoId) {
 }
 
 /* Load entries listing for conversation */
-function loadEntriesForConversation(convoId, resetHistory = false) {
+async function loadEntriesForConversation(convoId, resetHistory = false) {
   convoId = UI.getParsedIntOrDefault(convoId);
 
   // If we're coming from home (no current conversation), ensure home state exists
@@ -1532,14 +1530,17 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     currentEntryContainerEl.style.visibility = "visible";
   }
 
-  // Show "(no details)" in More Details section for conversation overview
-  if (entryDetailsEl) {
-    entryDetailsEl.innerHTML = "<div class='hint-text'>(no details)</div>";
+  // Auto-open More Details if setting enabled
+  if (moreDetailsEl && appSettings.alwaysShowMoreDetails) {
+    moreDetailsEl.open = true;
+    moreDetailsEl.style.display = "block";
   }
 
-  // Hide More Details for conversation overviews (no dentries)
-  if (moreDetailsEl) {
-    moreDetailsEl.style.display = "none";
+  // Show details lazily only when expanded
+  if (moreDetailsEl && moreDetailsEl.open) {
+    if(convoId) {
+      await showConvoDetails(convoId);
+    }
   }
 
   // Check conversation type - orbs and tasks often don't have meaningful entries
@@ -1554,7 +1555,7 @@ function loadEntriesForConversation(convoId, resetHistory = false) {
     currentEntryContainerEl.classList.remove("expanded");
   }
 
-  const rows = DB.getEntriesForConversation(convoId);
+  const rows = DB.getEntriesForConversation(convoId, appSettings.showHidden);
   const filtered = rows.filter(
     (r) => (r.title || "").toLowerCase() !== "start"
   );
@@ -1618,7 +1619,7 @@ function updateBackButtonState() {
 }
 
 // Browser History Management
-function setupBrowserHistory() {
+async function setupBrowserHistory() {
   // Set initial state
   window.history.replaceState({ view: "home" }, "", window.location.pathname);
   currentAppState = "home";
@@ -1675,7 +1676,7 @@ function setupBrowserHistory() {
           navigationHistory.pop();
         }
 
-        loadEntriesForConversation(state.convoId, false);
+        await loadEntriesForConversation(state.convoId, false);
       }
     } else if (state.view === "search") {
       // Going back to search should actually go to home since search is a "forward" action
@@ -1783,16 +1784,14 @@ async function jumpToHistoryPoint(targetIndex) {
 
     // Update the UI
     const coreRow = DB.getEntry(currentConvoId, currentEntryId);
-    const title = coreRow
-      ? coreRow.title
-      : `(line ${currentConvoId}:${currentEntryId})`;
+    const title = coreRow?.title;
     const dialoguetext = coreRow ? coreRow.dialoguetext : "";
 
     // Get conversation type
     const conversation = DB.getConversationById(currentConvoId);
     const convoType = conversation?.type || "flow";
 
-    UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoType);
+    UI.renderCurrentEntry(entryOverviewEl, cid, eid, title, dialoguetext, convoType);
 
     // Add current entry to history log (non-clickable)
     if (chatLogEl) {
@@ -1812,7 +1811,12 @@ async function jumpToHistoryPoint(targetIndex) {
 
     // Show details if expanded
     if (moreDetailsEl && moreDetailsEl.open) {
-      await showEntryDetails(currentConvoId, currentEntryId);
+      if(currentConvoId && currentEntryId) {
+        await showEntryDetails(currentConvoId, currentEntryId);
+      }
+      else if(currentConvoId && !currentEntryId) {
+        await showConvoDetails(currentConvoId)
+      }
     }
   }
 
@@ -1820,7 +1824,7 @@ async function jumpToHistoryPoint(targetIndex) {
 }
 
 /* Jump to conversation root */
-function jumpToConversationRoot() {
+async function jumpToConversationRoot() {
   if (currentConvoId === null) return;
 
   // Clear all entries except the first one (conversation root)
@@ -1833,7 +1837,7 @@ function jumpToConversationRoot() {
   navigationHistory = [{ convoId: currentConvoId, entryId: null }];
 
   // Load the conversation root
-  loadEntriesForConversation(currentConvoId, false);
+  await loadEntriesForConversation(currentConvoId, false);
   highlightConversationInTree(currentConvoId);
   updateBackButtonState();
 }
@@ -1955,7 +1959,7 @@ async function navigateToEntry(
   const conversation = DB.getConversationById(convoId);
   const convoType = conversation?.type || "flow";
 
-  UI.renderCurrentEntry(entryOverviewEl, title, dialoguetext, convoType);
+  UI.renderCurrentEntry(entryOverviewEl, convoId, entryId, title, dialoguetext, convoType);
 
   currentConvoId = convoId;
   currentEntryId = entryId;
@@ -1975,7 +1979,7 @@ async function navigateToEntry(
     );
   }
 
-  // Show More Details for actual entries (they have dentries)
+  // Show More Details
   if (moreDetailsEl) {
     moreDetailsEl.style.display = "block";
   }
@@ -1997,13 +2001,65 @@ async function navigateToEntry(
     if (sameEntry) {
       DB.clearCacheForEntry(convoId, entryId);
     }
-    await showEntryDetails(
-      convoId,
-      entryId,
-      selectedAlternateCondition,
-      selectedAlternateLine
-    );
+    if(convoId && entryId) {
+      await showEntryDetails(
+        convoId,
+        entryId,
+        selectedAlternateCondition,
+        selectedAlternateLine
+      );
+    }
+    else if(convoId) {
+      await showConvoDetails(convoId);
+    }
   }
+}
+
+/* Show convo detais */
+async function showConvoDetails(convoId) {
+  if(!DB || !entryDetailsEl) return;
+
+  const coreRow = DB.getConversationById(convoId, appSettings.showHidden);
+
+  if(!coreRow) {
+    entryDetailsEl.textContent = "(not found)"
+  }
+
+  const convoActor= DB.getActorNameById(coreRow.actor);
+  const convoConversantActor = DB.getActorNameById(coreRow.conversant);
+
+  let taskDetails = {
+    displayConditionMain: coreRow.displayConditionMain,
+    doneConditionMain: coreRow.doneConditionMain,
+    cancelConditionMain: coreRow.cancelConditionMain,
+    taskReward: coreRow.taskReward,
+    taskTimed: coreRow.taskTimed,
+    totalSubtasks: coreRow.totalSubtasks,
+  }
+
+  UI.renderConvoDetails(entryDetailsEl, {
+    convoId: coreRow.id,
+    conversationTitle: coreRow.title,
+    conversationDescription: coreRow.description,
+    conversationActorId: coreRow.actor,
+    conversationActorName: convoActor.name,
+    conversationConversantId: coreRow.conversant,
+    conversationConversantName: convoConversantActor.name,
+    type: coreRow.type,
+    isHidden: coreRow.isHidden,
+    totalEntries: coreRow.totalEntries,
+    onUse: coreRow.onUse,
+    overrideDialogueCondition: coreRow.overrideDialogueCondition,
+    alternateOrbText: coreRow.alternateOrbText,
+    checkType: coreRow.checkType,
+    condition: coreRow.condition,
+    instruction: coreRow.instruction,
+    placement: coreRow.placement,
+    difficulty: coreRow.difficulty,
+    totalEntries: coreRow.totalEntries,
+    totalSubtasks: coreRow.totalSubtasks,
+    taskDetails: taskDetails
+  })
 }
 
 /* Show entry details (optimized) */
@@ -2016,7 +2072,7 @@ async function showEntryDetails(
   if (!DB || !entryDetailsEl) return;
 
   // Fetch core row early so it can be referenced by cached fallback values
-  const entry = DB.getEntry(convoId, entryId);
+  const coreRow = DB.getEntry(convoId, entryId);
 
   // Check cache only if viewing the original (no alternate selected)
   if (!selectedAlternateCondition && !selectedAlternateLine) {
@@ -2027,35 +2083,43 @@ async function showEntryDetails(
         selectedAlternateCondition: null,
         selectedAlternateLine: null,
         originalDialogueText:
-          cached.originalDialogueText || entry?.dialoguetext,
+          cached.originalDialogueText || coreRow?.dialoguetext,
         onNavigate: navigateToEntry,
       });
       return;
     }
   }
-  if (!entry) {
+  if (!coreRow) {
     entryDetailsEl.textContent = "(not found)";
     return;
   }
 
   // Fetch alternates, checks, parents/children
   const alternates =
-    entry.hasalts > 0 ? DB.getAlternates(convoId, entryId) : [];
-  const checks = entry.hascheck > 0 ? DB.getChecks(convoId, entryId) : [];
+    coreRow.hasalts > 0 ? DB.getAlternates(convoId, entryId) : [];
+  const checks = coreRow.hascheck > 0 ? DB.getChecks(convoId, entryId) : [];
   const { parents, children } = DB.getParentsChildren(convoId, entryId);
   // Get conversation data
   const convoRow = DB.getConversationById(convoId) || {};
-  // Get actor names
-  let entryActorName = DB.getActorNameById(entry.actor);
-  let convoActorName = DB.getActorNameById(convoRow.actor);
-  let convoConversantActorName = DB.getActorNameById(convoRow.conversant);
+  // Get actor
+  const entryActor = DB.getActorNameById(coreRow.actor);
+  const convoActor= DB.getActorNameById(convoRow.actor);
+  const convoConversantActor = DB.getActorNameById(convoRow.conversant);
+  // Get actor names and colors
+  let entryActorName = entryActor?.name;
+  let convoActorName = convoActor?.name;
+  let convoConversantActorName = convoConversantActor?.name;
+  let entryActorColor = entryActor?.color;
+  let convoActorColor = convoActor?.color;
+  let convoConversantActorColor = convoConversantActor?.color;
 
   const payload = {
     convoId: convoId,
     entryId: entryId,
-    title: entry.title,
-    actorId: entry.actor,
+    title: coreRow.title,
+    actorId: coreRow.actor,
     actorName: entryActorName,
+    actorColor: entryActorColor,
     alternates,
     checks,
     parents,
@@ -2064,15 +2128,31 @@ async function showEntryDetails(
     conversationDescription: convoRow.description,
     conversationActorId: convoRow.actor,
     conversationActorName: convoActorName,
+    conversationActorColor: convoActorColor,
     conversationConversantId: convoRow.conversant,
     conversationConversantName: convoConversantActorName,
-    sequence: entry.sequence,
-    conditionstring: entry.conditionstring,
-    userscript: entry.userscript,
-    difficultypass: entry.difficultypass,
+    conversationConversantColor: convoConversantActorColor,
+    sequence: coreRow.sequence,
+    conditionstring: coreRow.conditionstring,
+    userscript: coreRow.userscript,
+    difficultypass: coreRow.difficultypass,
     selectedAlternateCondition: selectedAlternateCondition,
     selectedAlternateLine: selectedAlternateLine,
-    originalDialogueText: entry.dialoguetext,
+    originalDialogueText: coreRow.dialoguetext,
+    isHidden: coreRow.isHidden,
+    type: convoRow.type,
+    isHidden: convoRow.isHidden,
+    totalEntries: convoRow.totalEntries,
+    onUse: convoRow.onUse,
+    overrideDialogueCondition: convoRow.overrideDialogueCondition,
+    alternateOrbText: convoRow.alternateOrbText,
+    checkType: convoRow.checkType,
+    condition: convoRow.condition,
+    instruction: convoRow.instruction,
+    placement: convoRow.placement,
+    difficulty: convoRow.difficulty,
+    totalEntries: convoRow.totalEntries,
+    totalSubtasks: convoRow.totalSubtasks,
     onNavigate: navigateToEntry,
   };
 
@@ -2148,7 +2228,8 @@ function searchDialogues(q, resetSearch = true) {
       true, // filterStartInput
       currentSearchOffset,
       undefined, // conversationIds
-      wholeWordsCheckbox?.checked || false // wholeWords
+      wholeWordsCheckbox?.checked || false, // wholeWords
+      appSettings.showHidden
     );
 
     const { results: res, total } = response;
@@ -2228,6 +2309,14 @@ function searchDialogues(q, resetSearch = true) {
         // If this is an alternate, pass the condition and alternate line
         const alternateCondition = r.isAlternate ? r.alternatecondition : null;
         const alternateLine = r.isAlternate ? r.dialoguetext : null;
+
+        // Search result is a conversation, go to conversation card not entry
+        if(cid && !eid) {
+          currentConvoId = cid;
+          jumpToConversationRoot();
+          return;
+        }
+
         navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
         highlightConversationInTree(cid);
 
@@ -2318,7 +2407,7 @@ function loadChildOptions(convoId, entryId) {
     for (const c of children)
       pairs.push({ convoId: c.d_convo, entryId: c.d_id });
 
-    const destRows = DB.getEntriesBulk(pairs);
+    const destRows = DB.getEntriesBulk(pairs, appSettings.showHidden);
     const destMap = new Map(destRows.map((r) => [`${r.convo}:${r.id}`, r]));
 
     for (const c of children) {
@@ -2493,9 +2582,9 @@ function setupMobileSidebar() {
 
   // Mobile root button
   if (convoRootBtn) {
-    convoRootBtn.addEventListener("click", () => {
+    convoRootBtn.addEventListener("click", async () => {
       if (currentConvoId !== null) {
-        loadEntriesForConversation(currentConvoId, false);
+        await loadEntriesForConversation(currentConvoId, false);
         updateMobileNavButtons();
       }
     });
@@ -2612,7 +2701,8 @@ function performMobileSearch(resetSearch = true) {
       true,
       mobileSearchOffset,
       undefined, // conversationIds
-      mobileWholeWordsCheckbox?.checked || false // wholeWords
+      mobileWholeWordsCheckbox?.checked || false, // wholeWords
+      appSettings.showHidden
     );
     const { results, total } = response;
     mobileSearchTotal = total;
@@ -2697,7 +2787,13 @@ function performMobileSearch(resetSearch = true) {
 
         const alternateCondition = r.isAlternate ? r.alternatecondition : null;
         const alternateLine = r.isAlternate ? r.dialoguetext : null;
-        navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+        if(cid && !eid) {
+          currentConvoId = cid;
+          jumpToConversationRoot();
+        }
+        else {
+          navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+        }
 
         // Close mobile search and return to main view
         closeMobileSearchScreen();
@@ -2865,12 +2961,12 @@ function setupMobileConvoFilter() {
   }
 
   // Initial render
-  allConvos = DB.getAllConversations();
+  allConvos = getConversationsForTree();
   renderConvoList(allConvos);
 
   // Expose refresh function
   window.refreshMobileConvoList = () => {
-    allConvos = DB.getAllConversations();
+    allConvos = getConversationsForTree();
 
     tempSelectedConvoIds = new Set(mobileSelectedConvoIds);
     searchInput.value = "";
@@ -2903,7 +2999,7 @@ function updateMobileConvoFilterLabel() {
     mobileConvoFilterValue.textContent = "All";
   } else if (mobileSelectedConvoIds.size === 1) {
     const convoId = Array.from(mobileSelectedConvoIds)[0];
-    const allConvos = DB.getAllConversations();
+    const allConvos = getConversationsForTree();
     const convo = allConvos.find((c) => c.id === convoId);
     mobileConvoFilterValue.textContent = convo
       ? convo.title || `#${convo.id}`
