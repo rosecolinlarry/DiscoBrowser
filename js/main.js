@@ -53,7 +53,7 @@ import {
   setCurrentSearchFilteredCount,
   setCurrentSearchTotal,
   hideSearchCount,
-  showSearchCount
+  showSearchCount,
 } from "./search.js";
 
 const actorSearchInput = $("actorSearch");
@@ -505,10 +505,6 @@ function moveSearchInput() {
   }
 }
 function moveConvoFilterDropdown() {
-  if (!convoFilterDropdown) {
-    populateConvoDropdown();
-    return;
-  }
   if (mobileMediaQuery.matches) {
     mobileConvoFilterWrapper.appendChild(convoFilterDropdown);
     mobileConvoFilterLabelWrapper.appendChild(convoFilterLabel);
@@ -534,12 +530,12 @@ function moveActorFilterDropdown() {
 }
 function moveTypeFilterDropdown() {
   const el = $("typeFilterDropdown");
-  const elWrapper = $("typeFilterDropdownWrapper");
-  const mobileElWrapper = $("mobileTypeFilterDropdownWrapper");
+  const elWrapper = $("typeFilterWrapper");
+  const mobileElWrapper = $("mobileTypeFilterWrapper");
 
   const elLabel = $("typeFilterLabel");
   const elLabelWrapper = $("typeFilterDropdownLabelWrapper");
-  const mobileElLabelWrapper = $("mobileTypeFilterDropdownWrapperLabel");
+  const mobileElLabelWrapper = $("mobileTypeFilterWrapperLabel");
 
   if (mobileMediaQuery.matches) {
     mobileElWrapper.appendChild(el);
@@ -882,7 +878,7 @@ function closeAllDropdowns() {
 }
 function setUpFilterDropdowns() {
   const dropdownButtons = document.querySelectorAll(
-    ".search-controls .filter-dropdown-button"
+    ".filter-dropdown-button"
   );
   dropdownButtons.forEach((dropdownButton) => {
     dropdownButton.addEventListener("click", (e) => {
@@ -891,6 +887,7 @@ function setUpFilterDropdowns() {
         dropdownButton?.parentElement?.getElementsByClassName(
           "filter-dropdown"
         )[0];
+
       // Set up toggling dropdown open/close
       if (filterDropdown?.classList.contains("show")) {
         filterDropdown?.classList.remove("show");
@@ -1091,11 +1088,16 @@ async function populateActorDropdown() {
       });
 
       // Clear search and show all with current selection
-      // TODO KA for mobile, have this close the actor filter screen and automatically apply the filter/trigger a new search
       actorSearchInput.value = "";
       filterActors();
       updateActorFilterLabel();
-      triggerSearch(e);
+
+      // Close mobile actor filter screen and remove dropdown show state
+      if (mobileActorFilterWrapper) mobileActorFilterWrapper.style.display = "none";
+      if (actorFilterDropdown) actorFilterDropdown.classList.remove("show");
+
+      // Trigger a reset search so results reflect the new selection
+      search(true);
     });
   }
 
@@ -1279,7 +1281,14 @@ function triggerSearch(e) {
       setCurrentSearchOffset(0);
       setCurrentSearchFilteredCount(0);
       entryListEl.innerHTML = "";
-      search(false);
+      // Prevent pushHistoryState by temporarily marking as handling popstate
+      const prevPop = isHandlingPopState;
+      isHandlingPopState = true;
+      try {
+        search(true);
+      } finally {
+        isHandlingPopState = prevPop;
+      }
     } else {
       // First time searching, push history state
       search(true);
@@ -1353,14 +1362,11 @@ function setupClearFiltersBtn() {
     const convoCheckboxes = convoCheckboxList?.querySelectorAll(
       'input[type="checkbox"]'
     );
-    if (convoCheckboxes) {
-      convoCheckboxes.forEach((cb) => {
-        cb.checked = false;
-      });
-    }
-    if (selectAllConvos) {
-      selectAllConvos.checked = false;
-    }
+    convoCheckboxes.forEach((cb) => {
+      cb.checked = false;
+    });
+    selectAllConvos.checked = true;
+    selectAllConvos.indeterminate = false;
     updateConvoFilterLabel();
 
     // Reset actor filters
@@ -1368,14 +1374,11 @@ function setupClearFiltersBtn() {
     const actorCheckboxes = actorCheckboxList?.querySelectorAll(
       'input[type="checkbox"]'
     );
-    if (actorCheckboxes) {
-      actorCheckboxes.forEach((cb) => {
-        cb.checked = false;
-      });
-    }
-    if (selectAllActors) {
-      selectAllActors.checked = false;
-    }
+    actorCheckboxes.forEach((cb) => {
+      cb.checked = false;
+    });
+    selectAllActors.checked = true;
+    selectAllActors.indeterminate = false;
     updateActorFilterLabel();
 
     // Reset type filters - select all
@@ -1387,15 +1390,11 @@ function setupClearFiltersBtn() {
     const typeCheckboxes = typeCheckboxList?.querySelectorAll(
       'input[type="checkbox"][data-type]'
     );
-    if (typeCheckboxes) {
-      typeCheckboxes.forEach((cb) => {
-        cb.checked = true;
-      });
-    }
-    if (selectAllTypes) {
-      selectAllTypes.checked = true;
-      selectAllTypes.indeterminate = false;
-    }
+    typeCheckboxes.forEach((cb) => {
+      cb.checked = true;
+    });
+    selectAllTypes.checked = true;
+    selectAllTypes.indeterminate = false;
     updateTypeFilterLabel();
 
     // Reset whole words checkbox
@@ -1964,7 +1963,7 @@ export async function navigateToEntry(
       `${currentTitle} — #${entryId}`,
       dialoguetext,
       navigationHistory.length - 1,
-      null, // null means non-clickable
+      null // null means non-clickable
     );
   }
 
@@ -2294,18 +2293,42 @@ function setupMobileSearch() {
     mobileClearFilters.addEventListener("click", () => {
       // Clear conversation filter
       selectedConvoIds.clear();
-      if (convoFilterLabel) convoFilterLabel.textContent = "All Conversations";
+      const convoCheckboxes = convoCheckboxList?.querySelectorAll(
+        'input[type="checkbox"]'
+      );
+      convoCheckboxes.forEach((cb) => {
+        cb.checked = false;
+      });
+      selectAllConvos.checked = true;
+      selectAllConvos.indeterminate = false;
+      updateConvoFilterLabel();
 
       // Clear type filter
       selectedTypeIds.clear();
       selectedTypeIds.add("all");
+      const typeCheckboxes = typeCheckboxList?.querySelectorAll(
+        'input[type="checkbox"][data-type]'
+      );
+      typeCheckboxes.forEach((cb) => {
+        cb.checked = true;
+      });
+      selectAllTypes.checked = true;
+      selectAllTypes.indeterminate = false;
+      updateTypeFilterLabel();
 
       // Clear whole words
       wholeWordsCheckbox.checked = false;
 
       // Re-run search if there's an active query
       if ($("search")?.value) {
-        search();
+        // Prevent adding a history entry for this reset
+        const prevPop = isHandlingPopState;
+        isHandlingPopState = true;
+        try {
+          search(true);
+        } finally {
+          isHandlingPopState = prevPop;
+        }
       }
     });
   }
@@ -2503,7 +2526,7 @@ function setupMobileTypeFilter() {
     // Close sheet
     mobileTypeFilterSheet.style.display = "none";
     mobileTypeFilterSheet.classList.remove("active");
-    typeFilterDropdown.classList.remove("show"); 
+    typeFilterDropdown.classList.remove("show");
     // Explicitly run a reset search so mobile results reflect the new selection
     search(true);
   });
