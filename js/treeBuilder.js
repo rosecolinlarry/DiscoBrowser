@@ -1,4 +1,5 @@
 // treeBuilder.js (lazy + iterative rendering + simple virtualization)
+import { $ } from "./ui.js";
 
 export function buildTitleTree(rows) {
   const root = { children: new Map(), convoIds: [] };
@@ -8,7 +9,7 @@ export function buildTitleTree(rows) {
     const id = r.id;
     const raw = (r.title || `(id ${id})`).trim();
     convoTitleById[id] = raw;
-    convoTypeById[id] = r.type || 'flow';
+    convoTypeById[id] = r.type || "flow";
     const parts = raw.split("/").map((p) => p.trim());
     if (!parts.length) parts.push(raw);
     let node = root;
@@ -26,7 +27,6 @@ export function buildTitleTree(rows) {
   return { root, convoTitleById, convoTypeById };
 }
 
-// Top-level wrapper that passes correct parent keys
 function collapseTree(root) {
   // iterate each top-level key
   for (const [key, child] of [...root.children.entries()]) {
@@ -39,17 +39,10 @@ function collapseTree(root) {
   }
 }
 
-// Returns { node, newKey }
-// key = Display Title (e.g. "BACKYARD", "Nodus Mullen", "Flow - The Actic Swimmer / 1435")
-// convoIds = Array of conversatoin Ids
-// node: Object { children: Map( key: string, value: node ), convoIds: int[], _subtreeSize: int)}
-// Only time convo ids length is greater than 1 is if the key has an identical other key, for our database, that is only smoker on the balcony.
-// Ideally we should figure out how to merge those so we do not need to handle logic for an array of convo ids. Or update the key to include the convo id
-// or a unique identifier if duplicate
 function collapseNode(node, key) {
   let current = node;
   let currentKey = key;
-  
+
   // collapse chain: keep collapsing while this node has:
   // - either: 1 child + no convoIds (intermediate node)
   // - or: 1 convoId + no children (leaf node that's an only child)
@@ -102,26 +95,237 @@ function computeSizesIterative(root) {
   }
 }
 
-// Render tree with all data loaded. container must be a block element.
 function setToggleIcon(toggleEl, expanded) {
   if (!toggleEl) return;
 
-  const templateId = 'icon-chevron-right-template';
-  const template = document.getElementById(templateId);
+  const template = $("icon-chevron-right-template");
 
   const clone = template.content.cloneNode(true);
-  const svg = clone.querySelector('svg');
+  const svg = clone.querySelector("svg");
   if (svg) {
-    svg.setAttribute('width', '18px');
-    svg.setAttribute('height', '18px');
+    svg.setAttribute("width", "18px");
+    svg.setAttribute("height", "18px");
   }
 
-  toggleEl.innerHTML = '';
+  toggleEl.innerHTML = "";
   toggleEl.appendChild(clone);
-  
+
   // Update rotation class for animation
-  toggleEl.classList.toggle('toggle-expanded', expanded);
+  toggleEl.classList.toggle("toggle-expanded", expanded);
 }
+
+// #region Render Tree Helpers
+
+// Helper function to collect all types in a subtree
+function collectTypesInSubtree(nodeObj) {
+  const types = new Set();
+
+  // Add types from direct convoIds
+  if (nodeObj.convoIds && nodeObj.convoIds.length > 0) {
+    nodeObj.convoIds.forEach((id) => {
+      const type = window._convoTypeById[id] || "flow";
+      types.add(type);
+    });
+  }
+
+  // Recursively collect from children
+  if (nodeObj.children && nodeObj.children.size > 0) {
+    for (const childNode of nodeObj.children.values()) {
+      const childTypes = collectTypesInSubtree(childNode);
+      childTypes.forEach((t) => types.add(t));
+    }
+  }
+
+  return types;
+}
+
+// Helper function to get the dominant/primary type for highlighting
+function getDominantType(typesSet) {
+  // Priority order: orb > task > flow
+  if (typesSet.has("orb")) return "orb";
+  if (typesSet.has("task")) return "task";
+  return "flow";
+}
+
+function makeNodeElement(name, nodeObj) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "node"; // Not expanded by default
+
+  const label = document.createElement("div");
+  label.className = "label";
+
+  // Check if this node contains a collapsed conversation leaf
+  const hasCollapsedLeaf =
+    nodeObj.children.size === 0 && nodeObj.convoIds.length === 1;
+
+  const toggle = document.createElement("span");
+  toggle.className = "toggle";
+  const shouldShowToggle = nodeObj._subtreeSize > 1 && !hasCollapsedLeaf;
+  toggle.dataset.canToggle = shouldShowToggle ? "true" : "false";
+  if (shouldShowToggle) {
+    setToggleIcon(toggle, false);
+  }
+  label.appendChild(toggle);
+
+  const titleSpan = document.createElement("span");
+  titleSpan.className = "tree-title";
+  titleSpan.textContent = name;
+  titleSpan.title = name;
+  label.appendChild(titleSpan);
+
+  // Determine the type(s) for this node and apply highlighting
+  let dominantType = "flow";
+
+  // Add type badge only for collapsed leaf nodes (actual conversations)
+  if (hasCollapsedLeaf && nodeObj.convoIds.length === 1) {
+    // For collapsed leaf nodes, show the single conversation type
+    const convoId = nodeObj.convoIds[0];
+    const convoType = window._convoTypeById[convoId] || "flow";
+    dominantType = convoType;
+
+    if (convoType !== "flow") {
+      const badge = document.createElement("span");
+      badge.className = `type-badge type-${convoType}`;
+      badge.textContent = convoType.toUpperCase();
+      label.appendChild(badge);
+    }
+  } else if (nodeObj.children.size > 0 || nodeObj.convoIds.length > 1) {
+    // For parent nodes, determine dominant type for highlighting but don't show badges
+    const typesInSubtree = collectTypesInSubtree(nodeObj);
+    dominantType = getDominantType(typesInSubtree);
+  }
+
+  // Apply highlight class to label based on dominant type
+  if (dominantType !== "flow") {
+    label.classList.add(`highlight-${dominantType}`);
+  }
+
+  wrapper.appendChild(label);
+
+  const childrenContainer = document.createElement("div");
+  childrenContainer.className = "children";
+  wrapper.appendChild(childrenContainer);
+
+  // store a reference
+  wrapper._nodeObj = nodeObj;
+  wrapper._childrenRendered = false;
+
+  // Render children immediately but keep collapsed
+  renderChildrenInto(nodeObj, childrenContainer, window._convoTitleById);
+  wrapper._childrenRendered = true;
+
+  // click handler: navigate if leaf, or toggle expand
+  label.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+
+    // if this is a collapsed leaf (has single convoId, no children)
+    if (hasCollapsedLeaf) {
+      label.dispatchEvent(
+        new CustomEvent("convoLeafClick", {
+          detail: { convoId: nodeObj.convoIds[0] },
+          bubbles: true,
+        })
+      );
+      return;
+    }
+
+    // if this node's subtree is a single conversation, dispatch event
+    const total = nodeObj._subtreeSize || 0;
+    if (total === 1 && nodeObj.convoIds.length === 1) {
+      label.dispatchEvent(
+        new CustomEvent("convoLeafClick", {
+          detail: { convoId: nodeObj.convoIds[0] },
+          bubbles: true,
+        })
+      );
+      return;
+    }
+
+    // For non-leaf nodes, toggle expand/collapse
+    const isExpanded = wrapper.classList.toggle("expanded");
+    setToggleIcon(toggle, isExpanded);
+  });
+
+  return wrapper;
+}
+
+// Helper to extract final segment from full title path
+function getLastSegment(fullTitle) {
+  // Check if the title ends with #<id> pattern
+  const hashMatch = fullTitle.match(/(.*?)\s*#(\d+)$/);
+  if (hashMatch) {
+    // Return just the #id part
+    return `#${hashMatch[2]}`;
+  }
+
+  // Otherwise use the old logic
+  const parts = fullTitle
+    .split("/")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return parts[parts.length - 1] || fullTitle;
+}
+
+function renderChildrenInto(nodeObj, containerEl, titleMap) {
+  containerEl.innerHTML = "";
+  const frag = document.createDocumentFragment();
+
+  // Render all conversation leaves
+  if (nodeObj.convoIds && nodeObj.convoIds.length) {
+    const convos = nodeObj.convoIds;
+    for (let i = 0; i < convos.length; i++) {
+      const cid = convos[i];
+      const leaf = document.createElement("div");
+      leaf.className = "leaf";
+      const leafLabel = document.createElement("div");
+      leafLabel.className = "label";
+      leafLabel.setAttribute("data-convo-id", String(cid));
+      leafLabel.dataset.singleConvo = cid;
+      leafLabel.dataset.convoId = cid;
+      leafLabel.style.cursor = "pointer";
+      const fullTitle = titleMap[cid] || `(id ${cid})`;
+      const finalSegment = getLastSegment(fullTitle);
+
+      // Wrap title text in a span for ellipsis overflow
+      const titleSpan = document.createElement("span");
+      titleSpan.className = "tree-title";
+      titleSpan.textContent = finalSegment;
+      if (!titleSpan.textContent.endsWith(` #${cid}`)) {
+        titleSpan.textContent += ` #${cid}`;
+      }
+      leafLabel.appendChild(titleSpan);
+
+      // Add type badge and highlight for conversation leaves
+      const convoType = window._convoTypeById[cid] || "flow";
+      if (convoType !== "flow") {
+        const badge = document.createElement("span");
+        badge.className = `type-badge type-${convoType}`;
+        badge.textContent = convoType.toUpperCase();
+        leafLabel.appendChild(badge);
+
+        // Add highlight class
+        leafLabel.classList.add(`highlight-${convoType}`);
+      }
+
+      leaf.appendChild(leafLabel);
+      frag.appendChild(leaf);
+    }
+  }
+
+  // Render all child nodes
+  const keys = Array.from(nodeObj.children.keys()).sort((a, b) =>
+    a.localeCompare(b)
+  );
+  for (const k of keys) {
+    const childNode = nodeObj.children.get(k);
+    const nodeEl = makeNodeElement(k, childNode);
+    frag.appendChild(nodeEl);
+  }
+
+  containerEl.appendChild(frag);
+}
+
+// #endregion
 
 export function renderTree(container, rootObj, opts = {}) {
   container.innerHTML = "";
@@ -133,215 +337,6 @@ export function renderTree(container, rootObj, opts = {}) {
   window._convoTitleById = convoTitleById;
   window._convoTypeById = convoTypeById;
   window._treeContainer = container;
-
-  // Helper function to collect all types in a subtree
-  function collectTypesInSubtree(nodeObj) {
-    const types = new Set();
-    
-    // Add types from direct convoIds
-    if (nodeObj.convoIds && nodeObj.convoIds.length > 0) {
-      nodeObj.convoIds.forEach(id => {
-        const type = convoTypeById[id] || 'flow';
-        types.add(type);
-      });
-    }
-    
-    // Recursively collect from children
-    if (nodeObj.children && nodeObj.children.size > 0) {
-      for (const childNode of nodeObj.children.values()) {
-        const childTypes = collectTypesInSubtree(childNode);
-        childTypes.forEach(t => types.add(t));
-      }
-    }
-    
-    return types;
-  }
-
-  // Helper function to get the dominant/primary type for highlighting
-  function getDominantType(typesSet) {
-    // Priority order: orb > task > flow
-    if (typesSet.has('orb')) return 'orb';
-    if (typesSet.has('task')) return 'task';
-    return 'flow';
-  }
-
-  function makeNodeElement(name, nodeObj) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "node"; // Not expanded by default
-
-    const label = document.createElement("div");
-    label.className = "label";
-
-    // Check if this node contains a collapsed conversation leaf
-    const hasCollapsedLeaf =
-      nodeObj.children.size === 0 && nodeObj.convoIds.length === 1;
-
-    const toggle = document.createElement("span");
-    toggle.className = "toggle";
-    const shouldShowToggle = nodeObj._subtreeSize > 1 && !hasCollapsedLeaf;
-    toggle.dataset.canToggle = shouldShowToggle ? 'true' : 'false';
-    if (shouldShowToggle) {
-      setToggleIcon(toggle, false);
-    }
-    label.appendChild(toggle);
-
-    const titleSpan = document.createElement("span");
-    titleSpan.className = "tree-title";
-    titleSpan.textContent = name;
-    titleSpan.title = name;
-    label.appendChild(titleSpan);
-
-    // Determine the type(s) for this node and apply highlighting
-    let dominantType = 'flow';
-    
-    // Add type badge only for collapsed leaf nodes (actual conversations)
-    if (hasCollapsedLeaf && nodeObj.convoIds.length === 1) {
-      // For collapsed leaf nodes, show the single conversation type
-      const convoId = nodeObj.convoIds[0];
-      const convoType = convoTypeById[convoId] || 'flow';
-      dominantType = convoType;
-      
-      if (convoType !== 'flow') {
-        const badge = document.createElement("span");
-        badge.className = `type-badge type-${convoType}`;
-        badge.textContent = convoType.toUpperCase();
-        label.appendChild(badge);
-      }
-    } else if (nodeObj.children.size > 0 || nodeObj.convoIds.length > 1) {
-      // For parent nodes, determine dominant type for highlighting but don't show badges
-      const typesInSubtree = collectTypesInSubtree(nodeObj);
-      dominantType = getDominantType(typesInSubtree);
-    }
-    
-    // Apply highlight class to label based on dominant type
-    if (dominantType !== 'flow') {
-      label.classList.add(`highlight-${dominantType}`);
-    }
-
-    wrapper.appendChild(label);
-
-    const childrenContainer = document.createElement("div");
-    childrenContainer.className = "children";
-    wrapper.appendChild(childrenContainer);
-
-    // store a reference
-    wrapper._nodeObj = nodeObj;
-    wrapper._childrenRendered = false;
-
-    // Render children immediately but keep collapsed
-    renderChildrenInto(nodeObj, childrenContainer, convoTitleById);
-    wrapper._childrenRendered = true;
-
-    // click handler: navigate if leaf, or toggle expand
-    label.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-
-      // if this is a collapsed leaf (has single convoId, no children)
-      if (hasCollapsedLeaf) {
-        label.dispatchEvent(
-          new CustomEvent("convoLeafClick", {
-            detail: { convoId: nodeObj.convoIds[0] },
-            bubbles: true,
-          })
-        );
-        return;
-      }
-
-      // if this node's subtree is a single conversation, dispatch event
-      const total = nodeObj._subtreeSize || 0;
-      if (total === 1 && nodeObj.convoIds.length === 1) {
-        label.dispatchEvent(
-          new CustomEvent("convoLeafClick", {
-            detail: { convoId: nodeObj.convoIds[0] },
-            bubbles: true,
-          })
-        );
-        return;
-      }
-
-      // For non-leaf nodes, toggle expand/collapse
-      const isExpanded = wrapper.classList.toggle("expanded");
-      setToggleIcon(toggle, isExpanded);
-    });
-
-    return wrapper;
-  }
-
-  // Helper to extract final segment from full title path
-  function getLastSegment(fullTitle) {
-    // Check if the title ends with #<id> pattern
-    const hashMatch = fullTitle.match(/(.*?)\s*#(\d+)$/);
-    if (hashMatch) {
-      // Return just the #id part
-      return `#${hashMatch[2]}`;
-    }
-    
-    // Otherwise use the old logic
-    const parts = fullTitle
-      .split("/")
-      .map((p) => p.trim())
-      .filter(Boolean);
-    return parts[parts.length - 1] || fullTitle;
-  }
-
-  function renderChildrenInto(nodeObj, containerEl, titleMap) {
-    containerEl.innerHTML = "";
-    const frag = document.createDocumentFragment();
-
-    // Render all conversation leaves
-    if (nodeObj.convoIds && nodeObj.convoIds.length) {
-      const convos = nodeObj.convoIds;
-      for (let i = 0; i < convos.length; i++) {
-        const cid = convos[i];
-        const leaf = document.createElement("div");
-        leaf.className = "leaf";
-        const leafLabel = document.createElement("div");
-        leafLabel.className = "label";
-        leafLabel.setAttribute("data-convo-id", String(cid));
-        leafLabel.dataset.singleConvo = cid;
-        leafLabel.dataset.convoId = cid;
-        leafLabel.style.cursor = "pointer";
-        const fullTitle = titleMap[cid] || `(id ${cid})`;
-        const finalSegment = getLastSegment(fullTitle);
-        
-        // Wrap title text in a span for ellipsis overflow
-        const titleSpan = document.createElement("span");
-        titleSpan.className = "tree-title";
-        titleSpan.textContent = finalSegment;
-        if(!titleSpan.textContent.endsWith(` #${cid}`)) {
-            titleSpan.textContent += ` #${cid}`
-        }
-        leafLabel.appendChild(titleSpan);
-        
-        // Add type badge and highlight for conversation leaves
-        const convoType = convoTypeById[cid] || 'flow';
-        if (convoType !== 'flow') {
-          const badge = document.createElement("span");
-          badge.className = `type-badge type-${convoType}`;
-          badge.textContent = convoType.toUpperCase();
-          leafLabel.appendChild(badge);
-          
-          // Add highlight class
-          leafLabel.classList.add(`highlight-${convoType}`);
-        }
-        
-        leaf.appendChild(leafLabel);
-        frag.appendChild(leaf);
-      }
-    }
-
-    // Render all child nodes
-    const keys = Array.from(nodeObj.children.keys()).sort((a, b) =>
-      a.localeCompare(b)
-    );
-    for (const k of keys) {
-      const childNode = nodeObj.children.get(k);
-      const nodeEl = makeNodeElement(k, childNode);
-      frag.appendChild(nodeEl);
-    }
-
-    containerEl.appendChild(frag);
-  }
 
   // top-level render: create node elements
   const topKeys = Array.from(root.children.keys()).sort((a, b) =>
