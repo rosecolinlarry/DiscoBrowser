@@ -42,147 +42,172 @@
   </head>
 
   <body>
-    <!--  #region Mobile Search Screen  -->
-    <div
-      id="mobileSearchScreen"
-      class="mobile-search-screen"
-      style="display: none"
-    >
-      <div class="mobile-search-header">
-        <button id="mobileSearchBack" class="button-icon">
-          <div
-            class="icon-placeholder"
-            data-icon-template="icon-back-template"
-            data-icon-size="30px"
-          ></div>
-        </button>
-        <div class="search-input-wrapper">
-          <label for="searchInput" class="search-input-label">Search</label>
-          <div id="mobileSearchInputWrapper" class="search-input-wrapper"></div>
-          <button
-            class="button-icon search-icon-btn"
-            id="mobileSearchClearIcon"
-            style="padding: 8px"
-          >
+    <!-- #region Mobile Search Container -->
+    <div class="mobile-container">
+      <!-- #region Mobile Search Screen  -->
+      <div
+        id="mobileSearchScreen"
+        class="mobile-search-screen"
+        style="display: none"
+      >
+        <div class="mobile-header">
+          <button id="mobileSearchBack" class="button-icon">
             <div
               class="icon-placeholder"
-              data-icon-template="icon-close-template"
-              data-icon-size="24px"
+              data-icon-template="icon-back-template"
+              data-icon-size="30px"
+            ></div>
+          </button>
+          <div class="search-input-wrapper">
+            <label for="searchInput" class="search-input-label">Search</label>
+            <div
+              id="mobileSearchInputWrapper"
+              class="search-input-wrapper"
+            ></div>
+            <button
+              class="button-icon search-icon-btn"
+              id="mobileSearchClearIcon"
+              style="padding: 8px"
+            >
+              <div
+                class="icon-placeholder"
+                data-icon-template="icon-close-template"
+                data-icon-size="24px"
+              ></div>
+            </button>
+          </div>
+          <button id="mobileSearchIconBtn" class="button-icon">
+            <div
+              class="icon-placeholder"
+              data-icon-template="icon-search-template"
+              data-icon-size="30px"
             ></div>
           </button>
         </div>
-        <button id="mobileSearchIconBtn" class="button-icon">
-          <div
-            class="icon-placeholder"
-            data-icon-template="icon-search-template"
-            data-icon-size="30px"
-          ></div>
-        </button>
-      </div>
 
-      <div class="search-controls">
-        <button class="button-chip" id="mobileConvoFilter">
-          <span>Conversations</span>
-          <div id="mobileConvoFilterLabelWrapper"></div>
-          <span class="dropdown-icon">
+        <div class="search-controls">
+          <button
+            class="button-chip filter-dropdown-button"
+            id="mobileConvoFilter"
+          >
+            <span>Conversations</span>
             <div
-              class="icon-placeholder"
-              data-icon-template="icon-chevron-right-template"
-              data-icon-size="18px"
+              class="filter-dropdown-label-wrapper"
+              id="mobileConvoFilterLabelWrapper"
             ></div>
-          </span>
-        </button>
-        <button class="button-chip" id="mobileActorFilter">
-          <span>Actors</span>
-          <div id="mobileActorFilterLabelWrapper"></div>
-          <span class="dropdown-icon">
+            <span class="dropdown-icon filter-dropdown-button-icon">
+              <div
+                class="icon-placeholder"
+                data-icon-template="icon-chevron-right-template"
+                data-icon-size="18px"
+              ></div>
+            </span>
+          </button>
+          <button
+            class="button-chip filter-dropdown-button"
+            id="mobileActorFilter"
+          >
+            <span>Actors</span>
             <div
-              class="icon-placeholder"
-              data-icon-template="icon-chevron-right-template"
-              data-icon-size="18px"
+              class="filter-dropdown-label-wrapper"
+              id="mobileActorFilterLabelWrapper"
             ></div>
-          </span>
-        </button>
-        <button class="button-chip" id="mobileTypeFilter">
-          <span>Type</span>
-          <div id="mobileTypeFilterDropdownWrapperLabel"></div>
-          <span class="dropdown-icon">
+            <span class="dropdown-icon filter-dropdown-button-icon">
+              <div
+                class="icon-placeholder"
+                data-icon-template="icon-chevron-right-template"
+                data-icon-size="18px"
+              ></div>
+            </span>
+          </button>
+          <button
+            class="button-chip filter-dropdown-button"
+            id="mobileTypeFilter"
+          >
+            <span>Type</span>
             <div
-              class="icon-placeholder"
-              data-icon-template="icon-chevron-right-template"
-              data-icon-size="18px"
+              class="filter-dropdown-label-wrapper"
+              id="mobileTypeFilterWrapperLabel"
             ></div>
-          </span>
-        </button>
-        <div id="mobileClearFiltersBtnWrapper"></div>
-      </div>
+            <span class="dropdown-icon filter-dropdown-button-icon">
+              <div
+                class="icon-placeholder"
+                data-icon-template="icon-chevron-right-template"
+                data-icon-size="18px"
+              ></div>
+            </span>
+          </button>
+          <div id="mobileClearFiltersBtnWrapper"></div>
+        </div>
 
+        <div
+          id="mobileWholeWordsButtonWrapper"
+          class="mobile-search-options toggle-wrapper"
+        ></div>
+
+        <div id="mobileSearchCount" class="search-count hidden"></div>
+
+        <div class="loader hidden" id="mobileSearchLoaderWrapper"></div>
+
+        <div id="mobileSearchResults" class="mobile-search-results">
+          <div class="mobile-search-prompt">
+            Enter a search term to find dialogues
+          </div>
+        </div>
+      </div>
+      <!-- #endregion -->
+      <!-- #region Mobile Conversation Filter Screen -->
       <div
-        id="mobileWholeWordsButtonWrapper"
-        class="mobile-search-options toggle-wrapper"
-      ></div>
-
-      <div id="mobileSearchCount" class="search-count hidden"></div>
-
-      <div class="loader hidden" id="mobileSearchLoaderWrapper"></div>
-
-      <div id="mobileSearchResults" class="mobile-search-results">
-        <div class="mobile-search-prompt">
-          Enter a search term to find dialogues
+        id="mobileConvoFilterWrapper"
+        class="mobile-filter-screen filter-dropdown-wrapper"
+        style="display: none"
+      >
+        <div class="mobile-filter-header">
+          <button class="button-icon back-button" id="mobileConvoFilterBack">
+            <div
+              class="icon-placeholder"
+              data-icon-template="icon-back-template"
+              data-icon-size="30px"
+            ></div>
+          </button>
+          <h3>Filter by Conversations</h3>
         </div>
       </div>
-    </div>
-    <!-- #endregion -->
-    <!-- #region Mobile Conversation Filter Screen -->
-    <div
-      id="mobileConvoFilterWrapper"
-      class="mobile-filter-screen"
-      style="display: none"
-    >
-      <div class="mobile-filter-header">
-        <button class="button-icon" id="mobileConvoFilterBack">
-          <div
-            class="icon-placeholder"
-            data-icon-template="icon-back-template"
-            data-icon-size="30px"
-          ></div>
-        </button>
-        <h3>Filter by Conversations</h3>
-      </div>
-    </div>
-    <!-- #endregion -->
-    <!-- #region Mobile Actor Filter Screen -->
-    <div
-      id="mobileActorFilterWrapper"
-      class="mobile-filter-screen"
-      style="display: none"
-    >
-      <div class="mobile-filter-header">
-        <button class="button-icon" id="mobileActorFilterBack">
-          <div
-            class="icon-placeholder"
-            data-icon-template="icon-back-template"
-            data-icon-size="30px"
-          ></div>
-        </button>
-        <h3>Filter by Actors</h3>
-      </div>
-    </div>
-    <!-- #endregion -->
-    <!-- #region Mobile Type Filter Bottom Sheet -->
-    <div
-      id="mobileTypeFilterSheet"
-      class="mobile-bottom-sheet"
-      style="display: none"
-    >
-      <div class="bottom-sheet-handle"></div>
-      <div class="bottom-sheet-content">
-        <h4>Filter by Type</h4>
-        <div class="mobile-type-options">
-          <div id="mobileTypeFilterDropdownWrapper"></div>
+      <!-- #endregion -->
+      <!-- #region Mobile Actor Filter Screen -->
+      <div
+        id="mobileActorFilterWrapper"
+        class="mobile-filter-screen filter-dropdown-wrapper"
+        style="display: none"
+      >
+        <div class="mobile-filter-header">
+          <button class="button-icon back-button" id="mobileActorFilterBack">
+            <div
+              class="icon-placeholder"
+              data-icon-template="icon-back-template"
+              data-icon-size="30px"
+            ></div>
+          </button>
+          <h3>Filter by Actors</h3>
         </div>
-        <button class="mobile-apply-btn" id="mobileTypeApply">Apply</button>
       </div>
+      <!-- #endregion -->
+      <!-- #region Mobile Type Filter Bottom Sheet -->
+      <div
+        id="mobileTypeFilterSheet"
+        class="mobile-bottom-sheet filter-dropdown-wrapper"
+        style="display: none"
+      >
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-content">
+          <h4>Filter by Type</h4>
+          <div class="mobile-type-options">
+            <div id="mobileTypeFilterWrapper"></div>
+          </div>
+          <button class="mobile-apply-btn" id="mobileTypeApply">Apply</button>
+        </div>
+      </div>
+      <!-- #endregion -->
     </div>
     <!-- #endregion -->
     <main>
@@ -239,7 +264,7 @@
           >
           <input
             id="mobileSearchTrigger"
-            class="mobile-search-trigger"
+            class="mobile-search-trigger search-input"
             type="text"
             placeholder="Search text..."
             readonly
@@ -405,12 +430,15 @@
               class="filter-dropdown-button"
               type="button"
             >
-              <div id="convoFilterLabelWrapper">
+              <div
+                class="filter-dropdown-label-wrapper"
+                id="convoFilterLabelWrapper"
+              >
                 <span id="convoFilterLabel" class="filter-label"
                   >All Conversations</span
                 >
               </div>
-              <span class="dropdown-arrow">
+              <span class="dropdown-arrow filter-dropdown-button-icon">
                 <div
                   class="icon-placeholder"
                   data-icon-template="icon-arrow-drop-down-template"
@@ -424,34 +452,46 @@
               >
               <input
                 id="convoSearch"
-                class="search-input"
+                class="search-input filter-dropdown-search"
                 type="text"
                 placeholder="e.g. WHIRLING F1"
               />
               <div class="filter-actions">
                 <label class="checkbox-item select-all checkbox-label">
-                  <input type="checkbox" id="selectAllConvos" />
+                  <input
+                    class="filter-dropdown-select-all"
+                    type="checkbox"
+                    id="selectAllConvos"
+                  />
                   <span>Select All</span>
                 </label>
-                <button id="convoAddToSelection" type="button">
+                <button
+                  class="filter-add-to-selection"
+                  id="convoAddToSelection"
+                  type="button"
+                >
                   Add to Selection
                 </button>
               </div>
               <div id="convoCheckboxList" class="checkbox-list"></div>
             </div>
           </div>
+          
           <div id="actorFilterWrapper" class="filter-dropdown-wrapper">
             <button
               id="actorFilterBtn"
               class="filter-dropdown-button"
               type="button"
             >
-              <div id="actorFilterLabelWrapper">
+              <div
+                class="filter-dropdown-label-wrapper"
+                id="actorFilterLabelWrapper"
+              >
                 <span id="actorFilterLabel" class="filter-label"
                   >All Actors</span
                 >
               </div>
-              <span class="dropdown-arrow">
+              <span class="dropdown-arrow filter-dropdown-button-icon">
                 <div
                   class="icon-placeholder"
                   data-icon-template="icon-arrow-drop-down-template"
@@ -465,16 +505,24 @@
               >
               <input
                 id="actorSearch"
-                class="search-input"
+                class="search-input filter-dropdown-search"
                 type="text"
                 placeholder="e.g. Kim Kitsuragi"
               />
               <div class="filter-actions">
                 <label class="checkbox-item select-all checkbox-label">
-                  <input type="checkbox" id="selectAllActors" />
+                  <input
+                    class="filter-dropdown-select-all"
+                    type="checkbox"
+                    id="selectAllActors"
+                  />
                   <span>Select All</span>
                 </label>
-                <button id="actorAddToSelection" type="button">
+                <button
+                  class="filter-add-to-selection"
+                  id="actorAddToSelection"
+                  type="button"
+                >
                   Add to Selection
                 </button>
               </div>
@@ -485,16 +533,20 @@
               </div>
             </div>
           </div>
-          <div id="type-filter-wrapper" class="filter-dropdown-wrapper">
+
+          <div id="typeFilterWrapper" class="filter-dropdown-wrapper">
             <button
               id="typeFilterBtn"
               class="filter-dropdown-button"
               type="button"
             >
-              <div id="typeFilterDropdownLabelWrapper">
+              <div
+                class="filter-dropdown-label-wrapper"
+                id="typeFilterDropdownLabelWrapper"
+              >
                 <span id="typeFilterLabel" class="filter-label">All Types</span>
               </div>
-              <span class="dropdown-arrow">
+              <span class="dropdown-arrow filter-dropdown-button-icon">
                 <div
                   class="icon-placeholder"
                   data-icon-template="icon-arrow-drop-down-template"
@@ -502,31 +554,35 @@
                 ></div>
               </span>
             </button>
-            <div id="typeFilterDropdownWrapper">
-              <div id="typeFilterDropdown" class="filter-dropdown">
-                <div class="filter-actions">
-                  <label class="checkbox-item select-all checkbox-label">
-                    <input type="checkbox" id="selectAllTypes" checked />
-                    <span>Select All</span>
-                  </label>
-                </div>
-                <div id="typeCheckboxList" class="checkbox-list">
-                  <label class="checkbox-item checkbox-label type-flow">
-                    <input type="checkbox" data-type="flow" checked />
-                    <span>Flow</span>
-                  </label>
-                  <label class="checkbox-item checkbox-label type-orb">
-                    <input type="checkbox" data-type="orb" checked />
-                    <span>Orb</span>
-                  </label>
-                  <label class="checkbox-item checkbox-label type-task">
-                    <input type="checkbox" data-type="task" checked />
-                    <span>Task</span>
-                  </label>
-                </div>
+            <div id="typeFilterDropdown" class="filter-dropdown">
+              <div class="filter-actions">
+                <label class="checkbox-item select-all checkbox-label">
+                  <input
+                    class="filter-dropdown-select-all"
+                    type="checkbox"
+                    id="selectAllTypes"
+                    checked
+                  />
+                  <span>Select All</span>
+                </label>
+              </div>
+              <div id="typeCheckboxList" class="checkbox-list">
+                <label class="checkbox-item checkbox-label type-flow">
+                  <input type="checkbox" data-type="flow" checked />
+                  <span>Flow</span>
+                </label>
+                <label class="checkbox-item checkbox-label type-orb">
+                  <input type="checkbox" data-type="orb" checked />
+                  <span>Orb</span>
+                </label>
+                <label class="checkbox-item checkbox-label type-task">
+                  <input type="checkbox" data-type="task" checked />
+                  <span>Task</span>
+                </label>
               </div>
             </div>
           </div>
+
           <div id="clearFiltersBtnWrapper" class="clearFiltersBtnWrapper">
             <button
               id="clearFiltersBtn"
