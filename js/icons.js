@@ -1,6 +1,8 @@
 // icons.js - Icon template definitions
 // This file contains all SVG icon templates used throughout the application
 
+import { $ } from "./ui.js";
+
 /**
  * Creates and injects icon templates into the DOM
  * Templates are stored in <template> elements for efficient cloning
@@ -103,4 +105,31 @@ export function injectIconTemplates() {
   const container = document.createElement('div')
   container.innerHTML = iconTemplatesHTML
   document.body.insertBefore(container, document.body.firstChild)
+}export function initializeIcons() {
+  // Helper function to clone and size an icon template
+  function getIcon(templateId, width = "30px", height = "30px") {
+    const template = $(templateId);
+    const clone = template.content.cloneNode(true);
+    const svg = clone.querySelector("svg");
+    svg.setAttribute("width", width);
+    svg.setAttribute("height", height);
+    return clone;
+  }
+
+  // Apply icons for any placeholder with data-icon-template
+  const dataPlaceholders = document.querySelectorAll(
+    ".icon-placeholder[data-icon-template]"
+  );
+
+  dataPlaceholders.forEach((placeholder) => {
+    const templateId = placeholder.dataset.iconTemplate;
+    if (!templateId) return;
+    const iconWidth = placeholder.dataset.iconWidth || placeholder.dataset.iconSize || "30px";
+    const iconHeight = placeholder.dataset.iconHeight ||
+      placeholder.dataset.iconSize ||
+      iconWidth;
+    const iconClone = getIcon(templateId, iconWidth, iconHeight);
+    placeholder.replaceWith(...iconClone.childNodes);
+  });
 }
+

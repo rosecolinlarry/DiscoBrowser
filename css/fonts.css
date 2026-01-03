@@ -1,17 +1,17 @@
 /* roboto-condensed-regular - latin */
 @font-face {
-  font-display: swap;
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
   font-family: 'Roboto Condensed';
   font-style: normal;
   font-weight: bold;
-  src: url('../fonts/roboto-condensed-v31-latin-regular.woff2') format('woff2');
+  src: url('../fonts/roboto-condensed-v31-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
 }
 
 /* roboto-condensed-600 - latin */
 @font-face {
-  font-display: swap;
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
   font-family: 'Roboto Condensed';
   font-style: normal;
   font-weight: normal;
-  src: url('../fonts/roboto-condensed-v31-latin-600.woff2') format('woff2');
+  src: url('../fonts/roboto-condensed-v31-latin-600.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
 }

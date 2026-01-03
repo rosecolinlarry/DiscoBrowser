@@ -57,15 +57,8 @@
           ></div>
         </button>
         <div class="search-input-wrapper">
-          <label for="mobileSearchInput" class="search-input-label"
-            >Search</label
-          >
-          <input
-            id="mobileSearchInput"
-            class="search-input"
-            type="text"
-            placeholder="Search text..."
-          />
+          <label for="searchInput" class="search-input-label">Search</label>
+          <div id="mobileSearchInputWrapper" class="search-input-wrapper"></div>
           <button
             class="button-icon search-icon-btn"
             id="mobileSearchClearIcon"
@@ -89,19 +82,8 @@
 
       <div class="search-controls">
         <button class="button-chip" id="mobileConvoFilter">
-          <span>Conversation</span>
-          <span class="filter-value" id="mobileConvoFilterValue">All</span>
-          <span class="dropdown-icon">
-            <div
-              class="icon-placeholder"
-              data-icon-template="icon-chevron-right-template"
-              data-icon-size="18px"
-            ></div>
-          </span>
-        </button>
-        <button class="button-chip" id="mobileTypeFilter">
-          <span>Type</span>
-          <span class="filter-value" id="mobileTypeFilterValue">All</span>
+          <span>Conversations</span>
+          <div id="mobileConvoFilterLabelWrapper"></div>
           <span class="dropdown-icon">
             <div
               class="icon-placeholder"
@@ -112,7 +94,7 @@
         </button>
         <button class="button-chip" id="mobileActorFilter">
           <span>Actors</span>
-          <span class="filter-value" id="mobileActorFilterValue">All</span>
+          <div id="mobileActorFilterLabelWrapper"></div>
           <span class="dropdown-icon">
             <div
               class="icon-placeholder"
@@ -121,26 +103,28 @@
             ></div>
           </span>
         </button>
-        <button class="mobile-filter-clear" id="mobileClearFilters">
-          <span>Clear Filters</span>
+        <button class="button-chip" id="mobileTypeFilter">
+          <span>Type</span>
+          <div id="mobileTypeFilterDropdownWrapperLabel"></div>
+          <span class="dropdown-icon">
+            <div
+              class="icon-placeholder"
+              data-icon-template="icon-chevron-right-template"
+              data-icon-size="18px"
+            ></div>
+          </span>
         </button>
-      </div>
-
-      <div class="mobile-search-options toggle-wrapper">
-        <label class="toggle-input-label">
-          <input type="checkbox" id="mobileWholeWordsCheckbox" />
-          <span class="toggle-slider"></span>
-          <span class="toggle-label">Whole Words</span>
-        </label>
+        <div id="mobileClearFiltersBtnWrapper"></div>
       </div>
 
       <div
-        id="mobileSearchCount"
-        class="mobile-search-count"
-        style="display: none"
+        id="mobileWholeWordsButtonWrapper"
+        class="mobile-search-options toggle-wrapper"
       ></div>
 
-      <div class="loader hidden" id="mobileSearchLoader"></div>
+      <div id="mobileSearchCount" class="search-count hidden"></div>
+
+      <div class="loader hidden" id="mobileSearchLoaderWrapper"></div>
 
       <div id="mobileSearchResults" class="mobile-search-results">
         <div class="mobile-search-prompt">
@@ -151,7 +135,7 @@
     <!-- #endregion -->
     <!-- #region Mobile Conversation Filter Screen -->
     <div
-      id="mobileConvoFilterScreen"
+      id="mobileConvoFilterWrapper"
       class="mobile-filter-screen"
       style="display: none"
     >
@@ -163,30 +147,13 @@
             data-icon-size="30px"
           ></div>
         </button>
-        <h3>Filter by Conversation</h3>
+        <h3>Filter by Conversations</h3>
       </div>
-      <label for="mobileConvoFilterSearch" class="search-input-label"
-        >Search</label
-      >
-      <input
-        type="text"
-        class="mobile-filter-search"
-        id="mobileConvoFilterSearch"
-        placeholder="Search conversations..."
-      />
-      <div class="mobile-filter-actions">
-        <label class="mobile-checkbox-item checkbox-label">
-          <input type="checkbox" id="mobileConvoSelectAll" />
-          <span>Select All</span>
-        </label>
-        <button id="mobileConvoAddToSelection">Add to Selection</button>
-      </div>
-      <div id="mobileConvoFilterList" class="mobile-filter-list"></div>
     </div>
     <!-- #endregion -->
     <!-- #region Mobile Actor Filter Screen -->
     <div
-      id="mobileActorFilterScreen"
+      id="mobileActorFilterWrapper"
       class="mobile-filter-screen"
       style="display: none"
     >
@@ -200,27 +167,6 @@
         </button>
         <h3>Filter by Actors</h3>
       </div>
-      <label for="mobileActorFilterSearch" class="search-input-label"
-        >Filter by Name</label
-      >
-      <input
-        type="text"
-        class="mobile-filter-search"
-        id="mobileActorFilterSearch"
-        placeholder="Search actors..."
-      />
-      <div class="mobile-filter-actions">
-        <label class="mobile-checkbox-item checkbox-label">
-          <input type="checkbox" id="mobileActorSelectAll" />
-          <span>Select All</span>
-        </label>
-        <button id="mobileActorAddToSelection">Add to Selection</button>
-      </div>
-      <div id="mobileActorFilterList" class="mobile-filter-list"></div>
-      <div class="mobile-filter-disclaimer">
-        Note: Orbs and tasks with no assigned actor are not included in
-        searches.
-      </div>
     </div>
     <!-- #endregion -->
     <!-- #region Mobile Type Filter Bottom Sheet -->
@@ -233,22 +179,7 @@
       <div class="bottom-sheet-content">
         <h4>Filter by Type</h4>
         <div class="mobile-type-options">
-          <label class="mobile-checkbox-item checkbox-label">
-            <input type="checkbox" data-type="all" checked />
-            <span>All</span>
-          </label>
-          <label class="mobile-checkbox-item checkbox-label type-flow">
-            <input type="checkbox" data-type="flow" />
-            <span>Flow</span>
-          </label>
-          <label class="mobile-checkbox-item checkbox-label type-orb">
-            <input type="checkbox" data-type="orb" />
-            <span>Orb</span>
-          </label>
-          <label class="mobile-checkbox-item checkbox-label type-task">
-            <input type="checkbox" data-type="task" />
-            <span>Task</span>
-          </label>
+          <div id="mobileTypeFilterDropdownWrapper"></div>
         </div>
         <button class="mobile-apply-btn" id="mobileTypeApply">Apply</button>
       </div>
@@ -440,11 +371,13 @@
         <div id="search-bar" class="search-controls mobile-hide">
           <div class="search-input-wrapper">
             <label for="search" class="search-input-label">Search for</label>
-            <input
-              id="search"
-              class="desktop-search search-input"
-              placeholder="e.g. sandwich"
-            />
+            <div id="searchInputWrapper">
+              <input
+                id="search"
+                class="search-input"
+                placeholder="e.g. sandwich"
+              />
+            </div>
             <button
               id="searchBtn"
               class="search-icon-btn mobile-hide"
@@ -457,20 +390,67 @@
               ></div>
             </button>
           </div>
-          <div class="toggle-wrapper">
-            <label class="toggle-input-label">
-              <input type="checkbox" id="wholeWordsCheckbox" />
-              <span class="toggle-slider"></span>
-              <span class="toggle-label">Whole Words</span>
-            </label>
+          <div id="wholeWordsButtonWrapper">
+            <div id="wholeWordsButton" class="toggle-wrapper">
+              <label class="toggle-input-label">
+                <input type="checkbox" id="wholeWordsCheckbox" />
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">Whole Words</span>
+              </label>
+            </div>
           </div>
-          <div id="actor-filter-wrapper" class="filter-dropdown-wrapper">
+          <div id="convoFilterWrapper" class="filter-dropdown-wrapper">
+            <button
+              id="convoFilterBtn"
+              class="filter-dropdown-button"
+              type="button"
+            >
+              <div id="convoFilterLabelWrapper">
+                <span id="convoFilterLabel" class="filter-label"
+                  >All Conversations</span
+                >
+              </div>
+              <span class="dropdown-arrow">
+                <div
+                  class="icon-placeholder"
+                  data-icon-template="icon-arrow-drop-down-template"
+                  data-icon-size="18px"
+                ></div>
+              </span>
+            </button>
+            <div id="convoFilterDropdown" class="filter-dropdown">
+              <label for="convoSearch" class="search-input-label"
+                >Filter by Title</label
+              >
+              <input
+                id="convoSearch"
+                class="search-input"
+                type="text"
+                placeholder="e.g. WHIRLING F1"
+              />
+              <div class="filter-actions">
+                <label class="checkbox-item select-all checkbox-label">
+                  <input type="checkbox" id="selectAllConvos" />
+                  <span>Select All</span>
+                </label>
+                <button id="convoAddToSelection" type="button">
+                  Add to Selection
+                </button>
+              </div>
+              <div id="convoCheckboxList" class="checkbox-list"></div>
+            </div>
+          </div>
+          <div id="actorFilterWrapper" class="filter-dropdown-wrapper">
             <button
               id="actorFilterBtn"
               class="filter-dropdown-button"
               type="button"
             >
-              <span id="actorFilterLabel" class="filter-label">All Actors</span>
+              <div id="actorFilterLabelWrapper">
+                <span id="actorFilterLabel" class="filter-label"
+                  >All Actors</span
+                >
+              </div>
               <span class="dropdown-arrow">
                 <div
                   class="icon-placeholder"
@@ -494,7 +474,7 @@
                   <input type="checkbox" id="selectAllActors" />
                   <span>Select All</span>
                 </label>
-                <button id="addToSelection" type="button">
+                <button id="actorAddToSelection" type="button">
                   Add to Selection
                 </button>
               </div>
@@ -511,7 +491,9 @@
               class="filter-dropdown-button"
               type="button"
             >
-              <span id="typeFilterLabel" class="filter-label">All Types</span>
+              <div id="typeFilterDropdownLabelWrapper">
+                <span id="typeFilterLabel" class="filter-label">All Types</span>
+              </div>
               <span class="dropdown-arrow">
                 <div
                   class="icon-placeholder"
@@ -520,39 +502,45 @@
                 ></div>
               </span>
             </button>
-            <div id="typeFilterDropdown" class="filter-dropdown">
-              <div class="filter-actions">
-                <label class="checkbox-item select-all checkbox-label">
-                  <input type="checkbox" id="selectAllTypes" checked />
-                  <span>Select All</span>
-                </label>
-              </div>
-              <div id="typeCheckboxList" class="checkbox-list">
-                <label class="checkbox-item checkbox-label type-flow">
-                  <input type="checkbox" data-type="flow" checked />
-                  <span>Flow</span>
-                </label>
-                <label class="checkbox-item checkbox-label type-orb">
-                  <input type="checkbox" data-type="orb" checked />
-                  <span>Orb</span>
-                </label>
-                <label class="checkbox-item checkbox-label type-task">
-                  <input type="checkbox" data-type="task" checked />
-                  <span>Task</span>
-                </label>
+            <div id="typeFilterDropdownWrapper">
+              <div id="typeFilterDropdown" class="filter-dropdown">
+                <div class="filter-actions">
+                  <label class="checkbox-item select-all checkbox-label">
+                    <input type="checkbox" id="selectAllTypes" checked />
+                    <span>Select All</span>
+                  </label>
+                </div>
+                <div id="typeCheckboxList" class="checkbox-list">
+                  <label class="checkbox-item checkbox-label type-flow">
+                    <input type="checkbox" data-type="flow" checked />
+                    <span>Flow</span>
+                  </label>
+                  <label class="checkbox-item checkbox-label type-orb">
+                    <input type="checkbox" data-type="orb" checked />
+                    <span>Orb</span>
+                  </label>
+                  <label class="checkbox-item checkbox-label type-task">
+                    <input type="checkbox" data-type="task" checked />
+                    <span>Task</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
-          <button
-            id="clearFiltersBtn"
-            type="button"
-            class="button-outline"
-            title="Clear all filters"
-          >
-            Clear Filters
-          </button>
+          <div id="clearFiltersBtnWrapper" class="clearFiltersBtnWrapper">
+            <button
+              id="clearFiltersBtn"
+              type="button"
+              class="button-outline clear-filter"
+              title="Clear all filters"
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
-        <div id="searchLoader" class="loader hidden"></div>
+        <div id="searchLoaderWrapper">
+          <div id="searchLoader" class="loader hidden"></div>
+        </div>
         <div class="muted-text mobile-hide"></div>
       </section>
       <!-- #endregion -->
@@ -823,7 +811,12 @@
               </details>
             </div>
             <div class="entry-list">
-              <h4 id="entryListHeader">Next Dialogue Options:</h4>
+              <div class="entry-list-header-bar">
+                <div>
+                  <h4 id="entryListHeader">Next Dialogue Options:</h4>
+                </div>
+                <div id="searchCount" class="search-count hidden"></div>
+              </div>
               <div id="entryList" class="scrolling-card">
                 (select a conversation)
               </div>
@@ -923,89 +916,7 @@
     </div>
     <!-- #endregion -->
     <!-- #region Settings Modal -->
-    <div id="settingsModalOverlay" class="modal-overlay">
-      <div
-        class="modal settings-modal"
-        role="dialog"
-        aria-labelledby="settingsModalTitle"
-        aria-modal="true"
-      >
-        <div class="modal-header">
-          <h3 id="settingsModalTitle">Settings</h3>
-          <button
-            id="settingsModalClose"
-            class="modal-close button-icon"
-            aria-label="Close"
-          >
-            <div
-              class="icon-placeholder"
-              data-icon-template="icon-close-template"
-              data-icon-size="24px"
-            ></div>
-          </button>
-        </div>
-        <div class="modal-body settings-body">
-          <div class="settings-section">
-            <label class="settings-checkbox checkbox-label">
-              <input type="checkbox" id="resetDesktopLayoutCheckbox" />
-              <span class="checkbox-custom"></span>
-              <span class="checkbox-label">Reset desktop layout</span>
-            </label>
-            <p class="settings-description">
-              Resets the layout to the default column sizes and positions.
-              (Desktop Only)
-            </p>
-          </div>
-          <div class="settings-section">
-            <label class="settings-checkbox checkbox-label">
-              <input type="checkbox" id="disableColumnResizingCheckbox" />
-              <span class="checkbox-custom"></span>
-              <span class="checkbox-label">Disable column resizing</span>
-            </label>
-            <p class="settings-description">
-              Hides and disables the ability to resize columns. (Desktop Only)
-            </p>
-          </div>
-          <div class="settings-section">
-            <label class="settings-checkbox checkbox-label">
-              <input type="checkbox" id="alwaysShowMoreDetailsCheckbox" />
-              <span class="checkbox-custom"></span>
-              <span class="checkbox-label">Always show more details</span>
-            </label>
-            <p class="settings-description">
-              Automatically expands the More Details section when viewing
-              entries.
-            </p>
-          </div>
-          <div class="settings-section">
-            <label class="settings-checkbox checkbox-label">
-              <input type="checkbox" id="showHiddenCheckbox" />
-              <span class="checkbox-custom"></span>
-              <span class="checkbox-label">Show hidden</span>
-            </label>
-            <p class="settings-description">
-              Include conversations and entries marked as hidden.
-            </p>
-          </div>
-          <div class="settings-section">
-            <label class="settings-checkbox checkbox-label">
-              <input type="checkbox" id="turnOffAnimationsCheckbox" />
-              <span class="checkbox-custom"></span>
-              <span class="checkbox-label">Turn off animations</span>
-            </label>
-            <p class="settings-description">
-              Disables all animations throughout the application.
-            </p>
-          </div>
-          <div class="settings-actions">
-            <button id="restoreDefaultSettingsBtn">
-              Restore Default Settings
-            </button>
-            <button id="saveSettingsBtn">Save Settings</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div id="settingsModalOverlay" class="modal-overlay"></div>
     <!-- #endregion -->
     <script type="module" src="js/main.js"></script>
   </body>
