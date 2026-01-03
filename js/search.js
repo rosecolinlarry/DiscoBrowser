@@ -207,11 +207,17 @@ export function setCurrentSearchActorIds(value) {
   currentSearchActorIds = value;
 }
 
-// TODO KA make sure this is hidden when not on the search count page
 function setSearchCount(value) {
   const searchCounters = document.querySelectorAll(".search-count");
   searchCounters.forEach((element) => {
     element.textContent = value;
+    element.classList.remove("hidden");
+  });
+}
+
+export function showSearchCount() {
+  const searchCounters = document.querySelectorAll(".search-count");
+  searchCounters.forEach((element) => {
     element.classList.remove("hidden");
   });
 }

@@ -52,6 +52,8 @@ import {
   setCurrentSearchOffset,
   setCurrentSearchFilteredCount,
   setCurrentSearchTotal,
+  hideSearchCount,
+  showSearchCount
 } from "./search.js";
 
 const actorSearchInput = $("actorSearch");
@@ -1274,7 +1276,6 @@ function triggerSearch(e) {
     const isAlreadySearching = currentAppState === "search";
     if (isAlreadySearching) {
       // Already in search view, manually reset and search without pushing history
-      // TODO KA use this for auto applying searching after choosing convos
       setCurrentSearchOffset(0);
       setCurrentSearchFilteredCount(0);
       entryListEl.innerHTML = "";
@@ -1844,6 +1845,7 @@ export async function navigateToEntry(
   convoId = getParsedIntOrDefault(convoId);
   entryId = getParsedIntOrDefault(entryId);
 
+  hideSearchCount();
   // Push browser history state (unless we're handling a popstate event)
   if (!isHandlingPopState && addToHistory) {
     pushHistoryState("conversation", { convoId, entryId });
@@ -1912,15 +1914,6 @@ export async function navigateToEntry(
       chatLogEl.innerHTML = "";
   }
 
-  if (chatLog) {
-    if (
-      chatLog.children.length === 1 &&
-      chatLog.children[0].textContent &&
-      chatLog.children[0].textContent.includes("(navigation log")
-    )
-      chatLog.innerHTML = "";
-  }
-
   // Remove the previous "current entry" display if it exists (it will become clickable)
   if (addToHistory && chatLogEl && chatLogEl.lastElementChild) {
     const lastItem = chatLogEl.lastElementChild;
@@ -1972,7 +1965,6 @@ export async function navigateToEntry(
       dialoguetext,
       navigationHistory.length - 1,
       null, // null means non-clickable
-      chatLog
     );
   }
 
@@ -2269,9 +2261,16 @@ function openMobileSearchScreen() {
   if (!isHandlingPopState) {
     pushHistoryState("search");
   }
+  showSearchCount();
   mobileSearchScreen.style.display = "flex";
   const searchInput = $("search");
   searchInput.focus();
+
+  // If there are already mobile search results rendered, re-run the search with reset = true
+  // so results reflect the current search term and active filters.
+  if (mobileSearchResults && mobileSearchResults.children.length > 0) {
+    search(true);
+  }
 }
 
 function setupMobileSearch() {
@@ -2463,6 +2462,8 @@ function setupConvoActorFilter() {
     if (convoFilterDropdown) {
       convoFilterDropdown.classList.remove("show");
     }
+    // Apply changes and re-run search with reset
+    search(true);
   });
 }
 
@@ -2477,6 +2478,8 @@ function setupMobileActorFilter() {
     if (actorFilterDropdown) {
       actorFilterDropdown.classList.remove("show");
     }
+    // Apply changes and re-run search with reset
+    search(true);
   });
 }
 
@@ -2490,6 +2493,8 @@ function setupMobileTypeFilter() {
       mobileTypeFilterSheet.style.display = "none";
       mobileTypeFilterSheet.classList.remove("active");
       typeFilterDropdown.classList.remove("show");
+      // Apply changes and re-run search with reset
+      search(true);
     }
   });
 
@@ -2498,8 +2503,9 @@ function setupMobileTypeFilter() {
     // Close sheet
     mobileTypeFilterSheet.style.display = "none";
     mobileTypeFilterSheet.classList.remove("active");
-    typeFilterDropdown.classList.remove("show"); // TODO KA see if i can consolidate this with the other dropdown logic for desktop
-    search();
+    typeFilterDropdown.classList.remove("show"); 
+    // Explicitly run a reset search so mobile results reflect the new selection
+    search(true);
   });
 }
 // #endregion
