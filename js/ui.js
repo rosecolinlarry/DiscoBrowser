@@ -7,61 +7,69 @@ export function $(sel) {
 
 // Make external links open in new tabs
 function processExternalLinks(element) {
-  const links = element.querySelectorAll('a[href]');
-  links.forEach(link => {
-    const href = link.getAttribute('href');
+  const links = element.querySelectorAll("a[href]");
+  links.forEach((link) => {
+    const href = link.getAttribute("href");
     // Check if it's an external link (starts with http/https and not #)
-    if (href && (href.startsWith('http://') || href.startsWith('https://')) && !href.startsWith('#')) {
-      link.setAttribute('target', '_blank');
-      link.setAttribute('rel', 'noopener noreferrer');
+    if (
+      href &&
+      (href.startsWith("http://") || href.startsWith("https://")) &&
+      !href.startsWith("#")
+    ) {
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener noreferrer");
     }
   });
 }
 
-export function createCardItem(titleText, convoId, entryId, contentText, allowHtml = false, convoType = null) {
-  convoId = getParsedIntOrDefault(convoId, null)
-  entryId = getParsedIntOrDefault(entryId, null)
+export function createCardItem(
+  titleText,
+  convoId,
+  entryId,
+  contentText,
+  allowHtml = false,
+  convoType = null
+) {
   // Result card id in title
   let titleId = "";
-  if(convoId && entryId) {
-    titleId = `${entryId}.`
+  if (convoId && entryId) {
+    titleId = `${entryId}.`;
+  } else if (convoId) {
+    titleId = `${convoId}.`;
   }
-  else if(convoId) {
-    titleId = `${convoId}.`
-  }
-  titleText = parseSpeakerFromTitle(getStringOrDefault(titleText))
-  titleText = `${titleId} ${titleText}`
-  contentText = getStringOrDefault(contentText)
+  titleText = parseSpeakerFromTitle(getStringOrDefault(titleText));
+  titleText = `${titleId} ${titleText}`;
+  contentText = getStringOrDefault(contentText);
   // Build a richer card/result item structure
-  const el = document.createElement('div');
-  el.className = 'result-item card card-item';
-  el.style.cursor = 'pointer';
+  const el = document.createElement("div");
+  el.className = "result-item card card-item";
+  el.style.cursor = "pointer";
 
   // Header (title + meta)
-  const header = document.createElement('div');
-  header.className = 'result-header card-header';
+  const header = document.createElement("div");
+  header.className = "result-header card-header";
 
-  const titleDiv = document.createElement('div');
-  titleDiv.className = 'result-title card-title';
-  const titleSpan = document.createElement('span');
+  const titleDiv = document.createElement("div");
+  titleDiv.className = "result-title card-title";
+  const titleSpan = document.createElement("span");
   if (allowHtml) titleSpan.innerHTML = titleText;
   else titleSpan.textContent = titleText;
   titleDiv.appendChild(titleSpan);
 
-  const metaDiv = document.createElement('div');
-  metaDiv.className = 'result-meta card-meta';
-  const idSpan = document.createElement('span');
-  idSpan.classList.add('muted-text', 'small-text')
+  const metaDiv = document.createElement("div");
+  metaDiv.className = "result-meta card-meta";
+  const idSpan = document.createElement("span");
+  idSpan.classList.add("muted-text", "small-text");
   idSpan.textContent = `${convoId}`;
   // Muted text in top right corner of card. Includes both convo and entry id
-  if(entryId) {
+  if (entryId) {
     idSpan.textContent += `:${entryId}`;
   }
   metaDiv.appendChild(idSpan);
 
   // Type badge (if non-flow)
-  if (convoType && convoType !== 'flow') {
-    const badge = document.createElement('span');
+  if (convoType && convoType !== "flow") {
+    const badge = document.createElement("span");
     badge.className = `type-badge type-${convoType}`;
     badge.textContent = convoType.toUpperCase();
     metaDiv.appendChild(badge);
@@ -70,8 +78,8 @@ export function createCardItem(titleText, convoId, entryId, contentText, allowHt
   header.appendChild(titleDiv);
   header.appendChild(metaDiv);
 
-  const body = document.createElement('div');
-  body.className = 'result-snippet card-body';
+  const body = document.createElement("div");
+  body.className = "result-snippet card-body";
   if (allowHtml) {
     body.innerHTML = contentText;
     processExternalLinks(body);
@@ -84,6 +92,36 @@ export function createCardItem(titleText, convoId, entryId, contentText, allowHt
 
   return el;
 }
+
+/* #region Visibility helpers */
+export function toggleElementVisibility(el, showElement) {
+  if (el instanceof NodeList) {
+    el.forEach((element) => {
+      toggleElementVisibility(element, showElement);
+    });
+    return;
+  }
+
+  if (showElement) {
+    el.classList.remove("hidden");
+  } else {
+    el.classList.add("hidden");
+  }
+  if (el.classList.contains("sidebar")) {
+    if (showElement) {
+      el.classList.add("open");
+    } else {
+      el.classList.remove("open");
+    }
+  }
+}
+
+export function toggleElementVisibilityBySelector(selector, showElement) {
+  const el = document.querySelector(selector);
+  toggleElementVisibility(el, showElement);
+}
+
+/* #endregion */
 
 /* Chat log/history helpers */
 export function resetChatLog(chatLogEl) {
@@ -104,7 +142,7 @@ export function appendHistoryItem(
 ) {
   const item = document.createElement("div");
   item.className = "card-item history-item";
-  
+
   // If no onClick handler, this is the current (non-clickable) entry
   if (!onClick) {
     item.classList.add("current-entry");
@@ -112,7 +150,7 @@ export function appendHistoryItem(
   } else {
     item.style.cursor = "pointer";
   }
-  
+
   item.dataset.historyIndex = historyIndex;
 
   const titleDiv = document.createElement("div");
@@ -129,16 +167,24 @@ export function appendHistoryItem(
   if (onClick) item.addEventListener("click", onClick);
   chatLogEl.appendChild(item);
   chatLogEl.scrollTop = chatLogEl.scrollHeight;
-  
+
   return item;
 }
 
-export function renderCurrentEntry(entryOverviewEl, convoId, entryId, title, dialoguetext, convoType = 'flow') {
+export function renderCurrentEntry(
+  entryOverviewEl,
+  convoId,
+  entryId,
+  title,
+  dialoguetext,
+  convoType = "flow"
+) {
   dialoguetext = getStringOrDefault(dialoguetext, "<i>No dialogue.</i>");
   title = getStringOrDefault(parseSpeakerFromTitle(title), "Untitled");
-  const typeBadge = convoType !== 'flow'
-    ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>`
-    : '';
+  const typeBadge =
+    convoType !== "flow"
+      ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>`
+      : "";
 
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
@@ -155,7 +201,6 @@ export function renderCurrentEntry(entryOverviewEl, convoId, entryId, title, dia
   processExternalLinks(entryOverviewEl);
 }
 
-
 export function renderConversationOverview(entryOverviewEl, conversation) {
   entryOverviewEl.innerHTML = "";
   entryOverviewEl.className = "entry-item current-item";
@@ -165,8 +210,11 @@ export function renderConversationOverview(entryOverviewEl, conversation) {
     conversation.description,
     "<i>No conversation description.</i>"
   );
-  const convoType = conversation.type || 'flow';
-  const typeBadge = convoType !== 'flow' ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>` : '';
+  const convoType = conversation.type || "flow";
+  const typeBadge =
+    convoType !== "flow"
+      ? `<span class="type-badge type-${convoType}">${convoType.toUpperCase()}</span>`
+      : "";
 
   entryOverviewEl.innerHTML = `
     <div class="card-meta">
@@ -198,7 +246,7 @@ export function renderConvoDetails(containerEl, data) {
   containerEl.innerHTML = "";
   const wrapper = document.createElement("div");
   wrapper.appendChild(createConvoTable(data));
-  if(data.type == 'task') {
+  if (data.type == "task") {
     wrapper.appendChild(createTaskTable(data.taskDetails));
   }
   containerEl.appendChild(wrapper);
@@ -210,17 +258,19 @@ export function renderEntryDetails(containerEl, data) {
 
   wrapper.appendChild(createEntryTable(data));
   if (data?.checks?.length) wrapper.appendChild(createChecksList(data.checks));
-  if (data?.parents?.length) wrapper.appendChild(createParentsList(data.parents, data));
-  if (data?.children.length) wrapper.appendChild(createChildrenList(data.children, data));
+  if (data?.parents?.length)
+    wrapper.appendChild(createParentsList(data.parents, data));
+  if (data?.children.length)
+    wrapper.appendChild(createChildrenList(data.children, data));
   wrapper.appendChild(createConvoTable(data));
-  
+
   // If viewing an alternate, show original line; otherwise show alternates list
   if (data.selectedAlternateCondition && data.originalDialogueText) {
     wrapper.appendChild(createOriginalLineSection(data));
   } else if (data?.alternates.length) {
     wrapper.appendChild(createAlternatesList(data.alternates, data));
   }
-  
+
   wrapper.appendChild(createMetaTable(data));
 
   containerEl.appendChild(wrapper);
@@ -234,7 +284,7 @@ function createAlternatesList(alternates, data) {
     alternates.forEach((a) => {
       const item = document.createElement("div");
       item.className = "details-item";
-      
+
       // Create clickable link for the alternate
       const link = document.createElement("a");
       link.href = "#";
@@ -243,10 +293,16 @@ function createAlternatesList(alternates, data) {
         e.preventDefault();
         if (data.onNavigate) {
           // Don't add to history when switching to alternate view
-          data.onNavigate(a.conversationid, a.dialogueid, false, a.condition, a.alternateline);
+          data.onNavigate(
+            a.conversationid,
+            a.dialogueid,
+            false,
+            a.condition,
+            a.alternateline
+          );
         }
       });
-      
+
       item.appendChild(link);
       const conditionSpan = document.createElement("span");
       conditionSpan.textContent = ` (condition: ${a.condition})`;
@@ -265,10 +321,10 @@ function createOriginalLineSection(data) {
   const section = createDetailsSectionHeader("Original Line");
   const list = document.createElement("div");
   list.className = "details-list";
-  
+
   const item = document.createElement("div");
   item.className = "details-item";
-  
+
   // Create clickable link to view the original
   const link = document.createElement("a");
   link.href = "#";
@@ -280,11 +336,11 @@ function createOriginalLineSection(data) {
       data.onNavigate(data.convoId, data.entryId, false, null, null);
     }
   });
-  
+
   item.appendChild(link);
   list.appendChild(item);
   section.appendChild(list);
-  
+
   return section;
 }
 
@@ -375,7 +431,7 @@ function createEntryTable(data) {
     ["Entry Title", data.title],
     ["Entry Actor Id", data.actorId],
     ["Entry Actor Name", data.actorName],
-    ["Entry Is Hidden", data.isHidden ? 'Hidden' : 'Visible'],
+    ["Entry Is Hidden", data.isHidden ? "Hidden" : "Visible"],
   ];
 
   tableDiv.appendChild(buildTable(rows));
@@ -393,7 +449,7 @@ function createConvoTable(data) {
     ["Conversant Id", data.conversationConversantId],
     ["Conversant name", data.conversationConversantName],
     ["Conversation Type", data.type],
-    ["Conversation Is Hidden", data.isHidden ? 'Hidden' : 'Visible'],
+    ["Conversation Is Hidden", data.isHidden ? "Hidden" : "Visible"],
     ["On Use", data.onUse],
     ["Override Dialogue Condition", data.overrideDialogueCondition],
     ["Alternate Orb Text", data.alternateOrbText],
@@ -402,7 +458,7 @@ function createConvoTable(data) {
     ["Instruction", data.instruction],
     ["Orb Placement", data.placement],
     ["Difficulty", data.difficulty],
-    ["Total Entries", data.totalEntries]
+    ["Total Entries", data.totalEntries],
   ];
 
   section.appendChild(buildTable(rows));
@@ -417,8 +473,8 @@ function createTaskTable(data) {
     ["Done Condition", data.doneConditionMain],
     ["Cancel Condition", data.cancelConditionMain],
     ["Reward", data.taskReward],
-    ["Is Timed", data.taskTimed ? 'Timed' : 'Not Timed'],
-    ["Total Subtasks", data.totalSubtasks]
+    ["Is Timed", data.taskTimed ? "Timed" : "Not Timed"],
+    ["Total Subtasks", data.totalSubtasks],
   ];
 
   section.appendChild(buildTable(rows));
@@ -427,7 +483,7 @@ function createTaskTable(data) {
 
 function createMetaTable(data) {
   const section = createDetailsSectionHeader("Meta");
-  
+
   // Combine entry condition and alternate condition if both exist
   let combinedCondition = data.conditionstring || "";
   if (data.selectedAlternateCondition) {
@@ -437,16 +493,16 @@ function createMetaTable(data) {
       combinedCondition = data.selectedAlternateCondition;
     }
   }
-  
+
   const rows = [
     ["Sequence", data.sequence],
     ["Condition", combinedCondition],
     ["Userscript", data.userscript],
     ["Difficulty", data.difficultypass],
   ];
-  
+
   section.appendChild(buildTable(rows));
-  
+
   return section;
 }
 
@@ -467,7 +523,7 @@ function buildTable(rows, hideNone = true) {
   const t = document.createElement("table");
   t.className = "details-table";
   rows.forEach(([label, value]) => {
-    if(hideNone && !value) {
+    if (hideNone && !value) {
       return;
     }
     const tr = document.createElement("tr");
@@ -492,12 +548,7 @@ export function getStringOrDefault(str, defaultValue = "") {
   return str;
 }
 
-export function getParsedIntOrDefault(value, defaultValue = null) {
-  const parsedValue = parseInt(value, 10);
-  return isNaN(parsedValue) ? defaultValue : parsedValue;
-}
-
-export function escapeHtml(s) {
+function escapeHtml(s) {
   return s.replace(
     /[&<>"']/g,
     (c) =>
@@ -511,7 +562,7 @@ export function highlightTerms(text, query, hasQuotedPhrases = false) {
   if (!text || !query) return escapeHtml(text || "");
 
   const trimmedQuery = query.trim();
-  
+
   // If query has quoted phrases, extract them and remaining words
   if (hasQuotedPhrases) {
     // Extract all quoted phrases
@@ -521,41 +572,48 @@ export function highlightTerms(text, query, hasQuotedPhrases = false) {
     while ((match = quotedPhrasesRegex.exec(trimmedQuery)) !== null) {
       quotedPhrases.push(match[1]);
     }
-    
+
     // Remove quoted phrases from query to get remaining words
-    const remainingText = trimmedQuery.replace(/"[^"]+"/g, '').trim();
-    const words = remainingText ? remainingText.split(/\s+/).filter(w => w.length >= 3) : [];
-    
+    const remainingText = trimmedQuery.replace(/"[^"]+"/g, "").trim();
+    const words = remainingText
+      ? remainingText.split(/\s+/).filter((w) => w.length >= 3)
+      : [];
+
     // Combine phrases and words for highlighting
     const allTerms = [...quotedPhrases, ...words];
-    
+
     if (allTerms.length === 0) return escapeHtml(text);
-    
+
     // Escape terms for regex - sort by length (longest first) to match longer phrases first
     const escaped = allTerms
       .sort((a, b) => b.length - a.length)
-      .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-    
+      .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
     // Create regex to match any term
     const re = new RegExp("(" + escaped.join("|") + ")", "gi");
-    
+
     // Split text by matches
     const parts = text.split(re);
-    
+
     // Escape HTML and wrap matches in <mark> tags
-    return parts.map(part => {
-      // Check if this part matches any of the terms (case-insensitive)
-      const isMatch = allTerms.some(term => part.toLowerCase() === term.toLowerCase());
-      if (isMatch) {
-        return "<mark class='highlighted-term'>" + escapeHtml(part) + "</mark>";
-      }
-      return escapeHtml(part);
-    }).join("");
+    return parts
+      .map((part) => {
+        // Check if this part matches any of the terms (case-insensitive)
+        const isMatch = allTerms.some(
+          (term) => part.toLowerCase() === term.toLowerCase()
+        );
+        if (isMatch) {
+          return (
+            "<mark class='highlighted-term'>" + escapeHtml(part) + "</mark>"
+          );
+        }
+        return escapeHtml(part);
+      })
+      .join("");
   }
 
   // For multi-word searches without quotes, split and highlight each word individually
-  const terms = trimmedQuery
-    .split(/\s+/)
+  const terms = trimmedQuery.split(/\s+/);
 
   if (!terms.length) return escapeHtml(text);
 
@@ -567,14 +625,18 @@ export function highlightTerms(text, query, hasQuotedPhrases = false) {
 
   // Split text by matches to preserve both matched and unmatched parts
   const parts = text.split(re);
-  
+
   // Escape HTML and wrap matches in <mark> tags
-  return parts.map((part, i) => {
-    // Check if this part matches any of the search terms (case-insensitive)
-    const isMatch = terms.some(term => part.toLowerCase() === term.toLowerCase());
-    if (isMatch) {
-      return "<mark class='highlighted-term'>" + escapeHtml(part) + "</mark>";
-    }
-    return escapeHtml(part);
-  }).join("");
+  return parts
+    .map((part, i) => {
+      // Check if this part matches any of the search terms (case-insensitive)
+      const isMatch = terms.some(
+        (term) => part.toLowerCase() === term.toLowerCase()
+      );
+      if (isMatch) {
+        return "<mark class='highlighted-term'>" + escapeHtml(part) + "</mark>";
+      }
+      return escapeHtml(part);
+    })
+    .join("");
 }

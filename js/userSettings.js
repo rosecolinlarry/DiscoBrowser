@@ -1,4 +1,4 @@
-import { $ } from "./ui.js";
+import { $, toggleElementVisibility } from "./ui.js";
 import {
   defaultColumns,
   STORAGE_KEY,
@@ -128,7 +128,7 @@ export function injectUserSettingsTemplate() {
   let container = $(settingsModalOverlayId);
   if (!container) {
     container = document.createElement("div");
-    container.className = "modal-overlay";
+    container.className = "modal-overlay hidden";
     container.id = settingsModalOverlayId;
     document.body.appendChild(container);
   }
@@ -211,7 +211,7 @@ function setupSettingsModal() {
   // Close settings modal
   if (settingsModalClose) {
     settingsModalClose.addEventListener("click", () => {
-      settingsModalOverlay.style.display = "none";
+      toggleElementVisibility(settingsModalOverlay, false);
     });
   }
 
@@ -219,7 +219,7 @@ function setupSettingsModal() {
   if (settingsModalOverlay) {
     settingsModalOverlay.addEventListener("click", (e) => {
       if (e.target === settingsModalOverlay) {
-        settingsModalOverlay.style.display = "none";
+        toggleElementVisibility(settingsModalOverlay, false);
       }
     });
   }
@@ -390,7 +390,7 @@ function handleSaveSettingsButtonClick() {
   // Save and close modal
   const settingsModalOverlay = $(settingsModalOverlayId);
   if (settingsModalOverlay) {
-    settingsModalOverlay.style.display = "none";
+    toggleElementVisibility(settingsModalOverlay, false);
   }
 }
 
@@ -398,7 +398,7 @@ export function openSettings(e) {
   setCurrentUserSettings();
   const settingsModalOverlay = $(settingsModalOverlayId);
   if (settingsModalOverlay) {
-    settingsModalOverlay.style.display = "flex";
+    toggleElementVisibility(settingsModalOverlay, true);
   }
 }
 // #endregion

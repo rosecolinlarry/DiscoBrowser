@@ -568,3 +568,14 @@ export function searchDialogues(
   };
 }
 // #endregion
+
+// Helper: fetch conversations by type (used for type-only searches with no text)
+export function getConversationsByType(type, showHidden) {
+  if (!type) return [];
+  let where = `type='${type}'`;
+  if (!showHidden) {
+    where += ` AND isHidden != 1`;
+  }
+  const sql = `SELECT id as conversationid, null as id, description as dialoguetext, title, actor, isHidden FROM conversations WHERE ${where} ORDER BY title;`;
+  return execRows(sql);
+}
