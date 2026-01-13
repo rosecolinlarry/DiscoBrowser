@@ -107,7 +107,7 @@ function filterAndMatchResults(results, rawQuery, { useMobile = false } = {}) {
 }
 
 export function applyFiltersToCurrentResults(useMobile = false) {
-  const rawQuery = searchInput?.value ?? "";
+  var rawQuery = searchInput?.value ?? "";
 
   const filtered = filterAndMatchResults(currentSearchRawResults, rawQuery, {
     useMobile,
@@ -304,15 +304,29 @@ export function search(resetSearch = true) {
   isLoadingMore = true;
 
   try {
-    const response = getSearchResults(
-      searchInput.value,
-      searchResultLimit,
-      currentSearchActorIds,
-      true, // filterStartInput
-      currentSearchOffset,
-      currentSearchConvoIds, // conversationIds
-      showHidden()
-    );
+    // Always query without whole-word restriction at DB layer; we'll filter client-side
+    let response;
+    var rawQuery = searchInput.value?.trim() ?? "";
+    if (
+      !rawQuery &&
+      selectedTypeIds &&
+      selectedTypeIds.size === 1 &&
+      (Array.from(selectedTypeIds)[0] === "task" || Array.from(selectedTypeIds)[0] === "orb")
+    ) {
+      const type = Array.from(selectedTypeIds)[0];
+      const convos = getConversationsByType(type, showHidden());
+      response = { results: convos, total: convos.length };
+    } else {
+      response = getSearchResults(
+        searchInput.value,
+        searchResultLimit,
+        currentSearchActorIds,
+        true, // filterStartInput
+        currentSearchOffset,
+        currentSearchConvoIds, // conversationIds
+        showHidden()
+      );
+    }
 
     const { results: res, total } = response;
     currentSearchTotal = total;
@@ -330,7 +344,7 @@ export function search(resetSearch = true) {
     }
 
     // Parse query into quoted phrases and remaining words (approximation of DB parsing)
-    const rawQuery = searchInput.value || "";
+    rawQuery = searchInput.value || "";
     const quotedPhrases = [];
     const quotedRegex = /"([^"]+)"/g;
     let qmatch;
@@ -508,7 +522,7 @@ function performMobileSearch(resetSearch = true) {
   try {
     // Always query without whole-word restriction at DB layer; we'll filter client-side
     let response;
-    const rawQuery = searchInput.value?.trim() ?? "";
+    var rawQuery = searchInput.value?.trim() ?? "";
     if (
       !rawQuery &&
       selectedTypeIds &&

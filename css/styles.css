@@ -1081,6 +1081,31 @@ button.button-icon {
   }
 }
 
+.search-icon-btn-wrapper.desktop {
+  button.button-icon.search-icon-btn  {
+
+  color: var(--teal);
+
+  &:hover {
+    background-color: transparent;
+    color: var(--disco-orange);
+  }
+  margin-right: 0;
+  }
+}
+
+.clear-icon-btn-wrapper.desktop {
+  button.button-icon.search-icon-btn  {
+  color: var(--muted);
+
+  &:hover {
+    background-color: transparent;
+    color: var(--teal);
+  }
+  margin-right: 0;
+  }
+}
+
 button.button-icon.search-icon-btn {
   color: var(--muted);
   height: 100%;
