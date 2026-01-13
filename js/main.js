@@ -949,7 +949,7 @@ function setupConvoFilter() {
 
   // Add to Selection button - apply changes
   if (addToSelectionBtn) {
-    addToSelectionBtn.addEventListener("click", () => {
+    addToSelectionBtn.addEventListener("click", (e) => {
       selectedConvoIds = new Set(selectedConvoIds);
       updateConvoFilterLabel();
       if (mobileMediaQuery.matches) {
@@ -959,7 +959,7 @@ function setupConvoFilter() {
         // Desktop: close the dropdown and apply search
         toggleElementVisibility(convoFilterDropdown, false);
         if (convoFilterSearch.value.trim()) {
-          search();
+          triggerSearch(e);
         }
       }
     });
@@ -2525,7 +2525,7 @@ function setUpWholeWordsToggle() {
 function setUpSearch() {
   searchInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-      search();
+      triggerSearch(e);
     }
   });
   // On mobile, clicking the (visible) search input should open the mobile search screen
