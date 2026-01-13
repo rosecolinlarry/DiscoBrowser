@@ -15,11 +15,11 @@
   --accent-glow: 0 2px 8px rgba(74, 198, 170, 0.2);
   --scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
   --scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.4);
-  --intellect: #5CC1D7;
-  --psyche: #7556CF;
-  --physique: #CB476A;
-  --motorics: #E3B734;
-  --speech: #CFD5BF;
+  --intellect: #5cc1d7;
+  --psyche: #7556cf;
+  --physique: #cb476a;
+  --motorics: #e3b734;
+  --speech: #cfd5bf;
 }
 
 html,
@@ -56,8 +56,7 @@ html {
 }
 
 .speaker,
-.dialogue-title
-.conversation-title {
+.dialogue-title .conversation-title {
   text-transform: uppercase;
   font-size: 24px;
 }
@@ -117,6 +116,16 @@ body::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover-bg);
 }
 
+.card {
+  display: flex;
+  &.hidden {
+    display: none;
+  }
+}
+.hidden {
+  display: none;
+}
+
 /* #endregion */
 /* #region Loader */
 .loader {
@@ -130,9 +139,6 @@ body::-webkit-scrollbar-thumb:hover {
     to {
       clip-path: inset(0 -1ch 0 0);
     }
-  }
-  &.hidden {
-    display: none;
   }
   &:before {
     content: "Loading...";
@@ -224,6 +230,14 @@ main {
   gap: 12px;
   grid-column: 1;
   grid-row: 1;
+  &.hidden {
+    display: none;
+  }
+  .header-container-buttons {
+    display: inherit;
+    gap: 8px;
+    align-items: center;
+  }
 }
 section {
   display: flex;
@@ -238,6 +252,9 @@ section {
   grid-row: 3;
   min-height: 0;
   position: relative;
+  &.hidden {
+    display: none;
+  }
 }
 
 .convo-list {
@@ -251,6 +268,10 @@ section {
 .section {
   display: flex;
   min-height: 0;
+
+  &.hidden {
+    display: none;
+  }
 
   h3 {
     margin: 0;
@@ -288,6 +309,12 @@ section {
 /* #endregion */
 /* #region Github */
 
+.github-icon {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+}
+
 .github-link {
   color: var(--teal);
   display: flex;
@@ -297,6 +324,9 @@ section {
   border-radius: 4px;
   transition: opacity 0.2s, background 0.2s;
   gap: 8px;
+  &.hidden {
+    display: none;
+  }
 }
 
 .github-link:hover {
@@ -305,6 +335,14 @@ section {
 
 .github-link svg {
   display: block;
+}
+
+.centered-footer {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 /* #endregion */
 /* #region Search Input */
@@ -318,6 +356,9 @@ section {
 
   .toggle-wrapper {
     display: flex;
+  }
+  &.hidden {
+    display: none;
   }
 }
 
@@ -338,7 +379,7 @@ label {
 .search-input {
   flex: 1;
   box-sizing: border-box;
-  padding: 8px 40px 8px 12px;
+  padding: 8px 12px 8px 12px;
   border: 1px solid var(--card-border);
   background: var(--card-bg);
   color: #fff;
@@ -422,7 +463,6 @@ label {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  cursor: pointer;
   border-radius: 3px;
   transition: background-color 0.2s;
   user-select: none;
@@ -439,7 +479,6 @@ label {
 .checkbox-item input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  cursor: pointer;
   accent-color: var(--teal);
 }
 
@@ -495,7 +534,6 @@ label {
 /* #endregion */
 /* #region Modal styles */
 .modal-overlay {
-  display: none;
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -505,8 +543,9 @@ label {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  &.open {
-    display: flex;
+  display: flex;
+  &.hidden {
+    display: none;
   }
 }
 
@@ -542,7 +581,6 @@ button.button-icon.modal-close {
   border: none;
   color: var(--muted);
   font-size: 18px;
-  cursor: pointer;
 }
 
 button.button-icon.help-button-icon {
@@ -590,10 +628,12 @@ button.button-icon.help-button-icon {
   flex: 2;
   position: relative;
   display: inline-block;
+  &.hidden {
+    display: none;
+  }
 }
 
 .filter-dropdown {
-  display: none;
   position: absolute;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -605,10 +645,9 @@ button.button-icon.help-button-icon {
   overflow-y: auto;
   padding: 8px;
   min-width: 220px;
-}
-
-.filter-dropdown.show {
-  display: block;
+  &.hidden {
+    display: none;
+  }
 }
 
 .filter-dropdown-button {
@@ -619,7 +658,6 @@ button.button-icon.help-button-icon {
   color: #fff;
   border-radius: 4px;
   font-size: 13px;
-  cursor: pointer;
   display: flex;
   justify-content: space-between;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
@@ -726,7 +764,6 @@ button.button-icon.help-button-icon {
   );
   color: #fff;
   border-radius: 4px;
-  cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
@@ -782,7 +819,6 @@ button.button-icon.help-button-icon {
   display: flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   min-width: 0;
@@ -943,7 +979,6 @@ button.button-icon.help-button-icon {
 }
 
 .more-details summary {
-  cursor: pointer;
   color: var(--teal);
   font-weight: 600;
   user-select: none;
@@ -964,7 +999,6 @@ button {
   border-radius: 4px;
   border: none;
   padding: 8px 16px;
-  cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s, box-shadow 0.2s;
   white-space: nowrap;
@@ -1023,6 +1057,11 @@ button.button-icon {
   background-color: transparent;
   color: var(--teal);
   box-shadow: none;
+  z-index: 1000;
+
+  &.hidden {
+    display: none;
+  }
 
   &:active {
     color: var(--teal);
@@ -1044,6 +1083,8 @@ button.button-icon {
 
 button.button-icon.search-icon-btn {
   color: var(--muted);
+  height: 100%;
+  margin-right: 8px;
   &:hover:disabled,
   &:disabled,
   &:active:disabled {
@@ -1104,16 +1145,19 @@ button.button-chip {
 .search-icon-btn {
   position: absolute;
   right: 0;
-  padding: 2px;
+  top: 0;
+  padding: 8px;
   background: transparent;
   border: none;
   color: var(--muted);
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
   transition: color 0.2s;
+  &.hidden {
+    display: none;
+  }
 }
 
 .search-icon-btn:hover {
@@ -1251,7 +1295,6 @@ h1 {
   font-size: 24px;
   padding: 8px 0;
   flex: 1;
-  cursor: pointer;
   user-select: none;
   transition: color 0.2s, transform 0.2s;
 }
@@ -1331,7 +1374,6 @@ a {
 
 .sidebar-overlay {
   position: fixed;
-  display: none;
   top: 0;
   left: 0;
   right: 0;
@@ -1339,8 +1381,9 @@ a {
   background: rgba(0, 0, 0, 0.5);
   z-index: 150;
   backdrop-filter: blur(2px);
-  &.open {
-    display: flex;
+  display: flex;
+  &.hidden {
+    display: none;
   }
 }
 
@@ -1383,7 +1426,6 @@ a {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   padding: 12px 8px;
-  cursor: pointer;
   z-index: 100;
   display: none;
   flex-direction: column;
@@ -1437,9 +1479,6 @@ a {
   .sidebar-overlay {
     display: none;
   }
-  .show {
-    display: block;
-  }
   .checkbox-list {
     display: block;
   }
@@ -1477,7 +1516,10 @@ a {
     display: unset;
   }
   .filter-dropdown-wrapper {
-    display: none;
+    display: flex;
+    &.hidden {
+      display: none;
+    }
   }
 
   .mobile-hide {
@@ -1525,7 +1567,7 @@ a {
       border: none;
       color: var(--border-color);
       font-size: medium;
-      cursor: pointer;
+      /* cursor: pointer; */
       padding: 4px 8px;
       line-height: 1;
       opacity: 0.7;
@@ -1550,6 +1592,9 @@ a {
 
   .sidebar-toggle-btn {
     display: flex;
+    &.hidden {
+      display: none;
+    }
   }
 
   .clear-filters-btn {
@@ -1669,7 +1714,9 @@ a {
     bottom: 0;
     background: var(--bg);
     z-index: 2000;
-    display: none;
+    &.hidden {
+      display: none;
+    }
   }
 
   .mobile-search-screen {
@@ -1699,17 +1746,12 @@ a {
     position: unset;
     min-width: unset;
   }
-  .mobile-filter-screen .filter-dropdown.show{
-    display: flex;
-  }
-
 
   .mobile-filter-screen[style*="display: block"] {
     display: flex;
   }
 
-  .mobile-filter-screen .checkbox-list,
-  .mobile-filter-screen .mobile-filter-list {
+  .mobile-filter-screen .checkbox-list {
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -1747,11 +1789,13 @@ a {
     text-align: left;
   }
 
-  
+  .mobile-header .search-input.mobile-search-trigger {
+    color: var(--muted);
+  }
+
   .mobile-search-trigger {
     color: var(--muted);
     font-size: 16px;
-    cursor: pointer;
   }
 
   .mobile-search-screen .search-input::placeholder {
@@ -1766,21 +1810,6 @@ a {
     flex-shrink: 0;
   }
 
-  .mobile-search-filters {
-    display: flex;
-    gap: 8px;
-    padding: 12px 16px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    background: var(--bg);
-    scrollbar-width: none;
-    flex-shrink: 0;
-  }
-
-  .mobile-search-filters::-webkit-scrollbar {
-    display: none;
-  }
-
   .mobile-search-options {
     display: flex;
     padding: 8px 16px;
@@ -1788,8 +1817,7 @@ a {
     flex-shrink: 0;
   }
 
-  .search-count,
-  .mobile-search-count {
+  .search-count {
     padding: 8px 16px;
     font-size: 13px;
     color: var(--muted);
@@ -1829,7 +1857,6 @@ a {
     font-size: 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     transition: background 0.2s, opacity 0.2s;
-    cursor: pointer;
   }
 
   .mobile-nav-item:active,
@@ -1843,8 +1870,7 @@ a {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  button.clear-filter,
-  .mobile-filter-clear {
+  button.clear-filter {
     display: flex;
     align-items: center;
     padding: 10px 16px;
@@ -1854,29 +1880,13 @@ a {
     color: var(--muted);
     font-size: 14px;
     white-space: nowrap;
-    cursor: pointer;
     transition: all 0.2s;
-  }
-
-  .mobile-filter-clear:active {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.3);
   }
 
   .mobile-search-prompt {
     text-align: center;
     color: var(--muted);
     padding: 60px 20px;
-    font-size: 15px;
-  }
-
-  .mobile-search-loader {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 40px 20px;
-    color: var(--teal);
     font-size: 15px;
   }
 
@@ -1903,22 +1913,15 @@ a {
   }
 
   .filter-dropdown {
-      position: unset;
-      background: unset;
-      border: unset;
-      border-radius: 0;
-      box-shadow: unset;
-      padding: 0;
-      /* z-index: unset;
-      flex-direction: unset;
-      max-height: unset;
-      overflow-y: unset;
-      padding: unset;
-      min-width: unset; */
+    position: unset;
+    background: unset;
+    border: unset;
+    border-radius: 0;
+    box-shadow: unset;
+    padding: 0;
   }
 
-  .filter-dropdown .search-input,
-  .mobile-filter-search {
+  .filter-dropdown .search-input {
     width: 100%;
     padding: 16px;
     border: none;
@@ -1930,81 +1933,56 @@ a {
     height: unset;
     box-sizing: border-box;
   }
-  
-  .filter-dropdown .search-input::placeholder
-  .mobile-filter-search::placeholder {
+
+  .filter-dropdown .search-input::placeholder {
     color: var(--muted);
   }
 
-  .checkbox-list,
-  .mobile-filter-list {
+  .checkbox-list {
     padding: 0;
     min-height: 0;
   }
 
-  .checkbox-list .checkbox-item,
-  .mobile-filter-list .mobile-filter-item {
+  .checkbox-list .checkbox-item {
     display: flex;
     align-items: center;
     padding: 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    cursor: pointer;
     transition: background 0.15s;
     background: transparent;
   }
 
-  .checkbox-list .checkbox-item:hover,
-  .mobile-filter-list .mobile-filter-item:hover {
+  .checkbox-list .checkbox-item:hover {
     background: transparent;
     box-shadow: none;
   }
 
-  .checkbox-list .checkbox-item:active, 
-  .mobile-filter-list .mobile-filter-item:active {
+  .checkbox-list .checkbox-item:active {
     background: rgba(255, 255, 255, 0.08);
     box-shadow: none;
   }
 
-  .mobile-filter-disclaimer {
-    padding: 16px;
-    font-size: 12px;
-    color: var(--muted);
-    background: rgba(255, 255, 255, 0.02);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    line-height: 1.5;
-    text-align: center;
-  }
-
-  /* Eventually we can remove the mobile-filter-item once everything is consolidated  */
-  .checkbox-list .checkbox-item:active, 
-  .mobile-filter-item:active {
+  .checkbox-list .checkbox-item:active {
     background: rgba(255, 255, 255, 0.08);
   }
 
-  .checkbox-list .checkbox-item:last-child,
-  .mobile-filter-item:last-child {
+  .checkbox-list .checkbox-item:last-child {
     border-bottom: none;
   }
 
-
-  .mobile-filter-item input[type="radio"],
-  .checkbox-list .checkbox-item[type="checkbox"],
-  .mobile-filter-item input[type="checkbox"] {
+  .checkbox-list .checkbox-item[type="checkbox"] {
     width: 20px;
     height: 20px;
     margin-right: 12px;
     accent-color: var(--teal);
   }
 
-  .filter-dropdown .checkbox-list .checkbox-item span,
-  .mobile-filter-item span {
+  .filter-dropdown .checkbox-list .checkbox-item span {
     flex: 1;
     font-size: 15px;
   }
 
-  /* TODO KA remove mobile-filter-actions once everything is consolidated */
-  .filter-actions,
-  .mobile-filter-actions {
+  .filter-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2016,24 +1994,7 @@ a {
     flex-direction: row;
   }
 
-  .mobile-action-btn {
-    padding: 8px 16px;
-    background: var(--teal);
-    color: #000;
-    border: none;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .mobile-action-btn:active {
-    opacity: 0.8;
-  }
-
   .mobile-bottom-sheet {
-    display: none;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
   }
@@ -2075,51 +2036,20 @@ a {
     margin-bottom: 24px;
   }
 
-  .mobile-checkbox-item {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: background 0.15s;
-  }
-
-  .mobile-checkbox-item:active {
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  
   .filter-dropdown label.checkbox-item.checkbox-label.select-all {
     padding: 0;
   }
 
-  .checkbox-item input[type="checkbox"],
-  .mobile-checkbox-item input[type="checkbox"] {
+  .checkbox-item input[type="checkbox"] {
     width: 22px;
     height: 22px;
     margin-right: 16px;
     accent-color: var(--teal);
-    cursor: pointer;
   }
 
-  .checkbox-item span,
-  .mobile-checkbox-item span {
+  .checkbox-item span {
     font-size: 17px;
     flex: 1;
-  }
-
-  .mobile-checkbox-item.type-orb span {
-    color: #4ac6aa;
-    font-weight: 600;
-  }
-
-  .mobile-checkbox-item.type-task span {
-    color: #d7421c;
-    font-weight: 600;
-  }
-
-  .mobile-checkbox-item.type-flow span {
-    color: #666;
-    font-weight: 600;
   }
 
   .mobile-apply-btn {
@@ -2131,7 +2061,6 @@ a {
     border-radius: 24px;
     font-size: 17px;
     font-weight: 700;
-    cursor: pointer;
     letter-spacing: 1px;
   }
 
@@ -2168,6 +2097,23 @@ a {
     position: relative;
     display: flex;
     align-items: center;
+    color: var(--muted);
+
+    &.expanded {
+      height: 100%;
+      input {
+        border-radius: 0;
+        height: 100%;
+        padding-left: 70px;
+      }
+    }
+  }
+
+  .mobile-header .search-input-wrapper {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    height: 100%;
   }
 
   .mobile-search-trigger::placeholder {
@@ -2308,7 +2254,7 @@ a {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow-y: auto;
+  /* overflow-y: auto; */
   padding: 12px;
   gap: 8px;
   border-radius: 8px;
@@ -2366,6 +2312,7 @@ a {
   gap: 8px;
 }
 /* #endregion */
+
 /* #region Current Entry Card */
 
 .dialogue-content .current-entry-card {
@@ -2449,6 +2396,7 @@ a {
 /* #endregion */
 /* #region Search Results and Entry List */
 .result-item.card.card-item {
+  min-height: fit-content;
   .highlighted-term {
     font-weight: bold;
     background-color: transparent;
@@ -2477,8 +2425,6 @@ a {
 }
 
 .result-item.card {
-  min-height: unset;
-  overflow-y: unset;
   height: min-content;
 }
 
@@ -2519,7 +2465,7 @@ a {
   gap: 4px;
   align-content: center;
   align-items: center;
-  
+
   h4 {
     margin: 4px 0 4px 0;
     display: flex;
@@ -2570,7 +2516,6 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
-  cursor: pointer;
   user-select: none;
   position: relative;
 }
@@ -2578,7 +2523,6 @@ a {
 .settings-checkbox input[type="checkbox"] {
   position: absolute;
   opacity: 0;
-  cursor: pointer;
   width: 20px;
   height: 20px;
 }

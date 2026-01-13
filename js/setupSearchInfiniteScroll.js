@@ -1,4 +1,4 @@
-import { entryListEl, mobileSearchResults } from "./main.js";
+import { entryListEl, mobileSearchScreen, searchLoader } from "./main.js";
 import {
   search,
   currentSearchTotal,
@@ -8,22 +8,17 @@ import {
   isLoadingMore,
   setIsLoadingMore,
 } from "./search.js";
-import { $ } from "./ui.js";
+import { $, toggleElementVisibility } from "./ui.js";
 
 // Search pagination state
 
-const searchLoader = $("searchLoader");
-const mobileSearchLoader = $("mobileSearchLoader");
-
 // Setup infinite scroll for search results
 export function setupSearchInfiniteScroll() {
-  if (!entryListEl) return;
-
-  entryListEl.addEventListener("scroll", () => {
+  mobileSearchScreen.addEventListener("scroll", (e) => {
     // Check if we're near the bottom and have more results to load
-    const scrollTop = entryListEl.scrollTop;
-    const scrollHeight = entryListEl.scrollHeight;
-    const clientHeight = entryListEl.clientHeight;
+    const scrollTop = e?.target?.scrollTop;
+    const scrollHeight = e?.target?.scrollHeight;
+    const clientHeight = e?.target?.clientHeight;
 
     const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 100;
 
@@ -33,22 +28,17 @@ export function setupSearchInfiniteScroll() {
       currentSearchOffset < currentSearchTotal
     ) {
       // Hide search indicator
-      if (searchLoader) {
-        searchLoader.classList.add("hidden");
-      }
+      toggleElementVisibility(searchLoader, false);
       // Load more results
       search(false);
     }
   });
-} // Setup infinite scroll for mobile search results
-export function setupMobileSearchInfiniteScroll() {
-  if (!mobileSearchResults) return;
 
-  mobileSearchResults.addEventListener("scroll", () => {
+  entryListEl.addEventListener("scroll", (e) => {
     // Check if we're near the bottom and have more results to load
-    const scrollTop = mobileSearchResults.scrollTop;
-    const scrollHeight = mobileSearchResults.scrollHeight;
-    const clientHeight = mobileSearchResults.clientHeight;
+    const scrollTop = e.target.scrollTop;
+    const scrollHeight = e.target.scrollHeight;
+    const clientHeight = e.target.clientHeight;
 
     const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 100;
 
@@ -57,10 +47,8 @@ export function setupMobileSearchInfiniteScroll() {
       !isLoadingMore &&
       currentSearchOffset < currentSearchTotal
     ) {
-      // Remove loading indicator
-      if (mobileSearchLoader) {
-        mobileSearchLoader.classList.add("hidden");
-      }
+      // Hide search indicator
+      toggleElementVisibility(searchLoader, false);
       // Load more results
       search(false);
     }
