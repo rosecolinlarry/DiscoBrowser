@@ -952,11 +952,15 @@ function setupConvoFilter() {
     addToSelectionBtn.addEventListener("click", () => {
       selectedConvoIds = new Set(selectedConvoIds);
       updateConvoFilterLabel();
-      toggleElementVisibility(mobileConvoFilterWrapper, false);
-
-      // Trigger new search with updated filter
-      if (convoFilterSearch.value.trim()) {
-        search();
+      if (mobileMediaQuery.matches) {
+        // Mobile: use history to close the mobile filter so history entries remain consistent
+        window.history.back();
+      } else {
+        // Desktop: close the dropdown and apply search
+        toggleElementVisibility(convoFilterDropdown, false);
+        if (convoFilterSearch.value.trim()) {
+          search();
+        }
       }
     });
   }
@@ -1116,12 +1120,14 @@ async function populateActorDropdown() {
       filterActors();
       updateActorFilterLabel();
 
-      // Close mobile actor filter screen and remove dropdown show state
-      toggleElementVisibility(mobileActorFilterWrapper, false);
-      toggleElementVisibility(actorFilterDropdown, false);
-
-      // Trigger a reset search so results reflect the new selection
-      search(true);
+      if (mobileMediaQuery.matches) {
+        // Mobile: close via history so previous view is restored
+        window.history.back();
+      } else {
+        // Desktop: close the dropdown and re-run a reset search
+        toggleElementVisibility(actorFilterDropdown, false);
+        search(true);
+      }
     });
   }
 
@@ -1322,9 +1328,10 @@ function triggerSearch(e) {
 // #region Sidebars
 // #region History Sidebar
 function openHistorySidebar() {
+  closeAllSidebars();
   toggleElementVisibility(historySidebar, true);
-  closeConversationSection();
   historySidebarClose.addEventListener("click", closeHistorySidebar);
+  toggleElementVisibility(sidebarOverlay, true);
 }
 function closeHistorySidebar() {
   toggleElementVisibility(historySidebar, false);
@@ -1333,15 +1340,15 @@ function closeHistorySidebar() {
 // #endregion
 
 // #region Conversation Tree Sidebar
-function closeConversationSection() {
-  toggleElementVisibility(convoSidebar, false);
-  toggleElementVisibility(sidebarOverlay, false);
-}
 function openConversationSection() {
-  closeHistorySidebar();
+  closeAllSidebars();
   toggleElementVisibility(convoSidebar, true);
   convoSidebarClose.addEventListener("click", closeConversationSection);
   toggleElementVisibility(sidebarOverlay, true);
+}
+function closeConversationSection() {
+  toggleElementVisibility(convoSidebar, false);
+  toggleElementVisibility(sidebarOverlay, false);
 }
 // #endregion
 // #endregion
@@ -1349,6 +1356,14 @@ function openConversationSection() {
 export function closeMobileSearchScreen() {
   toggleElementVisibility(mobileSearchScreen, false);
   mobileSearchInputWrapper.classList.remove("expanded");
+
+  // Clear mobile search UI state to avoid stale results being visible when closed
+  if (mobileSearchResults) {
+    mobileSearchResults.innerHTML = "";
+  }
+  if (mobileSearchCount) {
+    toggleElementVisibility(mobileSearchCount, false);
+  }
 }
 
 // Setup clear filters button
@@ -1601,12 +1616,34 @@ async function setupBrowserHistory() {
 
     const state = event.state;
 
-    // Always close mobile search screen if it's open (when navigating via back button)
-    closeMobileSearchScreen();
+    // Close mobile-only filter pages by default (only when on mobile)
+    if (mobileMediaQuery.matches) {
+      toggleElementVisibility(mobileConvoFilterWrapper, false);
+      toggleElementVisibility(mobileActorFilterWrapper, false);
+    }
 
     if (!state || state.view === "home") {
-      // Go back to home view
+      // Close mobile search and go to home view
+      closeMobileSearchScreen();
       goToHomeView();
+    } else if (state.view === "search") {
+      if (mobileMediaQuery.matches) {
+        // Return to mobile search screen; openMobileSearchScreen() will re-run the search
+        openMobileSearchScreen();
+      } else {
+        // Desktop: search is treated as a forward-only action
+        goToHomeView();
+      }
+    } else if (state.view === "mobile-filter") {
+      // Only handle mobile-filter on mobile devices
+      if (mobileMediaQuery.matches) {
+        // Open the specific mobile filter page
+        if (state.filter === "convo") {
+          toggleElementVisibility(mobileConvoFilterWrapper, true);
+        } else if (state.filter === "actor") {
+          toggleElementVisibility(mobileActorFilterWrapper, true);
+        }
+      }
     } else if (state.view === "conversation") {
       if (state.convoId && state.entryId) {
         // Going to a specific entry
@@ -1648,9 +1685,6 @@ async function setupBrowserHistory() {
 
         await loadEntriesForConversation(state.convoId, false);
       }
-    } else if (state.view === "search") {
-      // Going back to search should actually go to home since search is a "forward" action
-      goToHomeView();
     }
 
     currentAppState = state?.view || "home";
@@ -1932,10 +1966,12 @@ export async function navigateToEntry(
     );
   }
 
-  // Show More Details
-  if (moreDetailsEl) {
+  // Show More Details only if the setting is enabled or it was already open
+  if (moreDetailsEl && (alwaysShowMoreDetails() || moreDetailsEl.open)) {
     moreDetailsEl.open = true;
-    toggleElementVisibility(moreDetailsEl, true);
+  } else if (moreDetailsEl) {
+    // Keep it collapsed when the user hasn't enabled auto-open and didn't leave it open
+    moreDetailsEl.open = false;
   }
 
   // Disable/enable root button
@@ -2229,14 +2265,25 @@ function openMobileSearchScreen() {
     pushHistoryState("search");
   }
   showSearchCount();
+  closeAllSidebars();
   toggleElementVisibility(mobileSearchScreen, true);
   mobileSearchInputWrapper.classList.add("expanded");
   searchInput.focus();
 
-  // If there are already mobile search results rendered, re-run the search with reset = true
-  // so results reflect the current search term and active filters.
-  if (mobileSearchResults && mobileSearchResults.children.length > 0) {
-    search(true);
+  // On mobile, always re-run the search when opening the mobile search screen
+  // to ensure results and counts are restored. Prevent duplicate history pushes
+  // by temporarily marking as handling a popstate event while running the search.
+  if (mobileMediaQuery.matches) {
+    const prevPop = isHandlingPopState;
+    isHandlingPopState = true;
+    try {
+      search(true);
+    } finally {
+      isHandlingPopState = prevPop;
+    }
+  } else {
+    // No query and no results — make sure counters are hidden
+    if (mobileSearchCount) toggleElementVisibility(mobileSearchCount, false);
   }
 }
 
@@ -2251,63 +2298,6 @@ function setupMobileSearch() {
     // Use browser back to return to previous state
     window.history.back();
   });
-
-  // // Mobile search icon button
-  // const mobileSearchIconBtn = $("mobileSearchIconBtn");
-  // mobileSearchIconBtn.addEventListener("click", () => {
-  //   search();
-  // });
-  // // Clear filters button
-  // if (mobileClearFilters) {
-  //   mobileClearFilters.addEventListener("click", () => {
-  //     // Clear conversation filter
-  //     selectedConvoIds.clear();
-  //     const convoCheckboxes = convoCheckboxList?.querySelectorAll(
-  //       'input[type="checkbox"]'
-  //     );
-  //     convoCheckboxes.forEach((cb) => {
-  //       cb.checked = false;
-  //     });
-  //     selectAllConvos.checked = true;
-  //     selectAllConvos.indeterminate = false;
-  //     updateConvoFilterLabel();
-
-  //     // Clear type filter
-  //     selectedTypeIds.clear();
-  //     selectedTypeIds.add("all");
-  //     const typeCheckboxes = typeCheckboxList?.querySelectorAll(
-  //       'input[type="checkbox"][data-type]'
-  //     );
-  //     typeCheckboxes.forEach((cb) => {
-  //       cb.checked = true;
-  //     });
-  //     selectAllTypes.checked = true;
-  //     selectAllTypes.indeterminate = false;
-  //     updateTypeFilterLabel();
-
-  //     // Clear whole words
-  //     wholeWordsCheckbox.checked = false;
-
-  //     // Re-run search if there's an active query
-  //     if ($("search")?.value) {
-  //       // Prevent adding a history entry for this reset
-  //       const prevPop = isHandlingPopState;
-  //       isHandlingPopState = true;
-  //       try {
-  //         search(true);
-  //       } finally {
-  //         isHandlingPopState = prevPop;
-  //       }
-  //     }
-  //   });
-  // }
-
-  // Conversation filter
-  if (mobileConvoFilter) {
-    mobileConvoFilter.addEventListener("click", () => {
-      showMobileConvoFilter();
-    });
-  }
 
   // Setup convo filter screen
   setupConvoActorFilter();
@@ -2348,10 +2338,10 @@ function setupMobileSidebar() {
 }
 
 function openMobileNavSidebar() {
+  closeAllSidebars();
   toggleElementVisibility(mobileNavPanel, true);
   toggleElementVisibility(sidebarOverlay, true);
   mobileNavSidebarClose.addEventListener("click", closeMobileNavSidebar);
-  closeConversationSection();
 }
 
 function closeMobileNavSidebar() {
@@ -2408,7 +2398,7 @@ function updateMobileNavButtons() {
 
 function closeAllSidebars() {
   const modals = document.querySelectorAll(".sidebar");
-  modals.forEach((modal) => toggleElementVisibility(modals, false));
+  modals.forEach((modal) => toggleElementVisibility(modal, false));
   toggleElementVisibility(sidebarOverlay, false);
 }
 
@@ -2418,10 +2408,20 @@ function closeAllModals() {
 }
 
 function showMobileConvoFilter() {
+  // Close the mobile search screen visually and push a history entry for the filter page (mobile only)
+  closeMobileSearchScreen();
+  if (mobileMediaQuery.matches && !isHandlingPopState) {
+    pushHistoryState("mobile-filter", { filter: "convo" });
+  }
   toggleElementVisibility(mobileConvoFilterWrapper, true);
 }
 
 function showMobileActorFilter() {
+  // Close the mobile search screen visually and push a history entry for the filter page (mobile only)
+  closeMobileSearchScreen();
+  if (mobileMediaQuery.matches && !isHandlingPopState) {
+    pushHistoryState("mobile-filter", { filter: "actor" });
+  }
   toggleElementVisibility(mobileActorFilterWrapper, true);
 }
 
@@ -2432,12 +2432,32 @@ function showMobileTypeFilter() {
 
 function setupConvoActorFilter() {
   const backBtn = $("mobileConvoFilterBack");
-  // Back button - Apply Changes
+  if (!backBtn) return;
+
+  // Use browser back on mobile to return to the previous view so history is kept in sync
   backBtn.addEventListener("click", () => {
-    toggleElementVisibility(mobileConvoFilterWrapper, false);
-    // Apply changes and re-run search with reset
-    search(true);
+    if (mobileMediaQuery.matches) {
+      window.history.back();
+    } else {
+      // Desktop: just close the filter screen and apply changes
+      toggleElementVisibility(mobileConvoFilterWrapper, false);
+      search(true);
+    }
   });
+
+  // Close when clicking outside the content area (mobile only)
+  if (mobileConvoFilterWrapper) {
+    mobileConvoFilterWrapper.addEventListener("click", (e) => {
+      if (e.target === mobileConvoFilterWrapper) {
+        if (mobileMediaQuery.matches) {
+          window.history.back();
+        } else {
+          toggleElementVisibility(mobileConvoFilterWrapper, false);
+          search(true);
+        }
+      }
+    });
+  }
 }
 
 function setupMobileActorFilter() {
@@ -2446,10 +2466,27 @@ function setupMobileActorFilter() {
   if (!backBtn) return;
 
   backBtn.addEventListener("click", () => {
-    toggleElementVisibility(mobileActorFilterWrapper, false);
-    // Apply changes and re-run search with reset
-    search(true);
+    if (mobileMediaQuery.matches) {
+      window.history.back();
+    } else {
+      toggleElementVisibility(mobileActorFilterWrapper, false);
+      search(true);
+    }
   });
+
+  // Close when clicking outside the content area
+  if (mobileActorFilterWrapper) {
+    mobileActorFilterWrapper.addEventListener("click", (e) => {
+      if (e.target === mobileActorFilterWrapper) {
+        if (mobileMediaQuery.matches) {
+          window.history.back();
+        } else {
+          toggleElementVisibility(mobileActorFilterWrapper, false);
+          search(true);
+        }
+      }
+    });
+  }
 }
 
 function setupMobileTypeFilter() {
