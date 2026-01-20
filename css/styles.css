@@ -374,9 +374,6 @@ label {
   display: flex;
   align-items: center;
   /* flex: 5; */
-  &.desktop .search-input {
-    padding-right: 39px;
-  }
 }
 
 .search-input {
@@ -633,9 +630,6 @@ button.button-icon.help-button-icon {
   display: inline-block;
   &.hidden {
     display: none;
-  }
-  &.type-filter-wrapper {
-    max-width: 150px;
   }
 }
 
@@ -1084,30 +1078,6 @@ button.button-icon {
   &:active:disabled {
     background-color: transparent;
     color: var(--teal);
-  }
-}
-
-.search-icon-btn-wrapper.desktop {
-  button.button-icon.search-icon-btn {
-    color: var(--teal);
-
-    &:hover {
-      background-color: transparent;
-      color: var(--disco-orange);
-    }
-    margin-right: 0;
-  }
-}
-
-.clear-icon-btn-wrapper.desktop {
-  button.button-icon.search-icon-btn {
-    color: var(--muted);
-
-    &:hover {
-      background-color: transparent;
-      color: var(--teal);
-    }
-    margin-right: 0;
   }
 }
 
