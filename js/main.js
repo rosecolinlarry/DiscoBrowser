@@ -2462,6 +2462,7 @@ function setupMobileSearch() {
   mobileSearchBack.addEventListener("click", () => {
     // Use browser back to return to previous state
     window.history.back();
+    closeMobileSearchScreen()
   });
 
   // Setup convo filter screen
