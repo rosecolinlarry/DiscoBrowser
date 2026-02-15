@@ -289,11 +289,11 @@ function createAlternatesList(alternates, data) {
       const link = document.createElement("a");
       link.href = "#";
       link.textContent = a.alternateline;
-      link.addEventListener("click", (e) => {
+      link.addEventListener("click", async (e) => {
         e.preventDefault();
         if (data.onNavigate) {
           // Don't add to history when switching to alternate view
-          data.onNavigate(
+          await data.onNavigate(
             a.conversationid,
             a.dialogueid,
             false,
@@ -329,11 +329,11 @@ function createOriginalLineSection(data) {
   const link = document.createElement("a");
   link.href = "#";
   link.textContent = data.originalDialogueText;
-  link.addEventListener("click", (e) => {
+  link.addEventListener("click", async (e) => {
     e.preventDefault();
     if (data.onNavigate) {
       // Don't add to history when switching back to original view
-      data.onNavigate(data.convoId, data.entryId, false, null, null);
+      await data.onNavigate(data.convoId, data.entryId, false, null, null);
     }
   });
 
@@ -377,9 +377,9 @@ function createParentsList(parents, data) {
       a.href = "#";
       a.dataset.convo = p.o_convo;
       a.dataset.id = p.o_id;
-      a.addEventListener("click", (e) => {
+      a.addEventListener("click", async (e) => {
         e.preventDefault();
-        if (data.onNavigate) data.onNavigate(p.o_convo, p.o_id);
+        if (data.onNavigate) await data.onNavigate(p.o_convo, p.o_id);
       });
       item.appendChild(a);
       const meta = document.createElement("span");
@@ -407,9 +407,9 @@ function createChildrenList(children, data) {
       a.href = "#";
       a.dataset.convo = c.d_convo;
       a.dataset.id = c.d_id;
-      a.addEventListener("click", (e) => {
+      a.addEventListener("click", async (e) => {
         e.preventDefault();
-        if (data.onNavigate) data.onNavigate(c.d_convo, c.d_id);
+        if (data.onNavigate) await data.onNavigate(c.d_convo, c.d_id);
       });
       item.appendChild(a);
       const meta = document.createElement("span");

@@ -77,6 +77,10 @@ export const searchInput = $("search");
 export const homePageContainer = $("homePageContainer");
 export const dialogueContent = $("dialogueContent");
 
+// Homepage Loader
+const homepageLoader= $("homepageLoader");
+const homepageOverlay= $("homepageOverlay");
+
 // Mobile search state
 export const entryListEl = $("entryList");
 export const entryListHeaderEl = $("entryListHeader");
@@ -184,6 +188,7 @@ let filteredActors = [];
 // Browser history state tracking
 let currentAppState = "home"; // 'home', 'conversation', 'search'
 export let isHandlingPopState = false;
+let isInitialNavigation = true; // Flag to skip history push on initial URL-based navigation
 
 // Browser Grid
 const browserGrid = $("browser");
@@ -201,9 +206,128 @@ export const STORAGE_KEY = "discobrowser_grid_columns";
 injectUserSettingsTemplate();
 injectIconTemplates();
 
-export function setCurrentConvoId(value) {
-  currentConvoId = value;
+// #region URL Management
+/**
+ * Update the URL with route parameters for convo and entry IDs
+ */
+export function updateUrlWithRoute(convoId, entryId = null) {
+  // Don't update URL during popstate handling to avoid double updates
+  if (isHandlingPopState) return;
+  
+  const params = new URLSearchParams();
+  if (convoId !== null && convoId !== undefined) {
+    params.set('convo', convoId);
+  }
+  if (entryId !== null && entryId !== undefined) {
+    params.set('entry', entryId);
+  }
+  
+  const queryString = params.toString();
+  const url = queryString ? `?${queryString}` : window.location.pathname;
+  window.history.replaceState({ view: "conversation", convoId, entryId }, '', url);
 }
+
+/**
+ * Update the URL with search query parameters
+ */
+export function updateUrlWithSearchParams(searchQuery, typeIds) {
+  // Don't update URL during popstate handling to avoid double updates
+  if (isHandlingPopState) return;
+  
+  const params = new URLSearchParams();
+  
+  if (searchQuery && searchQuery.trim()) {
+    params.set('q', searchQuery.trim());
+  }
+  
+  if (typeIds && typeIds.size > 0) {
+    params.set('types', Array.from(typeIds).join(','));
+  }
+  
+  const queryString = params.toString();
+  const url = queryString ? `?${queryString}` : window.location.pathname;
+  window.history.replaceState({ view: "search", query: searchQuery }, '', url);
+}
+
+/**
+ * Parse route parameters from URL
+ * Returns {convoId, entryId}
+ */
+export function getRouteParamsFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const convoId = params.get('convo') ? parseInt(params.get('convo'), 10) : null;
+  const entryId = params.get('entry') ? parseInt(params.get('entry'), 10) : null;
+  return { convoId, entryId };
+}
+
+/**
+ * Parse search parameters from URL
+ * Returns {searchQuery, convoIds, actorIds, typeIds}
+ */
+export function getSearchParamsFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const searchQuery = params.get('q') || '';
+  const typeIds = params.get('types')
+    ? new Set(params.get('types').split(','))
+    : new Set();
+  
+  return { searchQuery, typeIds };
+}
+
+
+
+/**
+ * Handle initial navigation from URL parameters on page load
+ * Allows deep-linking to specific conversations and entries
+ */
+async function handleInitialUrlNavigation() {
+  const { convoId, entryId } = getRouteParamsFromUrl();
+  const { searchQuery } = getSearchParamsFromUrl();
+  // If there's a search query in the URL, navigate to search
+  if (searchQuery) {
+    if (searchInput) {
+      searchInput.value = searchQuery;
+      // Call search directly instead of relying on event
+      search(true);
+    }
+    isInitialNavigation = false;
+    return;
+  }
+  
+  // If there's a convo ID in the URL, navigate to it
+  if (convoId !== null) {
+    // Check if the conversation exists
+    const conversation = getConversationById(convoId);
+    if (!conversation) {
+      console.warn(`Conversation ${convoId} not found`);
+      isInitialNavigation = false;
+      return;
+    }
+    
+    // If there's also an entry ID, navigate to that entry
+    if (entryId !== null) {
+      const entry = getEntry(convoId, entryId);
+      if (!entry) {
+        console.warn(`Entry ${entryId} in conversation ${convoId} not found`);
+        // Still navigate to the convo root
+        await loadEntriesForConversation(convoId, true);
+      } else {
+        // Navigate to the entry
+        await loadEntriesForConversation(convoId, true);
+        await navigateToEntry(convoId, entryId, false);
+      }
+    } else {
+      // Just navigate to the conversation
+      await loadEntriesForConversation(convoId, true);
+      highlightConversationInTree(convoId);
+    }
+  }
+  
+  // Mark initial navigation as complete
+  isInitialNavigation = false;
+}
+
+// #endregion
 
 export function getConversationsForTree() {
   allConvos = getAllConversations(showHidden());
@@ -257,11 +381,11 @@ export function updateHandlePositions() {
   browserGrid.style.setProperty("--handle-right-pos", `calc(${col3} - 4px)`);
 }
 
-function setUpMediaQueries() {
+async function setUpMediaQueries() {
   desktopMediaQuery.addEventListener("change", handleMediaQueryChange);
   tabletMediaQuery.addEventListener("change", handleMediaQueryChange);
   mobileMediaQuery.addEventListener("change", handleMediaQueryChange);
-  handleMediaQueryChange();
+  await handleMediaQueryChange();
 }
 
 function setUpConvoListEvents() {
@@ -372,6 +496,11 @@ function initializeResizableGrid() {
   setUpResizeHandleRight(rightHandle);
 }
 
+function toggleHomepageLoader(isLoading) {
+  toggleElementVisibility(homepageLoader, isLoading);
+  toggleElementVisibility(homepageOverlay, isLoading);
+}
+
 function setUpResizeHandleLeft(leftHandle) {
   // Left handle: resize convo and entries sections
   leftHandle.addEventListener("mousedown", (e) => {
@@ -444,7 +573,7 @@ function setUpResizeHandleRight(rightHandle) {
   });
 }
 
-function handleMediaQueryChange() {
+async function handleMediaQueryChange() {
   closeAllSidebars();
   closeMobileSearchScreen();
   closeAllModals();
@@ -471,7 +600,7 @@ function handleMediaQueryChange() {
   }
   moveTypeFilterDropdown();
   moveConvoFilterDropdown();
-  moveActorFilterDropdown();
+  await moveActorFilterDropdown();
   moveWholeWordsButton();
   moveClearFiltersBtn();
   moveSearchLoader();
@@ -538,9 +667,9 @@ function moveConvoFilterDropdown() {
     convoFilterLabelWrapper.appendChild(convoFilterLabel);
   }
 }
-function moveActorFilterDropdown() {
+async function moveActorFilterDropdown() {
   if (!actorFilterDropdown) {
-    populateActorDropdown();
+    await populateActorDropdown();
     return;
   }
   if (mobileMediaQuery.matches) {
@@ -1462,8 +1591,8 @@ async function loadEntriesForConversation(convoId, resetHistory = false) {
     window.history.replaceState({ view: "home" }, "", window.location.pathname);
   }
 
-  // Push browser history state (unless we're handling a popstate event)
-  if (!isHandlingPopState) {
+  // Push browser history state (unless we're handling a popstate event or in initial navigation)
+  if (!isHandlingPopState && !isInitialNavigation) {
     pushHistoryState("conversation", { convoId });
   }
 
@@ -1498,6 +1627,9 @@ async function loadEntriesForConversation(convoId, resetHistory = false) {
   // Update current state for conversation root
   currentConvoId = convoId;
   currentEntryId = null;
+  
+  // Update URL with the conversation ID
+  updateUrlWithRoute(convoId, null);
 
   // Disable root button at conversation root
   if (convoRootBtn) {
@@ -1574,7 +1706,7 @@ async function loadEntriesForConversation(convoId, resetHistory = false) {
 
     const text = r.dialoguetext || "";
     const el = createCardItem(title, convoId, entryId, text);
-    el.addEventListener("click", () => navigateToEntry(convoId, entryId));
+    el.addEventListener("click", async () => await navigateToEntry(convoId, entryId));
     entryListEl.appendChild(el);
   });
 }
@@ -1605,16 +1737,16 @@ function updateBackButtonState() {
 }
 
 async function setupBrowserHistory() {
-  // Set initial state
-  window.history.replaceState({ view: "home" }, "", window.location.pathname);
-  currentAppState = "home";
-
   // Handle browser back/forward buttons
   window.addEventListener("popstate", async (event) => {
     if (isHandlingPopState) return;
     isHandlingPopState = true;
 
     const state = event.state;
+    
+    // Also check URL parameters on back/forward (for direct navigation or URL changes)
+    const { convoId: urlConvoId, entryId: urlEntryId } = getRouteParamsFromUrl();
+    const { searchQuery: urlSearchQuery } = getSearchParamsFromUrl();
 
     // Close mobile-only filter pages by default (only when on mobile)
     if (mobileMediaQuery.matches) {
@@ -1622,7 +1754,26 @@ async function setupBrowserHistory() {
       toggleElementVisibility(mobileActorFilterWrapper, false);
     }
 
-    if (!state || state.view === "home") {
+    // First priority: check if URL has search params (from direct URL or back button)
+    if (urlSearchQuery) {
+      // URL has search query - perform search
+      if (searchInput) {
+        searchInput.value = urlSearchQuery;
+        search(true);
+      }
+    } else if (urlConvoId !== null) {
+      // URL has convo params - navigate to conversation/entry
+      if (urlEntryId !== null) {
+        const entry = getEntry(urlConvoId, urlEntryId);
+        if (entry) {
+          await loadEntriesForConversation(urlConvoId, false);
+          await navigateToEntry(urlConvoId, urlEntryId, false);
+        }
+      } else {
+        await loadEntriesForConversation(urlConvoId, false);
+        highlightConversationInTree(urlConvoId);
+      }
+    } else if (!state || state.view === "home") {
       // Close mobile search and go to home view
       closeMobileSearchScreen();
       goToHomeView();
@@ -1743,6 +1894,9 @@ async function jumpToHistoryPoint(targetIndex) {
     // Update current state
     currentConvoId = cid;
     currentEntryId = eid;
+    
+    // Update URL with the navigation point
+    updateUrlWithRoute(cid, eid);
 
     // Update the UI
     const coreRow = getEntry(currentConvoId, currentEntryId);
@@ -1797,6 +1951,11 @@ function goToHomeView() {
   currentConvoId = null;
   currentEntryId = null;
   navigationHistory = [];
+  
+  // Update URL to home (remove params)
+  if (!isHandlingPopState) {
+    window.history.replaceState({ view: "home" }, "", window.location.pathname);
+  }
 
   // Clear chat log
   if (chatLogEl) {
@@ -1829,9 +1988,9 @@ function goToHomeView() {
 }
 
 /* Jump to conversation root */
-export async function jumpToConversationRoot() {
+export async function jumpToConversationRoot(newConvoId = null) {
+  currentConvoId = currentConvoId ?? newConvoId;
   if (currentConvoId === null) return;
-
   // Clear all entries except the first one (conversation root)
   if (chatLogEl) {
     const historyItems = chatLogEl.querySelectorAll(".card-item");
@@ -1840,6 +1999,9 @@ export async function jumpToConversationRoot() {
 
   // Reset to just the conversation root
   navigationHistory = [{ convoId: currentConvoId, entryId: null }];
+  
+  // Update URL to reflect navigation to conversation root
+  updateUrlWithRoute(currentConvoId, null);
 
   // Load the conversation root
   await loadEntriesForConversation(currentConvoId, false);
@@ -1856,8 +2018,8 @@ export async function navigateToEntry(
   selectedAlternateLine = null
 ) {
   hideSearchCount();
-  // Push browser history state (unless we're handling a popstate event)
-  if (!isHandlingPopState && addToHistory) {
+  // Push browser history state (unless we're handling a popstate event or in initial navigation)
+  if (!isHandlingPopState && addToHistory && !isInitialNavigation) {
     pushHistoryState("conversation", { convoId, entryId });
   }
 
@@ -1920,8 +2082,8 @@ export async function navigateToEntry(
       lastItem.classList.remove("current-entry");
       lastItem.style.cursor = "pointer";
       const historyIndex = parseInt(lastItem.dataset.historyIndex);
-      lastItem.addEventListener("click", () => {
-        jumpToHistoryPoint(historyIndex);
+      lastItem.addEventListener("click", async () => {
+        await jumpToHistoryPoint(historyIndex);
       });
     }
   }
@@ -1953,6 +2115,9 @@ export async function navigateToEntry(
   currentEntryId = entryId;
   currentAlternateCondition = selectedAlternateCondition;
   currentAlternateLine = selectedAlternateLine;
+  
+  // Update URL with both convo and entry IDs
+  updateUrlWithRoute(convoId, entryId);
 
   // Add current entry to history log (non-clickable)
   if (addToHistory && chatLogEl) {
@@ -2220,7 +2385,7 @@ function loadChildOptions(convoId, entryId) {
         c.d_id,
         dest.dialoguetext
       );
-      el.addEventListener("click", () => navigateToEntry(c.d_convo, c.d_id));
+      el.addEventListener("click", async () => await navigateToEntry(c.d_convo, c.d_id));
       entryListEl.appendChild(el);
     }
 
@@ -2297,6 +2462,7 @@ function setupMobileSearch() {
   mobileSearchBack.addEventListener("click", () => {
     // Use browser back to return to previous state
     window.history.back();
+    closeMobileSearchScreen()
   });
 
   // Setup convo filter screen
@@ -2563,9 +2729,9 @@ function setUpMainHeader() {
 
 function setUpHistoryConvoRootButton() {
   if (convoRootBtn) {
-    convoRootBtn.addEventListener("click", () => {
+    convoRootBtn.addEventListener("click", async () => {
       if (currentConvoId !== null) {
-        jumpToConversationRoot();
+        await jumpToConversationRoot();
       }
     });
   }
@@ -2581,13 +2747,14 @@ function setUpHistoryBackButton() {
 }
 
 async function boot() {
+  toggleHomepageLoader(true);
   // Initialize icons when DOM is ready
   document.addEventListener("DOMContentLoaded", initializeIcons);
   document.addEventListener("DOMContentLoaded", initializeUserSettings);
   // Load settings from localStorage
   applySettings();
 
-  setUpMediaQueries();
+  await setUpMediaQueries();
 
   const SQL = await loadSqlJs();
   await initDatabase(SQL, "db/discobase.sqlite3");
@@ -2659,13 +2826,17 @@ async function boot() {
   updateConvoFilterLabel();
 
   // Setup browser history handling
-  setupBrowserHistory();
+  await setupBrowserHistory();
+  
+  // Handle direct URL navigation via route/query params
+  await handleInitialUrlNavigation();
 
   // Set up conversation type modal
   setupConversationTypesModal();
 
   // Initialize resizable grid
   initializeResizableGrid();
+  toggleHomepageLoader(false);
 }
 
 /* Initialize boot sequence */

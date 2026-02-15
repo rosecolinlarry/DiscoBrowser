@@ -25,10 +25,10 @@ import {
   mobileMediaQuery,
   desktopMediaQuery,
   tabletMediaQuery,
-  setCurrentConvoId,
   homePageContainer,
   dialogueContent,
-  searchInput
+  searchInput,
+  updateUrlWithSearchParams
 } from "./main.js";
 import {
   $,
@@ -125,17 +125,16 @@ export function applyFiltersToCurrentResults(useMobile = false) {
     // TODO KA consolidate search results to one dom element
     filtered.forEach((r) => {
       const div = createSearchResultDiv(r, rawQuery);
-      div.addEventListener("click", () => {
+      div.addEventListener("click", async () => {
         const cid = r.conversationid;
         const eid = r.id;
 
         const alternateCondition = r.isAlternate ? r.alternatecondition : null;
         const alternateLine = r.isAlternate ? r.dialoguetext : null;
         if (cid && !eid) {
-          setCurrentConvoId(cid);
-          jumpToConversationRoot();
+          await jumpToConversationRoot(cid);
         } else {
-          navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+          await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
         }
 
         closeMobileSearchScreen();
@@ -173,7 +172,7 @@ export function applyFiltersToCurrentResults(useMobile = false) {
 
   filtered.forEach((r) => {
     const div = createSearchResultDiv(r, rawQuery);
-    div.addEventListener("click", () => {
+    div.addEventListener("click", async () => {
       const cid = r.conversationid;
       const eid = r.id;
 
@@ -182,22 +181,24 @@ export function applyFiltersToCurrentResults(useMobile = false) {
       const alternateLine = r.isAlternate ? r.dialoguetext : null;
 
       if (cid && !eid) {
-        setCurrentConvoId(cid);
-        jumpToConversationRoot();
+        await jumpToConversationRoot(cid);
         return;
       }
 
-      navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+      await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
       highlightConversationInTree(cid);
       document.querySelector(".selected")?.scrollIntoView(true);
     });
 
     entryListEl.appendChild(div);
   });
+  
+  // Update URL with search params
+  updateUrlWithSearchParams(rawQuery, selectedTypeIds);
 }
 
 // Listen for whole-words toggle and re-filter existing results (do not re-run DB search)
-wholeWordsCheckbox.addEventListener("change", () => {
+wholeWordsCheckbox.addEventListener("change", async () => {
   // Preserve the total count computed by the last DB search — whole-words
   // filtering should only affect the filtered count, not the underlying total
   // number of results available from the database.
@@ -393,6 +394,8 @@ export function search(resetSearch = true) {
       if (!initialFiltered.length) {
         setSearchCount("(0)");
         entryListEl.innerHTML = "<div>(no matches)</div>";
+        // Update URL with search params even if no results
+        updateUrlWithSearchParams(searchInput.value, selectedTypeIds);
         return;
       }
 
@@ -408,7 +411,7 @@ export function search(resetSearch = true) {
       // Render initial set
       initialFiltered.forEach((r) => {
         const div = createSearchResultDiv(r, rawQuery);
-        div.addEventListener("click", () => {
+        div.addEventListener("click", async () => {
           const cid = (r.conversationid);
           const eid = (r.id);
 
@@ -419,18 +422,20 @@ export function search(resetSearch = true) {
           const alternateLine = r.isAlternate ? r.dialoguetext : null;
 
           if (cid && !eid) {
-            setCurrentConvoId(cid);
-            jumpToConversationRoot();
+            await jumpToConversationRoot(cid);
             return;
           }
 
-          navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+          await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
           highlightConversationInTree(cid);
           document.querySelector(".selected")?.scrollIntoView(true);
         });
 
         entryListEl.appendChild(div);
       });
+      
+      // Update URL with search params
+      updateUrlWithSearchParams(searchInput.value, selectedTypeIds);
     } else {
       // Pagination: filter only the newly fetched items and append them
       const newFiltered = filterAndMatch(res);
@@ -443,7 +448,7 @@ export function search(resetSearch = true) {
 
       newFiltered.forEach((r) => {
         const div = createSearchResultDiv(r, rawQuery);
-        div.addEventListener("click", () => {
+        div.addEventListener("click", async () => {
           const cid = (r.conversationid);
           const eid = (r.id);
 
@@ -454,12 +459,11 @@ export function search(resetSearch = true) {
           const alternateLine = r.isAlternate ? r.dialoguetext : null;
 
           if (cid && !eid) {
-            setCurrentConvoId(cid);
-            jumpToConversationRoot();
+            await jumpToConversationRoot(cid);
             return;
           }
 
-          navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+          await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
           highlightConversationInTree(cid);
           document.querySelector(".selected")?.scrollIntoView(true);
         });
@@ -583,7 +587,7 @@ function performMobileSearch(resetSearch = true) {
       mobileSearchResults.innerHTML = "";
       initialFiltered.forEach((r) => {
         const div = createSearchResultDiv(r, searchInput.value);
-        div.addEventListener("click", () => {
+        div.addEventListener("click", async () => {
           const cid = (r.conversationid);
           const eid = (r.id);
 
@@ -592,10 +596,9 @@ function performMobileSearch(resetSearch = true) {
             : null;
           const alternateLine = r.isAlternate ? r.dialoguetext : null;
           if (cid && !eid) {
-            setCurrentConvoId(cid);
-            jumpToConversationRoot();
+            await jumpToConversationRoot(cid);
           } else {
-            navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+            await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
           }
 
           closeMobileSearchScreen();
@@ -616,7 +619,7 @@ function performMobileSearch(resetSearch = true) {
 
       newFiltered.forEach((r) => {
         const div = createSearchResultDiv(r, searchInput.value);
-        div.addEventListener("click", () => {
+        div.addEventListener("click", async () => {
           const cid = (r.conversationid);
           const eid = (r.id);
 
@@ -625,10 +628,9 @@ function performMobileSearch(resetSearch = true) {
             : null;
           const alternateLine = r.isAlternate ? r.dialoguetext : null;
           if (cid && !eid) {
-            setCurrentConvoId(cid);
-            jumpToConversationRoot();
+            await jumpToConversationRoot(cid);
           } else {
-            navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
+            await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
           }
 
           closeMobileSearchScreen();
@@ -647,6 +649,11 @@ function performMobileSearch(resetSearch = true) {
 
     // Update offset for next load (based on database results, not filtered)
     currentSearchOffset += results.length;
+    
+    // Update URL with search params (on initial search)
+    if (resetSearch) {
+      updateUrlWithSearchParams(searchInput.value, selectedTypeIds);
+    }
 
     // Add loading indicator if there are more results in the database and we got results this time
     if (results.length > 0 && currentSearchOffset < currentSearchTotal) {
