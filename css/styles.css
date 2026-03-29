@@ -639,10 +639,14 @@ button.button-icon.help-button-icon {
     transform: translateY(3px);
   }
 }
+.home-page-card ul.modal-type-list {
+  padding: 0 0 0 5px;
+  margin: 0;
+}
 
 .modal-type-list {
   list-style: none;
-  padding: 0;
+  padding-left: 0;
   margin: 0;
 }
 
@@ -997,7 +1001,7 @@ button.button-icon.help-button-icon {
 
 .home-page-card p {
   line-height: 1.6;
-  margin-bottom: 16px;
+  margin: 5px;
 }
 
 .home-page-card ul {
