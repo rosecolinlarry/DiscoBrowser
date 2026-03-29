@@ -1,0 +1,78 @@
+<div
+  class="modal settings-modal"
+  role="dialog"
+  aria-labelledby="settingsModalTitle"
+  aria-modal="true"
+>
+  <div class="modal-header">
+    <h3 id="settingsModalTitle">Settings</h3>
+    <button
+      id="settingsModalClose"
+      class="modal-close button-icon"
+      aria-label="Close"
+    >
+      <div
+        class="icon-placeholder"
+        data-icon-template="icon-close-template"
+        data-icon-size="24px"
+      ></div>
+    </button>
+  </div>
+  <div class="modal-body settings-body">
+    <div class="settings-section">
+      <label class="settings-checkbox checkbox-label">
+        <input type="checkbox" id="resetDesktopLayoutCheckbox" />
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-label">Reset desktop layout</span>
+      </label>
+      <p class="settings-description">
+        Resets the layout to the default column sizes and positions. (Desktop
+        Only)
+      </p>
+    </div>
+    <div class="settings-section">
+      <label class="settings-checkbox checkbox-label">
+        <input type="checkbox" id="disableColumnResizingCheckbox" />
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-label">Disable column resizing</span>
+      </label>
+      <p class="settings-description">
+        Hides and disables the ability to resize columns. (Desktop Only)
+      </p>
+    </div>
+    <div class="settings-section">
+      <label class="settings-checkbox checkbox-label">
+        <input type="checkbox" id="alwaysShowMoreDetailsCheckbox" />
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-label">Always show more details</span>
+      </label>
+      <p class="settings-description">
+        Automatically expands the More Details section when viewing entries.
+      </p>
+    </div>
+    <div class="settings-section">
+      <label class="settings-checkbox checkbox-label">
+        <input type="checkbox" id="showHiddenCheckbox" />
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-label">Show hidden</span>
+      </label>
+      <p class="settings-description">
+        Include conversations and entries marked as hidden.
+      </p>
+    </div>
+    <div class="settings-section">
+      <label class="settings-checkbox checkbox-label">
+        <input type="checkbox" id="turnOffAnimationsCheckbox" />
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-label">Turn off animations</span>
+      </label>
+      <p class="settings-description">
+        Disables all animations throughout the application.
+      </p>
+    </div>
+    <div class="settings-actions">
+      <button id="restoreDefaultSettingsBtn">Restore Default Settings</button>
+      <button id="saveSettingsBtn">Save Settings</button>
+    </div>
+  </div>
+</div>

@@ -177,18 +177,18 @@ body::-webkit-scrollbar-thumb:hover {
 /* Add animation to "page content" */
 .animate-bottom {
   position: relative;
-  -webkit-animation-name: animatebottom;
+  -webkit-animation-name: animateBottom;
   -webkit-animation-duration: 1s;
-  animation-name: animatebottom;
+  animation-name: animateBottom;
   animation-duration: 1s
 }
 
-@-webkit-keyframes animatebottom {
+@-webkit-keyframes animateBottom {
   from { bottom:-100px; opacity:0 } 
-  to { bottom:0px; opacity:1 }
+  to { bottom:0; opacity:1 }
 }
 
-@keyframes animatebottom { 
+@keyframes animateBottom { 
   from{ bottom:-100px; opacity:0 } 
   to{ bottom:0; opacity:1 }
 }
@@ -755,6 +755,10 @@ button.button-icon.help-button-icon {
   margin: 0;
   padding: 8px 12px;
   font-size: 13px;
+  
+  &.id-search-input {
+    flex: 0.35;
+  }
 }
 
 .filter-controls-row {
@@ -1106,7 +1110,7 @@ button.button-icon {
   background-color: transparent;
   color: var(--teal);
   box-shadow: none;
-  z-index: 1000;
+  z-index: 100;
 
   &.hidden {
     display: none;
@@ -1189,7 +1193,7 @@ button.button-chip {
     box-shadow: none;
   }
 }
-/* #region Search Buttions */
+/* #region Search Buttons */
 
 .search-icon-btn {
   position: absolute;
@@ -1337,7 +1341,7 @@ button.button-chip {
 }
 /* #endregion */
 /* #endregion */
-/* #region Text Formating */
+/* #region Text Formatting */
 
 h1 {
   margin: 0;
@@ -2068,6 +2072,7 @@ a {
     left: 0;
     right: 0;
     animation: slideUp 0.3s ease-out;
+    z-index: 2001;
   }
 
   .bottom-sheet-content h4 {
