@@ -1,117 +1,55 @@
-import { searchDialogues as getSearchResults, getConversationsByType } from "./db.js";
+import { getConvos } from "./conversationTree.js";
 import {
-  isHandlingPopState,
+  handleSearchResultClick,
+  updateUrlWithSearchParams,
   pushHistoryState,
-  selectedActorIds,
-  allConvos,
-  allActors,
-  searchLoader,
-  currentEntryContainerEl,
-  entryListEl,
-  searchResultLimit,
-  filterResultsByType,
-  selectedTypeIds,
-  entryListHeaderEl,
-  createSearchResultDiv,
-  jumpToConversationRoot,
-  navigateToEntry,
-  highlightConversationInTree,
-  closeMobileSearchScreen,
+  getIsHandlingPopState,
+} from "./navigation.js";
+import {
   mobileSearchCount,
   mobileSearchResults,
-  mobileSearchTrigger,
-  selectedConvoIds,
-  setNavigationHistory,
-  mobileMediaQuery,
-  desktopMediaQuery,
-  tabletMediaQuery,
-  homePageContainer,
-  dialogueContent,
   searchInput,
-  updateUrlWithSearchParams
-} from "./main.js";
+  searchLoader} from "./constants.js";
+import { mobileSearchTrigger } from "./constants.js";
+import { mobileMediaQuery } from "./constants.js";
 import {
-  $,
-  toggleElementVisibility
-} from "./ui.js";
+  selectedTypeIds,
+  selectedConvoIds,
+  selectedActorIds,
+  allActors,
+  switchToSearchResultsView
+} from "./searchFilters.js";
+import { wholeWordsCheckbox } from "./constants.js";
+import {
+  getCurrentSearchTotal,
+  getCurrentSearchFilteredCount,
+  getCurrentSearchActorIds,
+  getCurrentSearchOffset,
+  getIsLoadingMore,
+  setCurrentSearchFilteredCount,
+  setCurrentSearchTotal,
+  setCurrentSearchOffset,
+  setCurrentSearchActorIds,
+  setIsLoadingMore,
+  incrementCurrentSearchFilteredCount,
+  incrementCurrentSearchOffset,
+} from "./infiniteScroll.js";
+import { createCardItem, highlightTerms, toggleElementVisibility } from "./uiHelpers.js";
+import { searchDialogues } from "./searchDialogues.js";
 import { showHidden } from "./userSettings.js";
+import { execRows, getConversationById } from "./sqlHelpers.js";
+import { entryListHeaderEl } from "./constants.js";
+import { entryListEl } from "./constants.js";
 
-// Search pagination state
-export let currentSearchOffset = 0;
-export let currentSearchConvoIds = null;
-export let currentSearchActorIds = null;
-export let currentSearchTotal = 0;
-export let currentSearchFilteredCount = 0; // Count after type filtering
-export let isLoadingMore = false;
-
-const wholeWordsCheckbox = $("wholeWordsCheckbox");
-
-
-// Keep raw (DB) results so we can apply client-side filters like whole-words without re-querying
-export let currentSearchRawResults = [];
-
-// Helper: tokenize query into quoted phrases and words (approximate DB parsing)
-function getQueryTokens(rawQuery) {
-  const quotedPhrases = [];
-  const quotedRegex = /"([^"]+)"/g;
-  let qmatch;
-  while ((qmatch = quotedRegex.exec(rawQuery)) !== null) {
-    quotedPhrases.push(qmatch[1]);
-  }
-
-  const remaining = rawQuery.replace(/"[^"]+"/g, "").trim();
-  const words = remaining ? remaining.split(/\s+/) : [];
-  return { quotedPhrases, words };
-}
-
-function escapeRegExp(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function matchesWholeWords(result, tokens) {
-  const hay = `${result.dialoguetext || ""} ${
-    result.title || ""
-  }`.toLowerCase();
-
-  for (const phrase of tokens.quotedPhrases) {
-    if (!hay.includes(phrase.toLowerCase())) return false;
-  }
-
-  for (const w of tokens.words) {
-    const wtrim = w.trim();
-    if (!wtrim) continue;
-    const re = new RegExp(`\\b${escapeRegExp(wtrim.toLowerCase())}\\b`, "i");
-    if (!re.test(hay)) return false;
-  }
-
-  return true;
-}
-
-// Filter results by type and whole-words (if enabled); for mobile, convo filtering and mobile type set are used
-function filterAndMatchResults(results, rawQuery, { useMobile = false } = {}) {
-  const tokens = getQueryTokens(rawQuery || "");
-
-  let typeSet = selectedTypeIds;
-
-  let filtered = filterResultsByType(results, typeSet);
-
-  if (selectedConvoIds && selectedConvoIds.size > 0) {
-    filtered = filtered.filter((r) => selectedConvoIds.has(r.conversationid));
-  }
-
-  if (wholeWordsCheckbox.checked && rawQuery) {
-    filtered = filtered.filter((r) => matchesWholeWords(r, tokens));
-  }
-
-  return filtered;
-}
+const searchResultLimit = 50;
+let currentSearchRawResults = [];
+let currentSearchConvoIds = null;
+let totalResultsCount;
 
 export function applyFiltersToCurrentResults(useMobile = false) {
   const rawQuery = searchInput?.value ?? "";
 
-  const filtered = filterAndMatchResults(currentSearchRawResults, rawQuery, {
-    useMobile,
-  });
+  const filtered = filterAndMatchResults(getCurrentSearchRawResults(), rawQuery);
 
   if (useMobile) {
     if (!mobileSearchResults) return;
@@ -122,24 +60,9 @@ export function applyFiltersToCurrentResults(useMobile = false) {
       toggleElementVisibility(mobileSearchCount, false);
       return;
     }
-    // TODO KA consolidate search results to one dom element
     filtered.forEach((r) => {
       const div = createSearchResultDiv(r, rawQuery);
-      div.addEventListener("click", async () => {
-        const cid = r.conversationid;
-        const eid = r.id;
-
-        const alternateCondition = r.isAlternate ? r.alternatecondition : null;
-        const alternateLine = r.isAlternate ? r.dialoguetext : null;
-        if (cid && !eid) {
-          await jumpToConversationRoot(cid);
-        } else {
-          await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
-        }
-
-        closeMobileSearchScreen();
-      });
-
+      div.addEventListener("click", handleSearchResultClick);
       mobileSearchResults.appendChild(div);
     });
 
@@ -147,14 +70,14 @@ export function applyFiltersToCurrentResults(useMobile = false) {
     if (wholeWordsCheckbox.checked && rawQuery) {
       setSearchCount(`Search Results (${filtered.length})`);
     } else {
-      setSearchCount(`Search Results (${currentSearchTotal})`);
+      setSearchCount(`Search Results (${getCurrentSearchTotal()})`);
     }
     return;
   }
 
   // Desktop: re-render full list
   entryListEl.innerHTML = "";
-  currentSearchFilteredCount = filtered.length;
+  setCurrentSearchFilteredCount(filtered.length);
   if (!filtered.length) {
     setSearchCount("(0)");
     entryListEl.innerHTML = "<div>(no matches)</div>";
@@ -162,94 +85,36 @@ export function applyFiltersToCurrentResults(useMobile = false) {
   }
 
   entryListHeaderEl.textContent = `Search Results`;
-  // If a client-only filter (whole-words) is active and there's a query,
-  // show the client-side filtered total; otherwise show the DB total.
-  if (wholeWordsCheckbox.checked && rawQuery) {
+
+  if(wholeWordsCheckbox.checked) {
     setSearchCount(`(${filtered.length})`);
-  } else {
-    setSearchCount(`(${currentSearchTotal})`);
+  }
+  else {
+    setSearchCount(`(${totalResultsCount})`)
   }
 
   filtered.forEach((r) => {
     const div = createSearchResultDiv(r, rawQuery);
-    div.addEventListener("click", async () => {
-      const cid = r.conversationid;
-      const eid = r.id;
-
-      setNavigationHistory([{ convoId: cid, entryId: null }]);
-      const alternateCondition = r.isAlternate ? r.alternatecondition : null;
-      const alternateLine = r.isAlternate ? r.dialoguetext : null;
-
-      if (cid && !eid) {
-        await jumpToConversationRoot(cid);
-        return;
-      }
-
-      await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
-      highlightConversationInTree(cid);
-      document.querySelector(".selected")?.scrollIntoView(true);
-    });
+    div.addEventListener("click", handleSearchResultClick);
 
     entryListEl.appendChild(div);
   });
-  
+
   // Update URL with search params
   updateUrlWithSearchParams(rawQuery, selectedTypeIds);
 }
-
-// Listen for whole-words toggle and re-filter existing results (do not re-run DB search)
-wholeWordsCheckbox.addEventListener("change", async () => {
-  // Preserve the total count computed by the last DB search — whole-words
-  // filtering should only affect the filtered count, not the underlying total
-  // number of results available from the database.
-  const prevTotal = currentSearchTotal;
-  applyFiltersToCurrentResults(mobileMediaQuery.matches);
-  if (prevTotal > 0 && currentSearchTotal === 0) {
-    setCurrentSearchTotal(prevTotal);
-  }
-});
-
-export function setCurrentSearchOffset(value) {
-  currentSearchOffset = value;
-}
-export function setCurrentSearchTotal(value) {
-  currentSearchTotal = value;
-}
-export function setCurrentSearchFilteredCount(value) {
-  currentSearchFilteredCount = value;
-}
-export function setIsLoadingMore(value) {
-  isLoadingMore = value;
-}
-export function setCurrentSearchConvoIds(value) {
-  currentSearchConvoIds = value;
-}
-export function setCurrentSearchActorIds(value) {
-  currentSearchActorIds = value;
-}
-
-function setSearchCount(value) {
-  const searchCounters = document.querySelectorAll(".search-count");
-  searchCounters.forEach((element) => {
-    element.textContent = value;
-    toggleElementVisibility(element, true);
-  });
-}
-
 export function showSearchCount() {
   const searchCounters = document.querySelectorAll(".search-count");
   searchCounters.forEach((element) => {
     toggleElementVisibility(element, true);
   });
 }
-
 export function hideSearchCount() {
   const searchCounters = document.querySelectorAll(".search-count");
   searchCounters.forEach((element) => {
     toggleElementVisibility(element, false);
   });
 }
-
 export function search(resetSearch = true) {
   window.dataLayer = window.dataLayer || [];
 
@@ -261,79 +126,65 @@ export function search(resetSearch = true) {
   searchInput.value = searchInput?.value?.trim() ?? "";
   if (resetSearch) {
     // Push browser history state for search view
-    if (!isHandlingPopState) {
+    if (!getIsHandlingPopState()) {
       pushHistoryState("search", { query: searchInput.value });
     }
 
     // Starting a new search
-    currentSearchOffset = 0;
+    setCurrentSearchOffset(0);
   }
 
   // Always update convo IDs from current filter selection (even when re-filtering)
-  currentSearchConvoIds =
-    selectedConvoIds.size === 0 || selectedConvoIds.size === allConvos.length
+  const tempCurrentSearchConvoIds =
+    selectedConvoIds.size === 0 || selectedConvoIds.size === getConvos().length
       ? null
       : Array.from(selectedConvoIds);
-
+  currentSearchConvoIds = tempCurrentSearchConvoIds;
   // Always update actor IDs from current filter selection (even when re-filtering)
-  currentSearchActorIds =
+  const tempCurrentSearchActorIds =
     selectedActorIds.size === 0 || selectedActorIds.size === allActors.length
       ? null
       : Array.from(selectedActorIds);
-
-  
+  setCurrentSearchActorIds(tempCurrentSearchActorIds);
   if (resetSearch) {
     toggleElementVisibility(searchLoader, true);
 
     // Hide homepage, show dialogue content for search
-    toggleElementVisibility(homePageContainer, false);
-    toggleElementVisibility(dialogueContent, true);
-
-    // Hide current entry and make search take full space
-    toggleElementVisibility(currentEntryContainerEl, false);
-    const entryListContainer = entryListEl?.closest(".entry-list");
-    if (entryListContainer) {
-      entryListContainer.classList.add("full-height");
-      entryListContainer.classList.remove("compact");
-    }
-    if (entryListEl) {
-      entryListEl.classList.remove("compact");
-    }
-
-    entryListEl.innerHTML = ""; // This clears both innerHTML and textContent
+    switchToSearchResultsView();
   }
 
   window.dataLayer.push({
-    'event': 'virtualSearch',
-    'searchTerm': searchInput.value,
-    'resetSearch': resetSearch,
-    'currentSearchOffset': currentSearchOffset,
-    'selectedActorIds': selectedActorIds,
-    'selectedConvoIds': selectedConvoIds
-  })
+    event: "virtualSearch",
+    searchTerm: searchInput.value,
+    resetSearch: resetSearch,
+    currentSearchOffset: getCurrentSearchOffset(),
+    selectedActorIds: selectedActorIds,
+    selectedConvoIds: selectedConvoIds,
+  });
 
-  if (isLoadingMore) return;
-  isLoadingMore = true;
+  if (getIsLoadingMore()) return;
+  setIsLoadingMore(true);
 
   try {
-    const response = getSearchResults(
+    const response = searchDialogues(
       searchInput.value,
       searchResultLimit,
-      currentSearchActorIds,
+      getCurrentSearchActorIds(),
       true, // filterStartInput
-      currentSearchOffset,
+      getCurrentSearchOffset(),
       currentSearchConvoIds, // conversationIds
-      showHidden()
+      showHidden(),
     );
 
     const { results: res, total } = response;
-    currentSearchTotal = total;
+    totalResultsCount = total;
+    setCurrentSearchTotal(totalResultsCount);
 
     // Append to raw results (clear if a new search)
     if (resetSearch) {
-      currentSearchRawResults = [...res];
+      setCurrentSearchRawResults([...res]);
     } else {
-      currentSearchRawResults = [...currentSearchRawResults, ...res];
+      setCurrentSearchRawResults([...getCurrentSearchRawResults(), ...res]);
     }
 
     // Helper: escape regex tokens
@@ -372,7 +223,7 @@ export function search(resetSearch = true) {
             if (!wtrim) continue;
             const re = new RegExp(
               `\\b${escapeRegExp(wtrim.toLowerCase())}\\b`,
-              "i"
+              "i",
             );
             if (!re.test(hay)) return false;
           }
@@ -388,9 +239,9 @@ export function search(resetSearch = true) {
     if (resetSearch) {
       entryListHeaderEl.textContent = "Search Results";
       entryListEl.innerHTML = "";
-      currentSearchFilteredCount = 0;
+      setCurrentSearchFilteredCount(0);
 
-      const initialFiltered = filterAndMatch(currentSearchRawResults);
+      const initialFiltered = filterAndMatch(getCurrentSearchRawResults());
       if (!initialFiltered.length) {
         setSearchCount("(0)");
         entryListEl.innerHTML = "<div>(no matches)</div>";
@@ -400,40 +251,24 @@ export function search(resetSearch = true) {
       }
 
       // Update filtered count (used internally) but display DB total or client-filtered total
-      currentSearchFilteredCount += initialFiltered.length;
+      const tempCurrentSearchFilteredCount =
+        getCurrentSearchFilteredCount() + initialFiltered.length;
+      setCurrentSearchFilteredCount(tempCurrentSearchFilteredCount);
       entryListHeaderEl.textContent = `Search Results`;
       if (wholeWordsCheckbox.checked && rawQuery) {
         setSearchCount(`(${initialFiltered.length})`);
       } else {
-        setSearchCount(`(${currentSearchTotal})`);
+        setSearchCount(`(${getCurrentSearchTotal()})`);
       }
 
       // Render initial set
       initialFiltered.forEach((r) => {
         const div = createSearchResultDiv(r, rawQuery);
-        div.addEventListener("click", async () => {
-          const cid = (r.conversationid);
-          const eid = (r.id);
-
-          setNavigationHistory([{ convoId: cid, entryId: null }]);
-          const alternateCondition = r.isAlternate
-            ? r.alternatecondition
-            : null;
-          const alternateLine = r.isAlternate ? r.dialoguetext : null;
-
-          if (cid && !eid) {
-            await jumpToConversationRoot(cid);
-            return;
-          }
-
-          await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
-          highlightConversationInTree(cid);
-          document.querySelector(".selected")?.scrollIntoView(true);
-        });
+        div.addEventListener("click", handleSearchResultClick);
 
         entryListEl.appendChild(div);
       });
-      
+
       // Update URL with search params
       updateUrlWithSearchParams(searchInput.value, selectedTypeIds);
     } else {
@@ -441,45 +276,27 @@ export function search(resetSearch = true) {
       const newFiltered = filterAndMatch(res);
 
       // Update filtered count
-      currentSearchFilteredCount += newFiltered.length;
+      incrementCurrentSearchFilteredCount(newFiltered.length);
       entryListHeaderEl.textContent = `Search Results`;
       // Show DB total for pagination
       setSearchCount(`(${total})`);
 
       newFiltered.forEach((r) => {
         const div = createSearchResultDiv(r, rawQuery);
-        div.addEventListener("click", async () => {
-          const cid = (r.conversationid);
-          const eid = (r.id);
-
-          setNavigationHistory([{ convoId: cid, entryId: null }]);
-          const alternateCondition = r.isAlternate
-            ? r.alternatecondition
-            : null;
-          const alternateLine = r.isAlternate ? r.dialoguetext : null;
-
-          if (cid && !eid) {
-            await jumpToConversationRoot(cid);
-            return;
-          }
-
-          await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
-          highlightConversationInTree(cid);
-          document.querySelector(".selected")?.scrollIntoView(true);
-        });
+        div.addEventListener("click", handleSearchResultClick);
 
         entryListEl.appendChild(div);
       });
     }
 
     // Update offset for next load (based on database results, not filtered)
-    currentSearchOffset += res.length;
+    incrementCurrentSearchOffset(res.length);
 
     // Remove any existing loading indicator
     toggleElementVisibility(searchLoader, false);
 
     // Add loading indicator if there are more results in the database and we got results this time
-    if (res.length > 0 && currentSearchOffset < currentSearchTotal) {
+    if (res.length > 0 && getCurrentSearchOffset() < getCurrentSearchTotal()) {
       toggleElementVisibility(searchLoader, true);
     }
   } catch (e) {
@@ -488,11 +305,61 @@ export function search(resetSearch = true) {
       entryListEl.textContent = "Search error";
     }
   } finally {
-    isLoadingMore = false;
+    setIsLoadingMore(false);
     toggleElementVisibility(searchLoader, false);
   }
 }
+function getQueryTokens(rawQuery) {
+  // Helper: tokenize query into quoted phrases and words (approximate DB parsing)
+  const quotedPhrases = [];
+  const quotedRegex = /"([^"]+)"/g;
+  let qmatch;
+  while ((qmatch = quotedRegex.exec(rawQuery)) !== null) {
+    quotedPhrases.push(qmatch[1]);
+  }
 
+  const remaining = rawQuery.replace(/"[^"]+"/g, "").trim();
+  const words = remaining ? remaining.split(/\s+/) : [];
+  return { quotedPhrases, words };
+}
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function matchesWholeWords(result, tokens) {
+  const hay =
+    `${result.dialoguetext || ""} ${result.title || ""}`.toLowerCase();
+
+  for (const phrase of tokens.quotedPhrases) {
+    if (!hay.includes(phrase.toLowerCase())) return false;
+  }
+
+  for (const w of tokens.words) {
+    const wtrim = w.trim();
+    if (!wtrim) continue;
+    const re = new RegExp(`\\b${escapeRegExp(wtrim.toLowerCase())}\\b`, "i");
+    if (!re.test(hay)) return false;
+  }
+
+  return true;
+}
+function filterAndMatchResults(results, rawQuery) {
+  // Filter results by type and whole-words (if enabled); for mobile, convo filtering and mobile type set are used
+  const tokens = getQueryTokens(rawQuery || "");
+
+  let typeSet = selectedTypeIds;
+
+  let filtered = filterResultsByType(results, typeSet);
+
+  if (selectedConvoIds && selectedConvoIds.size > 0) {
+    filtered = filtered.filter((r) => selectedConvoIds.has(r.conversationid));
+  }
+
+  if (wholeWordsCheckbox.checked && rawQuery) {
+    filtered = filtered.filter((r) => matchesWholeWords(r, tokens));
+  }
+
+  return filtered;
+}
 function performMobileSearch(resetSearch = true) {
   if (!mobileMediaQuery.matches) return;
   if (!searchInput) return;
@@ -501,16 +368,18 @@ function performMobileSearch(resetSearch = true) {
   if (resetSearch) {
     // Starting a new search
     // Always update convo IDs from current filter selection (even when re-filtering)
-    currentSearchConvoIds =
-      selectedConvoIds.size === 0 || selectedConvoIds.size === allConvos.length
+    const tempCurrentSearchConvoIds =
+      selectedConvoIds.size === 0 || selectedConvoIds.size === getConvos().length
         ? null
         : Array.from(selectedConvoIds);
+    currentSearchConvoIds  = tempCurrentSearchConvoIds;
     // Always update actor IDs from current filter selection (even when re-filtering)
-    currentSearchActorIds =
+    const tempCurrentSearchActorIds =
       selectedActorIds.size === 0 || selectedActorIds.size === allActors.length
         ? null
         : Array.from(selectedActorIds);
-    currentSearchOffset = 0;
+    setCurrentSearchActorIds(tempCurrentSearchActorIds);
+    setCurrentSearchOffset(0);
     toggleElementVisibility(searchLoader, true);
     if (mobileSearchResults) {
       mobileSearchResults.innerHTML = "";
@@ -518,16 +387,16 @@ function performMobileSearch(resetSearch = true) {
   }
 
   window.dataLayer.push({
-    'event': 'virtualSearch',
-    'searchTerm': searchInput.value,
-    'resetSearch': resetSearch,
-    'currentSearchOffset': currentSearchOffset,
-    'selectedActorIds': selectedActorIds,
-    'selectedConvoIds': selectedConvoIds
-  })
+    event: "virtualSearch",
+    searchTerm: searchInput.value,
+    resetSearch: resetSearch,
+    currentSearchOffset: getCurrentSearchOffset(),
+    selectedActorIds: selectedActorIds,
+    selectedConvoIds: selectedConvoIds,
+  });
 
-  if (isLoadingMore) return;
-  isLoadingMore = true;
+  if (getIsLoadingMore()) return;
+  setIsLoadingMore(true);
 
   try {
     // Always query without whole-word restriction at DB layer; we'll filter client-side
@@ -537,20 +406,21 @@ function performMobileSearch(resetSearch = true) {
       !rawQuery &&
       selectedTypeIds &&
       selectedTypeIds.size === 1 &&
-      (Array.from(selectedTypeIds)[0] === "task" || Array.from(selectedTypeIds)[0] === "orb")
+      (Array.from(selectedTypeIds)[0] === "task" ||
+        Array.from(selectedTypeIds)[0] === "orb")
     ) {
       const type = Array.from(selectedTypeIds)[0];
       const convos = getConversationsByType(type, showHidden());
       response = { results: convos, total: convos.length };
     } else {
-      response = getSearchResults(
+      response = searchDialogues(
         searchInput.value,
         searchResultLimit,
-        currentSearchActorIds,
+        getCurrentSearchActorIds(),
         true, // filterStartInput
-        currentSearchOffset,
+        getCurrentSearchOffset(),
         currentSearchConvoIds, // conversationIds
-        showHidden()
+        showHidden(),
       );
     }
     const { results, total } = response;
@@ -558,23 +428,22 @@ function performMobileSearch(resetSearch = true) {
     setCurrentSearchTotal(total);
     // Append to raw results
     if (resetSearch) {
-      currentSearchRawResults = [...results];
+      setCurrentSearchRawResults([...results]);
     } else {
-      currentSearchRawResults = [...currentSearchRawResults, ...results];
+      setCurrentSearchRawResults([...getCurrentSearchRawResults(), ...results]);
     }
 
     toggleElementVisibility(searchLoader, false);
 
     if (resetSearch) {
-      currentSearchFilteredCount = 0;
+      setCurrentSearchFilteredCount(0);
     }
 
     // Filter newly fetched results and append (for pagination) or render all (for reset)
     if (resetSearch) {
       const initialFiltered = filterAndMatchResults(
-        currentSearchRawResults,
+        getCurrentSearchRawResults(),
         searchInput.value,
-        { useMobile: true }
       );
       if (initialFiltered.length === 0) {
         mobileSearchResults.innerHTML =
@@ -587,54 +456,21 @@ function performMobileSearch(resetSearch = true) {
       mobileSearchResults.innerHTML = "";
       initialFiltered.forEach((r) => {
         const div = createSearchResultDiv(r, searchInput.value);
-        div.addEventListener("click", async () => {
-          const cid = (r.conversationid);
-          const eid = (r.id);
-
-          const alternateCondition = r.isAlternate
-            ? r.alternatecondition
-            : null;
-          const alternateLine = r.isAlternate ? r.dialoguetext : null;
-          if (cid && !eid) {
-            await jumpToConversationRoot(cid);
-          } else {
-            await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
-          }
-
-          closeMobileSearchScreen();
-        });
+        div.addEventListener("click", handleSearchResultClick);
 
         mobileSearchResults.appendChild(div);
       });
-
-      currentSearchFilteredCount = initialFiltered.length;
+      setCurrentSearchFilteredCount(initialFiltered.length);
     } else {
       // Pagination: filter only the newly fetched items and append them
-      const newFiltered = filterAndMatchResults(results, searchInput.value, {
-        useMobile: true,
-      });
+      const newFiltered = filterAndMatchResults(results, searchInput.value);
 
       // Update filtered count
-      currentSearchFilteredCount += newFiltered.length;
+      incrementCurrentSearchFilteredCount(newFiltered.length);
 
       newFiltered.forEach((r) => {
         const div = createSearchResultDiv(r, searchInput.value);
-        div.addEventListener("click", async () => {
-          const cid = (r.conversationid);
-          const eid = (r.id);
-
-          const alternateCondition = r.isAlternate
-            ? r.alternatecondition
-            : null;
-          const alternateLine = r.isAlternate ? r.dialoguetext : null;
-          if (cid && !eid) {
-            await jumpToConversationRoot(cid);
-          } else {
-            await navigateToEntry(cid, eid, true, alternateCondition, alternateLine);
-          }
-
-          closeMobileSearchScreen();
-        });
+        div.addEventListener("click", handleSearchResultClick);
 
         mobileSearchResults.appendChild(div);
       });
@@ -642,21 +478,21 @@ function performMobileSearch(resetSearch = true) {
 
     // Update header with current count: prefer DB total unless client-only whole-words filter is active
     if (wholeWordsCheckbox.checked && (searchInput.value || "").trim()) {
-      setSearchCount(`Search Results (${currentSearchFilteredCount})`);
+      setSearchCount(`Search Results (${getCurrentSearchFilteredCount()})`);
     } else {
       setSearchCount(`Search Results (${total})`);
     }
 
     // Update offset for next load (based on database results, not filtered)
-    currentSearchOffset += results.length;
-    
+    incrementCurrentSearchOffset(results.length);
+
     // Update URL with search params (on initial search)
     if (resetSearch) {
       updateUrlWithSearchParams(searchInput.value, selectedTypeIds);
     }
 
     // Add loading indicator if there are more results in the database and we got results this time
-    if (results.length > 0 && currentSearchOffset < currentSearchTotal) {
+    if (results.length > 0 && getCurrentSearchOffset() < getCurrentSearchTotal()) {
       toggleElementVisibility(searchLoader, true);
     }
   } catch (e) {
@@ -667,7 +503,72 @@ function performMobileSearch(resetSearch = true) {
     }
   } finally {
     // Remove any existing loading indicator
-    isLoadingMore = false;
+    setIsLoadingMore(false);
     toggleElementVisibility(searchLoader, false);
   }
 }
+function setSearchCount(value) {
+  const searchCounters = document.querySelectorAll(".search-count");
+  searchCounters.forEach((element) => {
+    element.textContent = value;
+    toggleElementVisibility(element, true);
+  });
+}
+function filterResultsByType(results, typeSet) {
+  // Helper: filter a list of results by a set of types (treat 'all' as no-op)
+  if (!typeSet || typeSet.has("all") || typeSet.size === 0) return results;
+  return results.filter((r) => {
+    const convo = getConversationById(r.conversationid);
+    const type = convo ? convo.type || "flow" : "flow";
+    return typeSet.has(type);
+  });
+}
+function getConversationsByType(type, showHidden) {
+  // Helper: fetch conversations by type (used for type-only searches with no text)
+  if (!type) return [];
+  let where = `type='${type}'`;
+  if (!showHidden) {
+    where += ` AND isHidden != 1`;
+  }
+  const sql = `SELECT id as conversationid, null as id, description as dialoguetext, title, actor, isHidden FROM conversations WHERE ${where} ORDER BY title;`;
+  return execRows(sql);
+}
+function setCurrentSearchRawResults(value) {
+  // Keep raw (DB) results so we can apply client-side filters like whole-words without re-querying
+  currentSearchRawResults = value;
+}
+function getCurrentSearchRawResults() {
+  return currentSearchRawResults;
+}
+export function createSearchResultDiv(r, query) {
+  // Create a result `div` element for a search result (shared by desktop and mobile)
+  const hasQuotedPhrases = /"[^"]+"/g.test(query);
+  const highlightedTitle = highlightTerms(
+    r.title || "",
+    query,
+    hasQuotedPhrases
+  );
+  const highlightedText = highlightTerms(
+    r.dialoguetext || "",
+    query,
+    hasQuotedPhrases
+  );
+  const convo = getConversationById(r.conversationid);
+  const convoType = convo ? convo.type || "flow" : "flow";
+  const div = createCardItem(
+    highlightedTitle,
+    r.conversationid,
+    r.id,
+    highlightedText,
+    true,
+    convoType
+  );
+  div.dataset.actor = r.actor;
+  div.dataset.dialogueText = r.dialoguetext;
+  div.dataset.isHidden = r.isHidden;
+  div.dataset.title = r.title;
+  div.dataset.isAlternate = r.isAlternate === true;
+  div.dataset.alternateCondition = r.alternatecondition;
+  return div;
+}
+

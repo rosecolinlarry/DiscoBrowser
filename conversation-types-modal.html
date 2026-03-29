@@ -1,0 +1,41 @@
+<div
+  class="modal"
+  role="dialog"
+  aria-labelledby="conversationTypesModalTitle"
+  aria-modal="true"
+>
+  <div class="modal-header">
+    <h3 id="conversationTypesModalTitle">Conversation Tree</h3>
+    <button
+      id="conversationTypesModalClose"
+      class="modal-close button-icon"
+      aria-label="Close"
+    >
+      <div
+        class="icon-placeholder"
+        data-icon-template="icon-close-template"
+        data-icon-size="24px"
+      ></div>
+    </button>
+  </div>
+  <div class="modal-body">
+    <p>Filter by conversation title or numeric conversation id. 
+      Conversation id takes precedence if both search text and number are entered.
+      Also filter by conversation type: flow, orb, task.</p>
+
+    <ul class="modal-type-list">
+      <li>
+        <span class="type-badge type-flow">FLOW</span> Standard NPC
+        conversations with branching dialogue
+      </li>
+      <li>
+        <span class="type-badge type-orb">ORB</span> Environmental interactions
+        and observations
+      </li>
+      <li>
+        <span class="type-badge type-task">TASK</span> Quest log entries and
+        objectives
+      </li>
+    </ul>
+  </div>
+</div>
