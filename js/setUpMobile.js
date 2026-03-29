@@ -156,17 +156,13 @@ function setupMobileSidebar() {
   }
 }
 function showMobileConvoFilter() {
-  // Close the mobile search screen visually and push a history entry for the filter page (mobile only)
-  closeMobileSearchScreen();
-  if (mobileMediaQuery.matches && !getIsHandlingPopState()) {
+  if (mobileMediaQuery.matches) {
     pushHistoryState("mobile-filter", { filter: "convo" });
   }
   toggleElementVisibility(mobileConvoFilterWrapper, true);
 }
 function showMobileActorFilter() {
-  // Close the mobile search screen visually and push a history entry for the filter page (mobile only)
-  closeMobileSearchScreen();
-  if (mobileMediaQuery.matches && !getIsHandlingPopState()) {
+  if (mobileMediaQuery.matches) {
     pushHistoryState("mobile-filter", { filter: "actor" });
   }
   toggleElementVisibility(mobileActorFilterWrapper, true);
@@ -176,6 +172,9 @@ function showMobileTypeFilter() {
   toggleElementVisibility(typeFilterDropdown, true);
 }
 function setupMobileConvoFilter() {
+  const backBtn = $("mobileConvoFilterBack");
+  backBtn?.addEventListener("click", handleMobileConvoFilterBackButtonClick);
+  
   function handleMobileConvoFilterBackButtonClick() {
     // Use browser back on mobile to return to the previous view so history is kept in sync
     const wrapper = $("mobileConvoFilterWrapper"); // Checklist
@@ -187,25 +186,6 @@ function setupMobileConvoFilter() {
       search(true);
     }
   }
-  function handleMobileConvoFilterWrapperClick(e) {
-    // Close when clicking outside the content area (mobile only)
-    const wrapper = $("mobileConvoFilterWrapper"); // Checklist
-    if (e.target === wrapper) {
-      if (mobileMediaQuery.matches) {
-        window.history.back();
-      } else {
-        toggleElementVisibility(wrapper, false);
-        search(true);
-      }
-    }
-  }
-  const backBtn = $("mobileConvoFilterBack");
-  backBtn?.addEventListener("click", handleMobileConvoFilterBackButtonClick);
-
-  mobileConvoFilterWrapper?.addEventListener(
-    "click",
-    handleMobileConvoFilterWrapperClick,
-  );
 }
 function setupMobileActorFilter() {
   const backBtn = $("mobileActorFilterBack");
@@ -219,23 +199,6 @@ function setupMobileActorFilter() {
       search(true);
     }
   }
-
-  function handleMobileActorFilterWrapperClick(e) {
-    const wrapper = $("mobileActorFilterWrapper");
-    // Close when clicking outside the content area
-    if (e.target === wrapper) {
-      if (mobileMediaQuery.matches) {
-        window.history.back();
-      } else {
-        toggleElementVisibility(e.target, false);
-        search(true);
-      }
-    }
-  }
-  mobileActorFilterWrapper?.addEventListener(
-    "click",
-    handleMobileActorFilterWrapperClick,
-  );
 }
 function setupMobileTypeFilter() {
   // Skip setup if required elements are missing (indicates refactored HTML)

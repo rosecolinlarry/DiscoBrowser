@@ -6,6 +6,8 @@ import {
   dialogueContent,
   entryListEl,
   homePageContainer,
+  mobileActorFilterWrapper,
+  mobileConvoFilterWrapper,
   searchInput,
   selectAllTypes,
   typeCheckboxList,
@@ -356,8 +358,7 @@ function setUpActorFilterDropdown() {
     updateActorFilterLabel();
 
     if (mobileMediaQuery.matches) {
-      // Mobile: close via history so previous view is restored
-      window.history.back();
+      toggleElementVisibility(mobileActorFilterWrapper, false);
     } else {
       // Desktop: close the dropdown and re-run a reset search
       toggleElementVisibility(actorFilterDropdown, false);
@@ -509,13 +510,12 @@ function setUpConvoFilterDropdown() {
     renderConvoList(getConvos());
     updateConvoFilterLabel();
     if (mobileMediaQuery.matches) {
-      // Mobile: use history to close the mobile filter so history entries remain consistent
-      window.history.back();
+      toggleElementVisibility(mobileConvoFilterWrapper, false);
     } else {
       // Desktop: close the dropdown and apply search
       toggleElementVisibility(convoFilterDropdown, false);
-      search(true);
     }
+    search(true);
   }
   addToSelectionBtn?.addEventListener("click", handleAddToSelectionButtonClick);
 
