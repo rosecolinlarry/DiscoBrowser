@@ -7,3 +7,9 @@ export function toggleHomepageLoader(isLoading) {
   toggleElementVisibility(homepageLoader, isLoading);
   toggleElementVisibility(homepageOverlay, isLoading);
 }
+
+const elem = $("progressBar");
+export function setProgressBarPercent(percentLoaded) {
+  elem.style.width = percentLoaded + "%";
+  elem.innerHTML = percentLoaded + "%";
+}

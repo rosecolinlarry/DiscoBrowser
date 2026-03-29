@@ -128,6 +128,27 @@ body::-webkit-scrollbar-thumb:hover {
 
 /* #endregion */
 /* #region Loader */
+.progress-bar-container {
+  width: 50%;
+  background-color: #ddd;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+}
+
+.progress-bar {
+  width: 0%;
+  height: 30px;
+  background-color: var(--teal);
+  text-align: center;
+  line-height: 30px;
+  color: var(--bg);
+  transition: width 0.3s;
+  border-radius: 3px;
+}
+
 .loader {
   color: var(--teal);
   font-size: medium;
@@ -159,33 +180,6 @@ body::-webkit-scrollbar-thumb:hover {
 
 .loader-container.hidden {
   display: none;
-}
-
-.loader-text {
-  position: absolute;
-  margin-top: 150px;
-  text-align: center;
-}
-
-.spinner {
-  border: 16px solid  rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
-  border-top: 16px solid var(--teal);
-  -webkit-animation: spin 2s linear infinite;
-  animation: spin 2s linear infinite;
-  box-sizing: border-box;
-  width: 120px;
-  height: 120px;
-}
-
-@-webkit-keyframes spin {
-  0% { -webkit-transform: rotate(0deg); }
-  100% { -webkit-transform: rotate(360deg); }
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 /* Add animation to "page content" */
@@ -230,12 +224,12 @@ body::-webkit-scrollbar-thumb:hover {
   }
 
   &.type-orb:not(.active) {
-    background-color: #4ac6aa;
+    background-color: var(--teal);
     color: #000;
   }
 
   &.type-task:not(.active) {
-    background-color: #d7421c;
+    background-color: var(--disco-orange);
     color: #fff;
   }
 
@@ -247,7 +241,7 @@ body::-webkit-scrollbar-thumb:hover {
   }
 
   &.type-flow:not(.active) {
-    background-color: #666;
+    background-color: var(--muted);
     color: #fff;
   }
 
@@ -930,11 +924,11 @@ button.button-icon.help-button-icon {
 }
 
 .tree .label.highlight-orb:hover {
-  color: #4ac6aa;
+  color: var(--teal);
 }
 
 .tree .label.highlight-task:hover {
-  color: #d7421c;
+  color: var(--disco-orange);
 }
 
 .tree .children {
@@ -965,7 +959,7 @@ button.button-icon.help-button-icon {
 }
 
 .tree .label.highlight-task.selected {
-  color: #d7421c;
+  color: var(--disco-orange);
 }
 /* #endregion */
 /* #region History Section */
