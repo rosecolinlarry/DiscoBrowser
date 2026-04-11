@@ -50,6 +50,7 @@ Note: There are some dialogue that is in the game files but not presented in gam
   - Checks (skills, difficulty)
   - Parents / children links (dlinks)
   - Entry and conversation metadata tables
+  - Subtasks
 - **History & navigation**
   - Navigation history (chat log) with back / root navigation to re-open conversations and entries.
   - Can also use the browser's navigation buttons
