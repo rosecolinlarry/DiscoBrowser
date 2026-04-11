@@ -205,6 +205,7 @@ export function renderConvoDetails(containerEl, data) {
   if (data.type == "task") {
     wrapper.appendChild(createTaskTable(data.taskDetails));
   }
+  if (data?.subtasks?.length) wrapper.appendChild(createSubtasksList(data.subtasks))
   containerEl.appendChild(wrapper);
 }
 export function renderEntryDetails(containerEl, data) {
@@ -501,6 +502,35 @@ function createChildrenList(children) {
     section.appendChild(createPlaceholderItem());
   }
   return section;
+}
+function createSubtasksList(subtasks) {
+  const section = createDetailsSectionHeader("Subtasks");
+  const list = document.createElement("div");
+  list.className = "details-list";
+  if (subtasks && subtasks.length) {
+    subtasks.forEach((subtask) => {
+      const item = createSubtasksTable(subtask);
+      list.appendChild(item);
+    });
+    section.appendChild(list);
+  } else {
+    section.append(createPlaceholderItem());
+  }
+  return section;
+}
+function createSubtasksTable(data) {
+  const tableDiv = createDetailsSectionHeader(`Subtask #${data.id} - ${data.name}`);
+  const rows = [
+    ["Name", data.name],
+    ["Is Timed", data.isTimed],
+    ["Display Condition", data.displayCondition],
+    ["Done Condition", data.doneCondition],
+    ["Cancel Condition", data.cancelCondition],
+    ["Is Hidden", data.isHidden],
+  ];
+
+  tableDiv.appendChild(buildTable(rows));
+  return tableDiv;
 }
 function createEntryTable(data) {
   const tableDiv = createDetailsSectionHeader("Entry");

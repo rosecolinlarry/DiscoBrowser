@@ -7,6 +7,7 @@ import {
   getAlternates,
   getChecks,
   getParentsChildren,
+  getSubtasks
 } from "./sqlHelpers.js";
 import { showHidden } from "./userSettings.js";
 import {
@@ -42,6 +43,11 @@ export async function showConvoDetails(convoId) {
     totalSubtasks: coreRow.totalSubtasks,
   };
 
+  var subtasks = [];
+  if(taskDetails.totalSubtasks > 0) {
+    subtasks = getSubtasks(convoId, showHidden());
+  }
+
   renderConvoDetails(entryDetailsEl, {
     convoId: coreRow.id,
     conversationTitle: coreRow.title,
@@ -63,6 +69,7 @@ export async function showConvoDetails(convoId) {
     difficulty: coreRow.difficulty,
     totalSubtasks: coreRow.totalSubtasks,
     taskDetails: taskDetails,
+    subtasks: subtasks
   });
 }
 export async function showEntryDetails(

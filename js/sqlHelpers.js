@@ -151,6 +151,27 @@ export function getChecks(convoId, entryId) {
       AND dialogueid=${entryId};`
   );
 }
+
+
+export function getSubtasks(convoId, showHidden) {
+  convoId = parseInt(convoId);
+  if(!Number.isInteger(convoId)) {
+    return;
+  }
+
+  var query = 
+    `SELECT conversationid, id, name, isTimed, displayCondition, doneCondition, cancelCondition, isHidden 
+      FROM subtasks
+      WHERE conversationid = ${convoId} `
+
+    if (!showHidden) {
+      query += `AND isHidden != 1 `;
+    }
+
+    query += 'ORDER BY id ASC;'
+    return execRows(query);
+}
+
 export function getParentsChildren(convoId, entryId) {
   entryId = parseInt(entryId);
   convoId = parseInt(convoId);
