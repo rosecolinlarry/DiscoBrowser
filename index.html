@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <!-- #region Google Tag Manager -->
@@ -189,10 +189,13 @@
     <!-- #endregion -->
     <main>
       <!-- #region Global Overlay when Loading-->
-       <div id="homepageLoader" class="loader-container">
-         <div id="progressBarContainer" class="progress-bar-container">
+      <div id="homepageLoader" class="loader-container">
+        <div id="progressBarContainer" class="progress-bar-container">
           <div id="progressBar" class="progress-bar"></div>
         </div>
+      </div>
+      <div id="homepageLoaderTextContainer" class="loader-container">
+        <div  id="homepageLoaderText" class="loader"></div>
       </div>
       <div id="homepageOverlay" class="sidebar-overlay"></div>
       <!-- #endregion -->
@@ -337,7 +340,7 @@
       </div>
       <!-- #endregion -->
       <!-- #region Blurred Sidebar Overlay -->
-      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+      <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
       <!-- #endregion -->
       <!-- #region Desktop Header -->
       <div class="header-container">
@@ -399,17 +402,17 @@
               </button>
             </div>
             <div class="clear-icon-btn-wrapper desktop">
-            <button
-              id="searchClearBtn"
-              class="button-icon search-icon-btn hidden"
-              title="Search"
-            >
-              <div
-                class="icon-placeholder"
-                data-icon-template="icon-close-template"
-                data-icon-size="24px"
-              ></div>
-            </button>
+              <button
+                id="searchClearBtn"
+                class="button-icon search-icon-btn hidden"
+                title="Search"
+              >
+                <div
+                  class="icon-placeholder"
+                  data-icon-template="icon-close-template"
+                  data-icon-size="24px"
+                ></div>
+              </button>
             </div>
           </div>
           <div id="wholeWordsButtonWrapper">
@@ -789,11 +792,10 @@
       </div>
     </main>
     <!-- #region Conversation Types Modal -->
-    <div id="conversationTypesModalOverlay" class="modal-overlay">
-    </div>
+    <div id="conversationTypesModalOverlay" class="modal-overlay hidden"></div>
     <!-- #endregion -->
     <!-- #region Settings Modal -->
-    <div id="settingsModalOverlay" class="modal-overlay"></div>
+    <div id="settingsModalOverlay" class="modal-overlay hidden"></div>
     <!-- #endregion -->
     <script type="module" src="js/boot.js"></script>
   </body>
